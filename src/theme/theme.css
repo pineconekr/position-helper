@@ -1,0 +1,92 @@
+:root {
+	--bg: #0b0e11;
+	--panel: #141a21;
+	--text: #e6edf3;
+	--muted: #9fb0c0;
+	--text-secondary: #9fb0c0;
+	--accent: #5cc8ff;
+	--danger: #ff5c7a;
+	--border: #223041;
+	--shadow: rgba(0, 0, 0, 0.35);
+	--radius: 12px;
+}
+
+html[data-theme='light'] {
+	--bg: #fafbfc;
+	--panel: #ffffff;
+	--text: #0b1220;
+	--muted: #5a6b7a;
+	--text-secondary: #5a6b7a;
+	--accent: #0ea5e9;
+	--danger: #dc2626;
+	--border: #e5e7eb;
+	--shadow: rgba(0, 0, 0, 0.08);
+}
+
+* { box-sizing: border-box; }
+body, #root { 
+	margin: 0; height: 100vh; background: var(--bg); color: var(--text);
+	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Apple SD Gothic Neo, Helvetica Neue, Arial, "맑은 고딕", "Malgun Gothic", sans-serif;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+a { color: inherit; text-decoration: none; }
+
+.app-shell { display: grid; grid-template-rows: 56px 1fr; height: 100vh; }
+.app-header {
+	display: flex; align-items: center; gap: 16px; padding: 0 16px;
+	background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.brand { font-weight: 700; }
+.nav { display: flex; gap: 12px; }
+.nav a { padding: 8px 10px; border-radius: 8px; color: var(--muted); }
+.nav a.active { color: var(--text); background: rgba(94, 234, 212, 0.08); }
+.app-main { padding: 16px; overflow: auto; }
+
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 6px 18px var(--shadow); }
+.row { display: flex; gap: 16px; }
+.col { display: flex; flex-direction: column; gap: 12px; }
+.grid { display: grid; gap: 12px; }
+.btn {
+	padding: 8px 12px; background: var(--panel); border: 1px solid var(--border);
+	color: var(--text); border-radius: 8px; cursor: pointer;
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.btn.primary { background: var(--accent); color: #001018; border-color: transparent; }
+.btn:hover { background: rgba(255,255,255,0.04); }
+.btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.25); }
+.btn-remove {
+	width: 24px; height: 24px; padding: 0; border: 1px solid var(--border);
+	background: var(--panel); color: var(--muted); border-radius: 50%;
+	cursor: pointer; display: flex; align-items: center; justify-content: center;
+	font-size: 18px; line-height: 1; flex-shrink: 0;
+}
+.btn-remove:hover { background: var(--danger); color: white; border-color: var(--danger); }
+.badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; font-size: 12px; color: var(--muted); }
+.badge.danger { border-color: var(--danger); color: var(--danger); }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { border: 1px solid var(--border); padding: 10px; }
+.table thead th { background: rgba(255, 255, 255, 0.04); text-align: left; font-weight: 600; }
+.table tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+.muted { color: var(--muted); }
+
+.dnd-container { display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
+.member-item { padding: 8px 10px; border: 1px solid var(--border); border-radius: 999px; margin-bottom: 8px; background: rgba(255,255,255,0.03); }
+.member-item:hover { background: rgba(255,255,255,0.06); }
+.member-list.horizontal { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.role-cell { min-height: 44px; display: flex; align-items: center; gap: 8px; }
+.role-slot { padding: 6px 8px; border: 1px dashed var(--border); border-radius: 8px; min-width: 100px; display: inline-flex; align-items: center; justify-content: center; }
+
+.toolbar { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+
+/* 경고 상세 패널 */
+.warning-panel { border-color: var(--danger) !important; }
+.warning-panel ul { list-style: none; padding: 0; margin: 0; }
+.warning-panel li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: rgba(255, 92, 122, 0.05); }
+.warning-panel li:last-child { margin-bottom: 0; }
+
+/* 배정 셀 내부 pill */
+.assigned-pill { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: rgba(255,255,255,0.06); }
+
+

@@ -1,0 +1,20 @@
+[package]
+name = "position-helper"
+version = "0.1.0"
+description = "Position Helper - Tauri App"
+authors = ["position-helper"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1", features = [] }
+
+[dependencies]
+tauri = { version = "1", features = ["shell-open", "dialog-open", "dialog-save", "fs-read-file", "fs-write-file"] }
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+*** End Patch ***!
+
