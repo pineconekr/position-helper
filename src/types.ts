@@ -17,6 +17,16 @@ export type MembersEntry = { name: string; notes?: string; active: boolean }
 export type AppData = { weeks: Record<string, WeekData>; members: MembersEntry[] }
 export type CurrentWeekTemplate = { current_week: { part1: PartAssignment; part2: PartAssignment } }
 
+export type ActivityType = 'assignment' | 'absence' | 'finalize' | 'member' | 'system'
+export type ActivityEntry = {
+	id: string
+	timestamp: string
+	type: ActivityType
+	title: string
+	description?: string
+	meta?: Record<string, unknown>
+}
+
 const NonEmptyString = z.string()
 export const ZPartAssignment = z.object({
 	SW: z.string(),

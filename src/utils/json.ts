@@ -185,16 +185,27 @@ export async function openJsonFile(): Promise<AppData | null> {
 	}
 }
 
-export async function saveJsonFile(data: AppData): Promise<boolean> {
+function sanitizeFileName(name: string): string {
+	return name.replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
+}
+
+function ensureJsonExtension(name: string): string {
+	return name.toLowerCase().endsWith('.json') ? name : `${name}.json`
+}
+
+export async function saveJsonFile(data: AppData, suggestedFileName?: string): Promise<boolean> {
 	// 내보내기 포맷: members는 이름 문자열 배열로 저장
 	const toExport = {
 		...data,
 		members: data.members.map((m) => m.name)
 	}
+	const defaultFileName = 'position-helper-data.json'
+	const normalized = suggestedFileName?.trim()
+	const fileName = sanitizeFileName(ensureJsonExtension(normalized && normalized.length > 0 ? normalized : defaultFileName))
 	// Tauri 경로
 	if (isTauri()) {
 		try {
-			const filePath = await dialog.save({ filters: [{ name: 'JSON', extensions: ['json'] }] })
+			const filePath = await dialog.save({ filters: [{ name: 'JSON', extensions: ['json'] }], defaultPath: fileName })
 			if (!filePath) return false
 			await fs.writeFile(filePath, JSON.stringify(toExport, null, 2))
 			return true
@@ -210,7 +221,7 @@ export async function saveJsonFile(data: AppData): Promise<boolean> {
 		const url = URL.createObjectURL(blob)
 		const a = document.createElement('a')
 		a.href = url
-		a.download = 'position-helper-data.json'
+		a.download = fileName
 		document.body.appendChild(a)
 		a.click()
 		a.remove()

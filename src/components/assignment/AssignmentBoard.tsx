@@ -6,6 +6,7 @@ import WarningBadge from '../common/WarningBadge'
 import type { RoleKey } from '../../types'
 import type { Warning } from '../../types'
 import Modal from '../common/Modal'
+import ActivityFeed from '../common/ActivityFeed'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -30,7 +31,11 @@ export default function AssignmentBoard() {
 
 	// 초기 렌더 시 날짜가 비어 있으면 오늘 날짜로 기본 설정
 	useEffect(() => {
-		if (!currentWeekDate) setWeekDate(formatDateISO(new Date()))
+		if (!currentWeekDate) {
+			const today = formatDateISO(new Date())
+			setWeekDate(today)
+			loadWeekToDraft(today)
+		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
@@ -164,7 +169,12 @@ export default function AssignmentBoard() {
 							<input
 								type="date"
 								value={currentWeekDate || formatDateISO(new Date())}
-								onChange={(e) => setWeekDate(e.target.value)}
+								onChange={(e) => {
+									const next = e.target.value
+									if (!next) return
+									setWeekDate(next)
+									loadWeekToDraft(next)
+								}}
 							/>
 							<button className="btn" onClick={() => setCalendarOpen(true)}>캘린더</button>
 							{currentAbsences.length > 0 && (
@@ -392,6 +402,7 @@ export default function AssignmentBoard() {
 									if (!isSunday(d)) return
 									const iso = formatDateISO(d)
 									setWeekDate(iso)
+									loadWeekToDraft(iso)
 									setCalendarOpen(false)
 								}}
 							/>
@@ -399,21 +410,18 @@ export default function AssignmentBoard() {
 					</Modal>
 				</div>
 
-				{/* 배정 이력 */}
-				<div className="panel" style={{ padding: 12 }}>
-					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-						<div style={{ fontWeight: 700 }}>배정 이력</div>
-					</div>
-					<div className="muted">아래 팀원 리스트와 함께 배정 작업을 완료한 뒤 이력에서 다시 불러올 수 있습니다.</div>
-				</div>
-
 				{/* 팀원 리스트 - 배정 박스 하단 가로 배열 */}
 				<MemberList orientation="horizontal" />
 
-				{/* 배정 이력 - 팀원 섹션 하단, 캘린더 선택 */}
+				<ActivityFeed
+					title="최근 배정 변경 내역"
+					filter={['assignment', 'absence', 'finalize']}
+					emptyMessage="아직 변경 기록이 없습니다. 배정을 시작해보세요."
+				/>
+
 				<div className="panel" style={{ padding: 12 }}>
 					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-						<div style={{ fontWeight: 700 }}>배정 이력</div>
+						<div style={{ fontWeight: 700 }}>저장된 주차 불러오기</div>
 						<div style={{ display: 'flex', gap: 8 }}>
 							<button className="btn" onClick={() => setHistoryOpen(true)}>캘린더에서 불러오기</button>
 						</div>

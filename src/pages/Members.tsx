@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAppStore } from '../state/store'
 import Modal from '../components/common/Modal'
+import ActivityFeed from '../components/common/ActivityFeed'
 
 function extractGeneration(name: string): { generation: number | null; displayName: string } {
 	const match = name.match(/^(\d+)\s+(.+)$/)
@@ -47,13 +48,16 @@ export default function Members() {
 		))
 		setEditingMember(null)
 	}
-
 	return (
-		<div className="panel" style={{ padding: 12 }}>
-			<h3 style={{ marginTop: 0 }}>팀원 관리</h3>
-			<div className="row">
+		<div className="col" style={{ gap: 16 }}>
+			<div className="panel" style={{ padding: 18 }}>
+				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+					<h3 style={{ margin: 0, fontSize: 20 }}>팀원 관리</h3>
+					<div className="muted" style={{ fontSize: 13 }}>팀원 정보를 수정하면 아래 활동 로그에 기록됩니다.</div>
+				</div>
+				<div className="row" style={{ alignItems: 'flex-start' }}>
 				<div className="col" style={{ flex: 1 }}>
-					<div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 12, background: 'var(--panel)' }}>
+					<div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: 14, background: 'var(--surface)' }}>
 						<div className="row" style={{ gap: 8 }}>
 							<div className="col">
 								<label>이름 <span style={{ fontSize: '0.85em', color: 'var(--text-secondary)' }}>(예: 20 솔빈)</span></label>
@@ -167,6 +171,13 @@ export default function Members() {
 					/>
 				</div>
 			</Modal>
+		</div>
+
+		<ActivityFeed
+			title="최근 팀원 변경 내역"
+			filter={['member']}
+			emptyMessage="팀원 변경 기록이 아직 없습니다."
+		/>
 		</div>
 	)
 }
