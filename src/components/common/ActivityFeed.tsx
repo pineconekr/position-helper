@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import { useAppStore } from '../../state/store'
 import type { ActivityType } from '../../types'
 
@@ -38,6 +38,14 @@ export default function ActivityFeed({
 	emptyMessage = '최근 활동이 없습니다.'
 }: ActivityFeedProps) {
 	const activityLog = useAppStore((s) => s.activityLog)
+	const removeActivity = useAppStore((s) => s.removeActivity)
+
+	const handleRemove = useCallback(
+		(id: string) => {
+			removeActivity(id)
+		},
+		[removeActivity]
+	)
 
 	const displayEntries = useMemo(() => {
 		const base = filter && filter.length > 0
@@ -69,9 +77,20 @@ export default function ActivityFeed({
 							<span className={`activity-feed__badge activity-feed__badge--${entry.type}`}>
 								{typeLabels[entry.type]}
 							</span>
-							<time className="activity-feed__time" dateTime={entry.timestamp}>
-								{formatTime(entry.timestamp)}
-							</time>
+							<div className="activity-feed__meta-right">
+								<time className="activity-feed__time" dateTime={entry.timestamp}>
+									{formatTime(entry.timestamp)}
+								</time>
+								<button
+									type="button"
+									className="activity-feed__remove"
+									onClick={() => handleRemove(entry.id)}
+									aria-label="이 활동 로그 삭제"
+									title="이 활동 로그 삭제"
+								>
+									×
+								</button>
+							</div>
 						</div>
 						<div className="activity-feed__item-title">{entry.title}</div>
 						{entry.description && (

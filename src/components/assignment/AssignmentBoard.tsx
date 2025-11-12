@@ -1,5 +1,5 @@
 import { DndContext, DragEndEvent } from '@dnd-kit/core'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import MemberList from './MemberList'
 import RoleCell from './RoleCell'
 import WarningBadge from '../common/WarningBadge'
@@ -7,6 +7,7 @@ import type { RoleKey } from '../../types'
 import type { Warning } from '../../types'
 import Modal from '../common/Modal'
 import ActivityFeed from '../common/ActivityFeed'
+import AssignmentSummary from './AssignmentSummary'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -28,6 +29,7 @@ export default function AssignmentBoard() {
 	const [historyOpen, setHistoryOpen] = useState(false)
 	const [absenceForm, setAbsenceForm] = useState<{ name: string; reason: string }>({ name: '', reason: '' })
 	const [warningGroupBy, setWarningGroupBy] = useState<'none' | 'role' | 'name'>('role')
+	const absenceSectionRef = useRef<HTMLDivElement | null>(null)
 
 	// 초기 렌더 시 날짜가 비어 있으면 오늘 날짜로 기본 설정
 	useEffect(() => {
@@ -162,6 +164,15 @@ export default function AssignmentBoard() {
 	return (
 		<DndContext onDragEnd={handleDragEnd}>
 			<div className="col" style={{ gap: 16 }}>
+				<AssignmentSummary
+					onOpenCalendar={() => setCalendarOpen(true)}
+					onOpenHistory={() => setHistoryOpen(true)}
+					onFocusAbsence={() => {
+						if (absenceSectionRef.current) {
+							absenceSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+						}
+					}}
+				/>
 				<div className="panel" style={{ padding: 12 }}>
 					<div className="toolbar">
 						<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -303,7 +314,7 @@ export default function AssignmentBoard() {
 						)
 					})()}
 
-					<div className="panel" style={{ padding: 12, marginBottom: 12 }}>
+					<div ref={absenceSectionRef} className="panel" style={{ padding: 12, marginBottom: 12 }}>
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
 							<div style={{ fontWeight: 600 }}>불참자 관리</div>
 						</div>

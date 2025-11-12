@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 type Props = {
 	title: string
@@ -10,9 +11,9 @@ type Props = {
 
 export default function Modal({ title, open, onClose, children, footer }: Props) {
 	if (!open) return null
-	return (
-		<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)', display: 'grid', placeItems: 'center', zIndex: 50 }}>
-			<div className="panel" style={{ width: 520, maxWidth: '90vw', padding: 16, borderRadius: 12, boxShadow: '0 12px 32px rgba(0,0,0,0.35)' }}>
+	const overlay = (
+		<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', zIndex: 1000 }}>
+			<div className="panel" style={{ width: 520, maxWidth: '90vw', padding: 16, borderRadius: 12, boxShadow: '0 20px 48px rgba(15, 23, 42, 0.22)' }}>
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
 					<h3 style={{ margin: 0, fontSize: 18 }}>{title}</h3>
 					<button
@@ -39,6 +40,7 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 			</div>
 		</div>
 	)
+	return createPortal(overlay, document.body)
 }
 
 

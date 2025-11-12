@@ -5,6 +5,7 @@ import Stats from './pages/Stats'
 import Members from './pages/Members'
 import Settings from './pages/Settings'
 import ThemeToggle from './components/common/ThemeToggle'
+import ToastCenter from './components/common/ToastCenter'
 import { useAppStore } from './state/store'
 import './theme/theme.css'
 
@@ -42,13 +43,16 @@ export default function App() {
 				<ThemeToggle />
 			</header>
 			<main className="app-main">
-				<Routes>
-					<Route path="/" element={<Assign />} />
-					<Route path="/stats" element={<Stats />} />
-					<Route path="/members" element={<Members />} />
-					<Route path="/settings" element={<Settings />} />
-				</Routes>
+				<div className="app-main__page">
+					<Routes>
+						<Route path="/" element={<Assign />} />
+						<Route path="/stats" element={<Stats />} />
+						<Route path="/members" element={<Members />} />
+						<Route path="/settings" element={<Settings />} />
+					</Routes>
+				</div>
 			</main>
+			<ToastCenter />
 		</div>
 	)
 }

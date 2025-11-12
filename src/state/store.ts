@@ -58,6 +58,7 @@ export type AppState = {
 	toggleMemberActive: (name: string) => void
 	addActivity: (entry: Omit<ActivityEntry, 'id' | 'timestamp'>) => void
 	clearActivity: () => void
+	removeActivity: (id: string) => void
 	loadWeekToDraft: (date: string) => void
 	assignRole: (part: 'part1' | 'part2', role: keyof PartAssignment, value: string, index?: 0 | 1) => void
 	clearRole: (part: 'part1' | 'part2', role: keyof PartAssignment, index?: 0 | 1) => void
@@ -154,6 +155,10 @@ export const useAppStore = create<AppState>()(
 					return { activityLog: next }
 				}),
 			clearActivity: () => set({ activityLog: [] }),
+			removeActivity: (id) =>
+				set((s) => ({
+					activityLog: s.activityLog.filter((entry) => entry.id !== id)
+				})),
 			loadWeekToDraft: (date) => {
 				set((s) => {
 					const wk = s.app.weeks[date] ?? { part1: emptyPart(), part2: emptyPart(), absences: [] }

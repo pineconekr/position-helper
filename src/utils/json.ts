@@ -194,10 +194,14 @@ function ensureJsonExtension(name: string): string {
 }
 
 export async function saveJsonFile(data: AppData, suggestedFileName?: string): Promise<boolean> {
-	// 내보내기 포맷: members는 이름 문자열 배열로 저장
+	// 내보내기 포맷: members는 전체 객체로 저장 (active, notes 포함)
 	const toExport = {
 		...data,
-		members: data.members.map((m) => m.name)
+		members: data.members.map((m) => ({
+			name: m.name,
+			active: m.active !== false, // 기본값 true
+			...(m.notes ? { notes: m.notes } : {})
+		}))
 	}
 	const defaultFileName = 'position-helper-data.json'
 	const normalized = suggestedFileName?.trim()
