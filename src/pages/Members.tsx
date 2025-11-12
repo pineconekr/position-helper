@@ -73,10 +73,10 @@ export default function Members() {
 				</div>
 				<div className="row" style={{ alignItems: 'flex-start' }}>
 					<div className="col" style={{ flex: 1 }}>
-						<div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: 14, background: 'var(--surface)' }}>
+						<div style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 14, padding: 14, background: 'var(--color-surface-1)' }}>
 							<div className="row" style={{ gap: 8 }}>
 								<div className="col">
-									<label>이름 <span style={{ fontSize: '0.85em', color: 'var(--text-secondary)' }}>(예: 20 솔빈)</span></label>
+									<label>이름 <span style={{ fontSize: '0.85em', color: 'var(--color-text-subtle)' }}>(예: 20 솔빈)</span></label>
 									<input 
 										value={name} 
 										onChange={(e) => {
@@ -97,7 +97,7 @@ export default function Members() {
 								</div>
 							</div>
 							{formError && (
-								<div style={{ marginTop: 6, color: 'var(--danger)', fontSize: 13 }}>
+								<div style={{ marginTop: 6, color: 'var(--color-critical)', fontSize: 13 }}>
 									{formError}
 								</div>
 							)}
@@ -143,7 +143,7 @@ export default function Members() {
 										<td style={{ textAlign: 'left' }}>
 											<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
 												<span>{m.displayName}</span>
-												{!m.active && <span className="badge" style={{ background: 'var(--danger)', color: '#fff' }}>OFF</span>}
+												{!m.active && <span className="badge" style={{ background: 'var(--color-critical)', color: 'var(--color-text-on-strong)' }}>OFF</span>}
 												<button
 													onClick={() => openEditNotes(m.name)}
 													title="메모 수정"
@@ -155,7 +155,7 @@ export default function Members() {
 														padding: 4,
 														display: 'grid',
 														placeItems: 'center',
-														color: 'var(--text-secondary)',
+														color: 'var(--color-text-subtle)',
 														opacity: 0.6
 													}}
 													onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
@@ -208,7 +208,7 @@ export default function Members() {
 						value={editingMember?.notes || ''}
 						onChange={(e) => setEditingMember(editingMember ? { ...editingMember, notes: e.target.value } : null)}
 						placeholder="메모를 입력하세요"
-						style={{ minHeight: 120, resize: 'vertical', padding: 10, borderRadius: 8, border: '1px solid var(--border)', outline: 'none' }}
+						style={{ minHeight: 120, resize: 'vertical', padding: 10, borderRadius: 8, border: '1px solid var(--color-border-subtle)', outline: 'none' }}
 					/>
 				</div>
 			</Modal>

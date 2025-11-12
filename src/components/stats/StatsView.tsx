@@ -2,6 +2,7 @@ import Plot from 'react-plotly.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '../../state/store'
 import type { RoleKey, WeekData } from '../../types'
+import { motionDurMs, useShouldReduceMotion } from '../../utils/motion'
 
 const roles: RoleKey[] = ['SW', '자막', '고정', '사이드', '스케치']
 const chartHelpText = {
@@ -28,8 +29,13 @@ export default function StatsView() {
 	const app = useAppStore((s) => s.app)
 	const [member, setMember] = useState<string>('')
 	const [theme, setTheme] = useState<'light' | 'dark'>(() => (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light')
+	const prefersReducedMotion = useShouldReduceMotion()
 	const chartHeight = 400
 	const getBarChartHeight = (itemCount: number) => Math.max(300, itemCount * 30 + 80)
+	const chartTransition = useMemo(
+		() => (prefersReducedMotion ? { duration: 0 } : { duration: motionDurMs.chart, easing: 'cubic-in-out' as const }),
+		[prefersReducedMotion]
+	)
 
 	useEffect(() => {
 		const target = document.documentElement
@@ -43,21 +49,59 @@ export default function StatsView() {
 
 	const stylePalette = useMemo(() => {
 		const isDark = theme === 'dark'
+		const computed = typeof window !== 'undefined' ? getComputedStyle(document.documentElement) : null
+		const fallback = isDark
+			? {
+					text: '#f1f5ff',
+					grid: 'rgba(148,163,184,0.16)',
+					axis: 'rgba(148,163,184,0.36)',
+					panel: '#1d2534',
+					border: '#2b3448',
+					roleBar: '#7dadff',
+					absenceLow: '#44d38a',
+					absenceHigh: '#ff748b',
+					absenceNeutral: '#9aa3bb',
+					line: '#64d2ff',
+					lineMA: '#f7b955',
+					lineCV: '#c4b5fd',
+					medianLine: '#ff87b2'
+				}
+			: {
+					text: '#1f2937',
+					grid: 'rgba(15,23,42,0.12)',
+					axis: 'rgba(15,23,42,0.32)',
+					panel: '#eef2fb',
+					border: '#d5ddeb',
+					roleBar: '#2563eb',
+					absenceLow: '#16a34a',
+					absenceHigh: '#dc2626',
+					absenceNeutral: '#475569',
+					line: '#0d9488',
+					lineMA: '#f97316',
+					lineCV: '#9333ea',
+					medianLine: '#d92d43'
+				}
+
+		const read = (token: string, fallbackValue: string) => {
+			if (!computed) return fallbackValue
+			const value = computed.getPropertyValue(token)
+			return value ? value.trim() || fallbackValue : fallbackValue
+		}
+
 		return {
-			text: 'var(--text)',
-			grid: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
-			axis: isDark ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.32)',
-			panel: 'var(--panel)',
-			border: 'var(--border)',
-			// trace colors
-			roleBar: isDark ? '#93c5fd' : '#2563eb',
-			absenceLow: isDark ? '#34d399' : '#0d9488',
-			absenceHigh: isDark ? '#f87171' : '#dc2626',
-			absenceNeutral: isDark ? '#cbd5f5' : '#4b5563',
-			line: isDark ? '#60a5fa' : '#1d4ed8',
-			lineMA: isDark ? '#fbbf24' : '#b45309',
-			lineCV: isDark ? '#facc15' : '#b45309',
-			medianLine: isDark ? '#f97316' : '#c2410c'
+			text: read('--color-text-primary', fallback.text),
+			grid: read('--chart-grid', fallback.grid),
+			axis: read('--chart-axis', fallback.axis),
+			panel: read('--color-surface-2', fallback.panel),
+			border: read('--color-border-subtle', fallback.border),
+			roleBar: read('--data-series-1', fallback.roleBar),
+			absenceLow: read('--data-positive', fallback.absenceLow),
+			absenceHigh: read('--data-negative', fallback.absenceHigh),
+			absenceNeutral: read('--data-neutral', fallback.absenceNeutral),
+			line: read('--data-series-2', fallback.line),
+			lineMA: read('--data-series-3', fallback.lineMA),
+			lineCV: read('--data-series-6', fallback.lineCV),
+			medianLine: read('--data-series-5', fallback.medianLine)
 		}
 	}, [theme])
 
@@ -80,8 +124,9 @@ export default function StatsView() {
 			gridcolor: stylePalette.grid,
 			zerolinecolor: stylePalette.grid,
 			linecolor: stylePalette.axis
-		}
-	}), [stylePalette])
+		},
+		transition: chartTransition
+	}), [stylePalette, chartTransition])
 
 	const memberStatusMap = useMemo(() => {
 		const map = new Map<string, boolean>()
@@ -591,7 +636,7 @@ export default function StatsView() {
 					)}
 					</>
 				) : (
-					<div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted)' }}>
+					<div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
 						불참 데이터가 없습니다.
 					</div>
 				)}
@@ -664,7 +709,7 @@ export default function StatsView() {
 						style={{ width: '100%', height: chartHeight }}
 					/>
 				) : (
-					<div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted)' }}>
+					<div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
 						주차별 데이터가 없습니다.
 					</div>
 				)}
@@ -723,7 +768,7 @@ export default function StatsView() {
 						style={{ width: '100%', height: chartHeight * 0.6 }}
 					/>
 				) : (
-					<div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted)' }}>
+					<div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
 						월별 불참률 데이터가 없습니다.
 					</div>
 				)}
@@ -767,7 +812,7 @@ export default function StatsView() {
 						style={{ width: '100%', height: chartHeight }}
 					/>
 				) : (
-					<div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--muted)' }}>
+					<div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
 						출석 보정 역할 비율을 계산할 데이터가 없습니다.
 					</div>
 				)}

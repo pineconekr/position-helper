@@ -43,16 +43,20 @@ const countAssignedRoles = (part: PartAssignment): number => {
 	return count
 }
 
+export type MotionPreference = 'allow' | 'system' | 'reduce'
+
 export type AppState = {
 	app: AppData
 	currentWeekDate: string
 	currentDraft: { part1: PartAssignment; part2: PartAssignment }
 	warnings: Warning[]
 	theme: 'light' | 'dark' | 'system'
+	motionPreference: MotionPreference
 	activityLog: ActivityEntry[]
 	// actions
 	setTheme: (t: 'light' | 'dark' | 'system') => void
 	getEffectiveTheme: () => 'light' | 'dark'
+	setMotionPreference: (value: MotionPreference) => void
 	setWeekDate: (date: string) => void
 	setMembers: (members: MembersEntry[]) => void
 	toggleMemberActive: (name: string) => void
@@ -81,6 +85,7 @@ export const useAppStore = create<AppState>()(
 			currentDraft: { part1: emptyPart(), part2: emptyPart() },
 			warnings: [],
 			theme: 'system',
+			motionPreference: 'allow',
 			activityLog: [],
 			setTheme: (t) => {
 				set({ theme: t })
@@ -88,6 +93,7 @@ export const useAppStore = create<AppState>()(
 				document.documentElement.setAttribute('data-theme', effective)
 			},
 			getEffectiveTheme: () => getEffectiveTheme(get().theme),
+			setMotionPreference: (value) => set({ motionPreference: value }),
 			setWeekDate: (date) => {
 				set({ currentWeekDate: date })
 				get().recalcWarnings()
@@ -300,8 +306,21 @@ export const useAppStore = create<AppState>()(
 		}),
 		{
 			name: 'position-helper-store',
-			partialize: (s) => ({ app: s.app, theme: s.theme }),
-			version: 1,
+			partialize: (s) => ({ app: s.app, theme: s.theme, motionPreference: s.motionPreference }),
+			version: 3,
+			migrate: (persistedState, version) => {
+				if (!persistedState) return persistedState
+				if (version < 2) {
+					return { ...persistedState, motionPreference: 'allow' satisfies MotionPreference }
+				}
+				if (version === 2) {
+					const prev = persistedState as typeof persistedState & { reduceMotion?: boolean }
+					const preference: MotionPreference = prev.reduceMotion ? 'reduce' : 'allow'
+					const { reduceMotion, ...rest } = prev
+					return { ...rest, motionPreference: preference }
+				}
+				return persistedState as typeof persistedState & { motionPreference: MotionPreference }
+			},
 			onRehydrateStorage: () => (state) => {
 				if (state) {
 					const effective = getEffectiveTheme(state.theme)

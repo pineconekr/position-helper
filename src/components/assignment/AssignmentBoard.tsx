@@ -234,9 +234,9 @@ export default function AssignmentBoard() {
 
 						// 카드 렌더러
 						const Card = ({ w }: { w: Warning }) => (
-							<div key={w.id} className="warning-card" style={{ border: '1px solid var(--border)', background: 'var(--panel)', borderRadius: 8, padding: 10 }}>
+							<div key={w.id} className="warning-card" style={{ border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-2)', borderRadius: 8, padding: 10 }}>
 								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-									<div style={{ fontWeight: 700, color: w.level === 'error' ? 'var(--danger)' : 'var(--text)' }}>
+									<div style={{ fontWeight: 700, color: w.level === 'error' ? 'var(--color-critical)' : 'var(--color-text-primary)' }}>
 										[{w.level.toUpperCase()}] {w.message}
 									</div>
 									{(w.target?.role || w.target?.part) && (

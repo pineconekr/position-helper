@@ -1,5 +1,7 @@
 import { useCallback } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useFeedbackStore } from '../../state/feedback'
+import { motionDur, motionEase, useShouldReduceMotion } from '../../utils/motion'
 
 const kindIcon: Record<string, string> = {
 	success: '✅',
@@ -11,6 +13,7 @@ const kindIcon: Record<string, string> = {
 export default function ToastCenter() {
 	const toasts = useFeedbackStore((s) => s.toasts)
 	const dismiss = useFeedbackStore((s) => s.dismiss)
+	const prefersReducedMotion = useShouldReduceMotion()
 
 	const handleDismiss = useCallback(
 		(id: string) => {
@@ -23,29 +26,40 @@ export default function ToastCenter() {
 
 	return (
 		<div className="toast-center" aria-live="polite" role="status">
-			{toasts.map((toast) => (
-				<div
-					key={toast.id}
-					className={`toast toast--${toast.kind}`}
-					role={toast.kind === 'error' ? 'alert' : 'status'}
-				>
-					<div className="toast__icon" aria-hidden="true">
-						{kindIcon[toast.kind] ?? 'ℹ️'}
-					</div>
-					<div className="toast__body">
-						<div className="toast__title">{toast.title}</div>
-						{toast.description && <div className="toast__description">{toast.description}</div>}
-					</div>
-					<button
-						type="button"
-						className="toast__close"
-						onClick={() => handleDismiss(toast.id)}
-						aria-label="알림 닫기"
+			<AnimatePresence initial={false}>
+				{toasts.map((toast) => (
+					<motion.div
+						key={toast.id}
+						className={`toast toast--${toast.kind}`}
+						role={toast.kind === 'error' ? 'alert' : 'status'}
+						layout
+						initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={
+							prefersReducedMotion
+								? { opacity: 1, y: 0 }
+								: { opacity: 0, y: -10, transition: { duration: motionDur.quick, ease: motionEase.in } }
+						}
+						transition={prefersReducedMotion ? { duration: 0 } : { duration: motionDur.medium, ease: motionEase.out }}
 					>
-						×
-					</button>
-				</div>
-			))}
+						<div className="toast__icon" aria-hidden="true">
+							{kindIcon[toast.kind] ?? 'ℹ️'}
+						</div>
+						<div className="toast__body">
+							<div className="toast__title">{toast.title}</div>
+							{toast.description && <div className="toast__description">{toast.description}</div>}
+						</div>
+						<button
+							type="button"
+							className="toast__close"
+							onClick={() => handleDismiss(toast.id)}
+							aria-label="알림 닫기"
+						>
+							×
+						</button>
+					</motion.div>
+				))}
+			</AnimatePresence>
 		</div>
 	)
 }
