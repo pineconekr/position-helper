@@ -4,11 +4,10 @@ import { analyzeDraft, slotToLabel } from '../../utils/assignment'
 
 type Props = {
 	onOpenCalendar: () => void
-	onOpenHistory: () => void
 	onFocusAbsence: () => void
 }
 
-export default function AssignmentSummary({ onOpenCalendar, onOpenHistory, onFocusAbsence }: Props) {
+export default function AssignmentSummary({ onOpenCalendar, onFocusAbsence }: Props) {
 	const currentWeekDate = useAppStore((s) => s.currentWeekDate)
 	const draft = useAppStore((s) => s.currentDraft)
 	const warnings = useAppStore((s) => s.warnings)
@@ -112,10 +111,7 @@ export default function AssignmentSummary({ onOpenCalendar, onOpenHistory, onFoc
 
 			<div className="assignment-summary__actions">
 				<button type="button" className="btn" onClick={onOpenCalendar}>
-					주차 달력
-				</button>
-				<button type="button" className="btn" onClick={onOpenHistory}>
-					이력 불러오기
+					주차 선택
 				</button>
 				<button type="button" className="btn" onClick={onFocusAbsence}>
 					불참자 관리로 이동

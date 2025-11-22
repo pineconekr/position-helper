@@ -5,14 +5,11 @@ import RoleCell from './RoleCell'
 import WarningBadge from '../common/WarningBadge'
 import type { RoleKey } from '../../types'
 import type { Warning } from '../../types'
-import Modal from '../common/Modal'
 import ActivityFeed from '../common/ActivityFeed'
 import AssignmentSummary from './AssignmentSummary'
-import FullCalendar from '@fullcalendar/react'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
+import WeekCalendarModal from '../common/WeekCalendarModal'
 import { useAppStore } from '../../state/store'
-import { formatDateISO, isSunday } from '../../utils/date'
+import { formatDateISO } from '../../utils/date'
 
 export default function AssignmentBoard() {
 	const assignRole = useAppStore((s) => s.assignRole)
@@ -26,7 +23,6 @@ export default function AssignmentBoard() {
 	const clearRole = useAppStore((s) => s.clearRole)
 
 	const [calendarOpen, setCalendarOpen] = useState(false)
-	const [historyOpen, setHistoryOpen] = useState(false)
 	const [absenceForm, setAbsenceForm] = useState<{ name: string; reason: string }>({ name: '', reason: '' })
 	const [warningGroupBy, setWarningGroupBy] = useState<'none' | 'role' | 'name'>('role')
 	const absenceSectionRef = useRef<HTMLDivElement | null>(null)
@@ -45,15 +41,6 @@ export default function AssignmentBoard() {
 		if (!currentWeekDate) return []
 		return app.weeks[currentWeekDate]?.absences ?? []
 	}, [app.weeks, currentWeekDate])
-
-	const calendarEvents = useMemo(() => {
-		const entries = Object.entries(app.weeks).sort(([a], [b]) => a.localeCompare(b))
-		const out: { title: string; start: string }[] = []
-		for (const [date, week] of entries) {
-			week.absences.forEach((a) => out.push({ title: `불참: ${a.name}${a.reason ? `(${a.reason})` : ''}`, start: date }))
-		}
-		return out
-	}, [app.weeks])
 
 	function addAbsence() {
 		if (!currentWeekDate) return
@@ -164,15 +151,14 @@ export default function AssignmentBoard() {
 	return (
 		<DndContext onDragEnd={handleDragEnd}>
 			<div className="col" style={{ gap: 16 }}>
-				<AssignmentSummary
-					onOpenCalendar={() => setCalendarOpen(true)}
-					onOpenHistory={() => setHistoryOpen(true)}
-					onFocusAbsence={() => {
-						if (absenceSectionRef.current) {
-							absenceSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-						}
-					}}
-				/>
+			<AssignmentSummary
+				onOpenCalendar={() => setCalendarOpen(true)}
+				onFocusAbsence={() => {
+					if (absenceSectionRef.current) {
+						absenceSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+					}
+				}}
+			/>
 				<div className="panel" style={{ padding: 12 }}>
 					<div className="toolbar">
 						<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -395,30 +381,11 @@ export default function AssignmentBoard() {
 						</tbody>
 					</table>
 
-					<Modal
-						title="일정 선택 (일요일만 가능)"
+					<WeekCalendarModal
 						open={calendarOpen}
 						onClose={() => setCalendarOpen(false)}
-						footer={<button className="btn" onClick={() => setCalendarOpen(false)}>닫기</button>}
-					>
-						<div className="col">
-							<div className="muted" style={{ marginBottom: 8 }}>날짜를 클릭하면 배정 주차가 변경됩니다.</div>
-							<FullCalendar
-								plugins={[dayGridPlugin, interactionPlugin]}
-								initialView="dayGridMonth"
-								locale="ko"
-								events={calendarEvents}
-								dateClick={(arg: any) => {
-									const d = new Date(arg.dateStr)
-									if (!isSunday(d)) return
-									const iso = formatDateISO(d)
-									setWeekDate(iso)
-									loadWeekToDraft(iso)
-									setCalendarOpen(false)
-								}}
-							/>
-						</div>
-					</Modal>
+						onDateSelect={() => {}}
+					/>
 				</div>
 
 				{/* 팀원 리스트 - 배정 박스 하단 가로 배열 */}
@@ -430,41 +397,6 @@ export default function AssignmentBoard() {
 					emptyMessage="아직 변경 기록이 없습니다. 배정을 시작해보세요."
 				/>
 
-				<div className="panel" style={{ padding: 12 }}>
-					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-						<div style={{ fontWeight: 700 }}>저장된 주차 불러오기</div>
-						<div style={{ display: 'flex', gap: 8 }}>
-							<button className="btn" onClick={() => setHistoryOpen(true)}>캘린더에서 불러오기</button>
-						</div>
-					</div>
-					{Object.keys(app.weeks).length === 0 && <div className="muted" style={{ marginTop: 8 }}>저장된 이력이 없습니다.</div>}
-				</div>
-
-				<Modal
-					title="이력에서 불러오기 (일요일만 가능)"
-					open={historyOpen}
-					onClose={() => setHistoryOpen(false)}
-					footer={<button className="btn" onClick={() => setHistoryOpen(false)}>닫기</button>}
-				>
-					<div className="col">
-						<div className="muted" style={{ marginBottom: 8 }}>배정 이력이 있는 일요일 날짜를 선택하세요.</div>
-						<FullCalendar
-							plugins={[dayGridPlugin, interactionPlugin]}
-							initialView="dayGridMonth"
-							locale="ko"
-							events={Object.keys(app.weeks).map((d) => ({ title: '배정 이력', start: d }))}
-							dateClick={(arg: any) => {
-								const d = new Date(arg.dateStr)
-								const iso = formatDateISO(d)
-								// 이력이 있고, 일요일만 허용
-								if (!isSunday(d)) return
-								if (!(iso in app.weeks)) return
-								loadWeekToDraft(iso)
-								setHistoryOpen(false)
-							}}
-						/>
-					</div>
-				</Modal>
 			</div>
 		</DndContext>
 	)
