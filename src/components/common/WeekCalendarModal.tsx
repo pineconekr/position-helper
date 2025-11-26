@@ -44,20 +44,22 @@ const calendarStyles = String.raw`
 		color: var(--color-text-primary);
 	}
 	.fc-button {
-		background: var(--button-bg) !important;
-		border: 1px solid var(--button-border) !important;
+		background: var(--color-surface-2) !important;
+		border: 1px solid var(--color-border-subtle) !important;
 		color: var(--color-text-primary) !important;
 		font-weight: 500;
 		padding: 6px 12px !important;
 		box-shadow: none !important;
 		opacity: 1 !important;
+		transition: background-color var(--motion-duration-fast) var(--motion-ease-default), color var(--motion-duration-fast) var(--motion-ease-default), border-color var(--motion-duration-fast) var(--motion-ease-default) !important;
 	}
 	.fc-button:hover {
-		background: var(--button-bg-hover) !important;
+		background: var(--color-surface-1) !important;
 	}
 	.fc-button-active,
 	.fc-button:active {
-		background: var(--button-bg-hover) !important;
+		background: var(--color-accent-soft) !important;
+		border-color: var(--color-accent) !important;
 		color: var(--color-accent) !important;
 	}
 

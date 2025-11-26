@@ -8,8 +8,14 @@ import type { Warning } from '../../types'
 import ActivityFeed from '../common/ActivityFeed'
 import AssignmentSummary from './AssignmentSummary'
 import WeekCalendarModal from '../common/WeekCalendarModal'
+import Modal from '../common/Modal'
 import { useAppStore } from '../../state/store'
 import { formatDateISO } from '../../utils/date'
+import { Button } from '../ui/Button'
+import { Badge } from '../ui/Badge'
+import { Panel } from '../ui/Panel'
+import { Input } from '../ui/Input'
+import { Textarea } from '../ui/Textarea'
 
 export default function AssignmentBoard() {
 	const assignRole = useAppStore((s) => s.assignRole)
@@ -27,6 +33,7 @@ export default function AssignmentBoard() {
 	const [warningGroupBy, setWarningGroupBy] = useState<'none' | 'role' | 'name'>('role')
 	const [selectedMember, setSelectedMember] = useState<string | null>(null)
 	const absenceSectionRef = useRef<HTMLDivElement | null>(null)
+	const [editingAbsence, setEditingAbsence] = useState<{ name: string; reason: string } | null>(null)
 
 	// 초기 렌더 시 날짜가 비어 있으면 오늘 날짜로 기본 설정
 	useEffect(() => {
@@ -59,6 +66,22 @@ export default function AssignmentBoard() {
 		updateAbsences(currentWeekDate, currentAbsences.filter((a) => a.name !== n))
 	}
 
+	function openEditAbsence(name: string) {
+		const target = currentAbsences.find((a) => a.name === name)
+		if (!target) return
+		setEditingAbsence({ name, reason: target.reason ?? '' })
+	}
+
+	function saveAbsenceReason() {
+		if (!currentWeekDate || !editingAbsence) return
+		const trimmed = editingAbsence.reason.trim()
+		const next = currentAbsences.map((a) =>
+			a.name === editingAbsence.name ? { ...a, reason: trimmed || undefined } : a
+		)
+		updateAbsences(currentWeekDate, next)
+		setEditingAbsence(null)
+	}
+
 	function nameExistsInPart(part: 'part1' | 'part2', name: string): boolean {
 		const p = draft[part]
 		if (p.SW === name || p['자막'] === name || p['고정'] === name || p['스케치'] === name) return true
@@ -71,16 +94,14 @@ export default function AssignmentBoard() {
 	}
 
 	function handleSlotClick(part: 'part1' | 'part2', role: RoleKey, index?: 0 | 1) {
-		if (!selectedMember) return // 멤버 선택 없이 슬롯 클릭 시 아무 동작 안 함 (기존 X 버튼으로 삭제)
+		if (!selectedMember) return
 
 		// 이미 배정된 멤버인지 확인
 		if (nameExistsInPart(part, selectedMember)) {
-			// 같은 위치 클릭이 아니면 무시하거나, 이동 처리? 일단 간단히 토스트나 무시
-			// 여기서는 무시 (드래그로 이동 유도 또는 재선택 유도)
 			if (role === '사이드') {
 				const current = draft[part]['사이드'][index ?? 0]
 				if (current === selectedMember) {
-					setSelectedMember(null) // 선택 해제
+					setSelectedMember(null)
 					return
 				}
 			} else {
@@ -90,13 +111,13 @@ export default function AssignmentBoard() {
 					return
 				}
 			}
-			// 다른 위치에 있다면? 일단 단순화: 중복 배정 방지
+			// 다른 위치에 있다면 무시
 			return
 		}
 
 		// 배정 수행
 		assignRole(part, role, selectedMember, index)
-		setSelectedMember(null) // 배정 후 선택 해제
+		setSelectedMember(null)
 	}
 
 	function handleDragEnd(ev: DragEndEvent) {
@@ -108,16 +129,15 @@ export default function AssignmentBoard() {
 		if (tPart !== 'part1' && tPart !== 'part2') return
 		const targetPart = tPart as 'part1' | 'part2'
 
-		// 2) 테이블 내부에서 드래그(스왑/이동) - 이제 이것만 유효
+		// 테이블 내부에서 드래그(스왑/이동)
 		if (activeId.startsWith('assigned:')) {
 			const [, sPart, sRole, sIdx, nameRaw] = activeId.split(':')
 			if (sPart !== 'part1' && sPart !== 'part2') return
 			const sourcePart = sPart as 'part1' | 'part2'
 			const name = nameRaw || ''
-			// 동일 타겟이면 무시
+			
 			if (sourcePart === targetPart && sRole === tRole && sIdx === tIdx) return
 
-			// 타겟 현재 값
 			let targetValue = ''
 			if (tRole === '사이드') {
 				const idx = tIdx === 'single' ? 0 : Number(tIdx)
@@ -183,11 +203,11 @@ export default function AssignmentBoard() {
 						onOpenCalendar={() => setCalendarOpen(true)}
 					/>
 					
-					<div className="panel" style={{ padding: 12 }}>
+					<Panel style={{ padding: 12 }}>
 						<div className="toolbar">
-							<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-								<label>주차(일요일)</label>
-								<input
+							<div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+								<label style={{ fontWeight: 500, fontSize: '0.9rem' }}>주차(일요일)</label>
+								<Input
 									type="date"
 									value={currentWeekDate || formatDateISO(new Date())}
 									onChange={(e) => {
@@ -196,238 +216,279 @@ export default function AssignmentBoard() {
 										setWeekDate(next)
 										loadWeekToDraft(next)
 									}}
+									style={{ width: 'auto', padding: '6px 12px' }}
 								/>
-								<button className="btn" onClick={() => setCalendarOpen(true)}>캘린더</button>
+								<Button size="sm" onClick={() => setCalendarOpen(true)}>캘린더</Button>
 								{currentAbsences.length > 0 && (
-									<span className="badge">{`불참 ${currentAbsences.length}`}</span>
+									<Badge variant="critical">{`불참 ${currentAbsences.length}`}</Badge>
 								)}
 							</div>
 							<WarningBadge count={warnings.length} />
 						</div>
 						{warnings.length > 0 && (() => {
-						const severityRank = (lv: Warning['level']) => lv === 'error' ? 2 : lv === 'warn' ? 1 : 0
-						const roleOrder: RoleKey[] = ['SW', '고정', '스케치', '사이드', '자막']
-						const roleRank = (r?: RoleKey) => (r ? roleOrder.indexOf(r) : roleOrder.length + 1)
+							const severityRank = (lv: Warning['level']) => lv === 'error' ? 2 : lv === 'warn' ? 1 : 0
+							const roleOrder: RoleKey[] = ['SW', '고정', '스케치', '사이드', '자막']
+							const roleRank = (r?: RoleKey) => (r ? roleOrder.indexOf(r) : roleOrder.length + 1)
 
-						const nameCounts = new Map<string, number>()
-						warnings.forEach((w) => {
-							const n = w.target?.name
-							if (!n) return
-							nameCounts.set(n, (nameCounts.get(n) ?? 0) + 1)
-						})
-						const sortedWarnings = [...warnings].sort((a, b) => {
-							const bySev = severityRank(b.level) - severityRank(a.level)
-							if (bySev) return bySev
-							const byNameLoad = (nameCounts.get(b.target?.name ?? '') ?? 0) - (nameCounts.get(a.target?.name ?? '') ?? 0)
-							if (byNameLoad) return byNameLoad
-							const byRole = roleRank(a.target?.role) - roleRank(b.target?.role)
-							if (byRole) return byRole
-							const partRank = (p?: 'part1' | 'part2') => (p === 'part1' ? 0 : p === 'part2' ? 1 : 2)
-							const byPart = partRank(a.target?.part) - partRank(b.target?.part)
-							if (byPart) return byPart
-							return a.id.localeCompare(b.id)
-						})
+							const nameCounts = new Map<string, number>()
+							warnings.forEach((w) => {
+								const n = w.target?.name
+								if (!n) return
+								nameCounts.set(n, (nameCounts.get(n) ?? 0) + 1)
+							})
+							const sortedWarnings = [...warnings].sort((a, b) => {
+								const bySev = severityRank(b.level) - severityRank(a.level)
+								if (bySev) return bySev
+								const byNameLoad = (nameCounts.get(b.target?.name ?? '') ?? 0) - (nameCounts.get(a.target?.name ?? '') ?? 0)
+								if (byNameLoad) return byNameLoad
+								const byRole = roleRank(a.target?.role) - roleRank(b.target?.role)
+								if (byRole) return byRole
+								const partRank = (p?: 'part1' | 'part2') => (p === 'part1' ? 0 : p === 'part2' ? 1 : 2)
+								const byPart = partRank(a.target?.part) - partRank(b.target?.part)
+								if (byPart) return byPart
+								return a.id.localeCompare(b.id)
+							})
 
-						// Summary chips: by role/part
-						type Key = string
-						const summary = new Map<Key, number>()
-						const keyLabel = (key: Key) => {
-							const [role, part] = key.split('|')
-							return `${role}${part ? `/${part === 'part1' ? '1부' : '2부'}` : ''}`
-						}
-						warnings.forEach((w) => {
-							const k: Key = `${w.target?.role ?? '기타'}|${w.target?.part ?? ''}`
-							summary.set(k, (summary.get(k) ?? 0) + 1)
-						})
-						const sortedSummary = [...summary.entries()].sort((a, b) => b[1] - a[1])
+							type Key = string
+							const summary = new Map<Key, number>()
+							const keyLabel = (key: Key) => {
+								const [role, part] = key.split('|')
+								return `${role}${part ? `/${part === 'part1' ? '1부' : '2부'}` : ''}`
+							}
+							warnings.forEach((w) => {
+								const k: Key = `${w.target?.role ?? '기타'}|${w.target?.part ?? ''}`
+								summary.set(k, (summary.get(k) ?? 0) + 1)
+							})
+							const sortedSummary = [...summary.entries()].sort((a, b) => b[1] - a[1])
 
-						// 카드 렌더러
-						const Card = ({ w }: { w: Warning }) => (
-							<div key={w.id} className="warning-card" style={{ border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-2)', borderRadius: 8, padding: 10 }}>
-								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-									<div style={{ fontWeight: 700, color: w.level === 'error' ? 'var(--color-critical)' : 'var(--color-text-primary)' }}>
-										[{w.level.toUpperCase()}] {w.message}
+							const Card = ({ w }: { w: Warning }) => (
+								<div key={w.id} className="warning-card" style={{ border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-2)', borderRadius: 8, padding: 10 }}>
+									<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+										<div style={{ fontWeight: 700, color: w.level === 'error' ? 'var(--color-critical)' : 'var(--color-text-primary)' }}>
+											[{w.level.toUpperCase()}] {w.message}
+										</div>
+										{(w.target?.role || w.target?.part) && (
+											<div className="muted" style={{ fontSize: 12 }}>
+												{w.target?.part ? (w.target.part === 'part1' ? '1부' : '2부') : ''}
+												{w.target?.role ? ` · ${w.target.role}` : ''}
+											</div>
+										)}
 									</div>
-									{(w.target?.role || w.target?.part) && (
+									{(w.target?.name || w.target?.date) && (
 										<div className="muted" style={{ fontSize: 12 }}>
-											{w.target?.part ? (w.target.part === 'part1' ? '1부' : '2부') : ''}
-											{w.target?.role ? ` · ${w.target.role}` : ''}
+											{w.target?.name ? `대상: ${w.target.name}` : ''}
+											{w.target?.date ? `${w.target?.name ? ' · ' : ''}${w.target.date}` : ''}
 										</div>
 									)}
 								</div>
-								{(w.target?.name || w.target?.date) && (
-									<div className="muted" style={{ fontSize: 12 }}>
-										{w.target?.name ? `대상: ${w.target.name}` : ''}
-										{w.target?.date ? `${w.target?.name ? ' · ' : ''}${w.target.date}` : ''}
-									</div>
-								)}
-							</div>
-						)
+							)
 
-						// 그룹핑
-						type GroupKey = string
-						const groupMap = new Map<GroupKey, Warning[]>()
-						const groupLabel = (k: GroupKey) => k
-						if (warningGroupBy === 'role') {
-							sortedWarnings.forEach((w) => {
-								const k: GroupKey = w.target?.role ?? '기타'
-								if (!groupMap.has(k)) groupMap.set(k, [])
-								groupMap.get(k)!.push(w)
-							})
-						} else if (warningGroupBy === 'name') {
-							sortedWarnings.forEach((w) => {
-								const k: GroupKey = w.target?.name ?? '(이름 없음)'
-								if (!groupMap.has(k)) groupMap.set(k, [])
-								groupMap.get(k)!.push(w)
-							})
-						}
+							type GroupKey = string
+							const groupMap = new Map<GroupKey, Warning[]>()
+							const groupLabel = (k: GroupKey) => k
+							if (warningGroupBy === 'role') {
+								sortedWarnings.forEach((w) => {
+									const k: GroupKey = w.target?.role ?? '기타'
+									if (!groupMap.has(k)) groupMap.set(k, [])
+									groupMap.get(k)!.push(w)
+								})
+							} else if (warningGroupBy === 'name') {
+								sortedWarnings.forEach((w) => {
+									const k: GroupKey = w.target?.name ?? '(이름 없음)'
+									if (!groupMap.has(k)) groupMap.set(k, [])
+									groupMap.get(k)!.push(w)
+								})
+							}
 
-						const groupedEntries = warningGroupBy === 'none'
-							? [['전체', sortedWarnings] as [GroupKey, Warning[]]]
-							: [...groupMap.entries()].sort((a, b) => b[1].length - a[1].length)
+							const groupedEntries = warningGroupBy === 'none'
+								? [['전체', sortedWarnings] as [GroupKey, Warning[]]]
+								: [...groupMap.entries()].sort((a, b) => b[1].length - a[1].length)
 
-						return (
-							<div className="panel warning-panel" style={{ padding: 12, marginBottom: 12 }}>
-								<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-									<div style={{ fontWeight: 700 }}>경고 상세</div>
-									<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-										<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-											{sortedSummary.map(([k, c]) => (
-												<span key={k} className="badge" title="역할/부 기준 경고 수">
-													{keyLabel(k)} {c}
-												</span>
-											))}
-										</div>
-										<div className="muted" style={{ marginLeft: 8 }}>그룹:</div>
-										<select value={warningGroupBy} onChange={(e) => setWarningGroupBy(e.target.value as any)}>
-											<option value="role">역할</option>
-											<option value="name">이름</option>
-											<option value="none">없음</option>
-										</select>
-									</div>
-								</div>
-
-								<div className="col" style={{ gap: 10 }}>
-									{groupedEntries.map(([k, arr]) => (
-										<div key={k} className="col" style={{ gap: 8 }}>
-											{warningGroupBy !== 'none' && (
-												<div style={{ fontWeight: 700, marginTop: 4 }}>{groupLabel(k)} <span className="muted" style={{ fontWeight: 400 }}>({arr.length})</span></div>
-											)}
-											<div className="col" style={{ gap: 8 }}>
-												{arr.map((w) => <Card key={w.id} w={w} />)}
+							return (
+								<Panel className="warning-panel" style={{ padding: 12, marginBottom: 12, border: '1px solid var(--color-warning)' }}>
+									<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+										<div style={{ fontWeight: 700 }}>경고 상세</div>
+										<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+											<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+												{sortedSummary.map(([k, c]) => (
+													<Badge key={k} variant="warning" title="역할/부 기준 경고 수">
+														{keyLabel(k)} {c}
+													</Badge>
+												))}
 											</div>
+											<div className="muted" style={{ marginLeft: 8, fontSize: '0.875rem' }}>그룹:</div>
+											<select 
+												value={warningGroupBy} 
+												onChange={(e) => setWarningGroupBy(e.target.value as any)}
+												style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
+											>
+												<option value="role">역할</option>
+												<option value="name">이름</option>
+												<option value="none">없음</option>
+											</select>
 										</div>
-									))}
+									</div>
+
+									<div className="col" style={{ gap: 10 }}>
+										{groupedEntries.map(([k, arr]) => (
+											<div key={k} className="col" style={{ gap: 8 }}>
+												{warningGroupBy !== 'none' && (
+													<div style={{ fontWeight: 700, marginTop: 4 }}>{groupLabel(k)} <span className="muted" style={{ fontWeight: 400 }}>({arr.length})</span></div>
+												)}
+												<div className="col" style={{ gap: 8 }}>
+													{arr.map((w) => <Card key={w.id} w={w} />)}
+												</div>
+											</div>
+										))}
+									</div>
+								</Panel>
+							)
+						})()}
+
+						<div ref={absenceSectionRef} className="panel" style={{ padding: 12, marginBottom: 12 }}>
+							<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+								<div style={{ fontWeight: 600 }}>불참자 관리</div>
+							</div>
+							<div className="row" style={{ alignItems: 'center' }}>
+								<div className="col" style={{ flex: 1 }}>
+									<label style={{ fontSize: '0.875rem' }}>팀원</label>
+									<select
+										value={absenceForm.name}
+										onChange={(e) => setAbsenceForm((f) => ({ ...f, name: e.target.value }))}
+										style={{ padding: '8px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)', width: '100%' }}
+									>
+										<option value="">선택</option>
+										{app.members.map((m) => <option key={m.name} value={m.name}>{m.name}</option>)}
+									</select>
+								</div>
+								<div className="col" style={{ flex: 2 }}>
+									<label style={{ fontSize: '0.875rem' }}>이유(선택)</label>
+									<Input
+										value={absenceForm.reason}
+										onChange={(e) => setAbsenceForm((f) => ({ ...f, reason: e.target.value }))}
+										placeholder="예: 시험"
+									/>
+								</div>
+								<div style={{ alignSelf: 'end' }}>
+									<Button variant="primary" onClick={addAbsence} disabled={!currentWeekDate || !absenceForm.name}>추가/업데이트</Button>
 								</div>
 							</div>
-						)
-					})()}
+							{currentAbsences.length > 0 && (
+								<table className="table" style={{ marginTop: 12 }}>
+									<thead><tr><th>이름</th><th>이유</th><th style={{ width: 140, textAlign: 'center' }}>관리</th></tr></thead>
+									<tbody>
+										{currentAbsences.map((a) => (
+											<tr key={a.name}>
+												<td>{a.name}</td>
+												<td>{a.reason ?? '-'}</td>
+												<td>
+													<div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+														<Button
+															variant="ghost"
+															size="sm"
+															icon="edit_note"
+															onClick={() => openEditAbsence(a.name)}
+															title="이유 수정"
+															aria-label={`${a.name} 이유 수정`}
+															style={{ padding: 4, width: 32, height: 32 }}
+														/>
+														<Button
+															variant="ghost"
+															size="sm"
+															className="absence-remove-btn"
+															onClick={() => removeAbsence(a.name)}
+															aria-label="삭제"
+															icon="close"
+														/>
+													</div>
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							)}
+							{!currentWeekDate && <div className="muted" style={{ marginTop: 8 }}>날짜를 먼저 선택하세요.</div>}
+						</div>
+						<div className="muted assignment-board__hint">
+							<span className="material-symbol" aria-hidden="true">info</span>
+							<span className="hint-desktop">역할 슬롯끼리 드래그하여 위치를 바꿀 수 있습니다.</span>
+							<span className="hint-mobile" style={{ display: 'none' }}>멤버를 터치하여 선택한 후 역할을 누르세요.</span>
+						</div>
 
-					<div ref={absenceSectionRef} className="panel" style={{ padding: 12, marginBottom: 12 }}>
-						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-							<div style={{ fontWeight: 600 }}>불참자 관리</div>
-						</div>
-						<div className="row" style={{ alignItems: 'center' }}>
-							<div className="col" style={{ flex: 1 }}>
-								<label>팀원</label>
-								<select
-									value={absenceForm.name}
-									onChange={(e) => setAbsenceForm((f) => ({ ...f, name: e.target.value }))}
-								>
-									<option value="">선택</option>
-									{app.members.map((m) => <option key={m.name} value={m.name}>{m.name}</option>)}
-								</select>
-							</div>
-							<div className="col" style={{ flex: 2 }}>
-								<label>이유(선택)</label>
-								<input
-									value={absenceForm.reason}
-									onChange={(e) => setAbsenceForm((f) => ({ ...f, reason: e.target.value }))}
-									placeholder="예: 시험"
-								/>
-							</div>
-							<div style={{ alignSelf: 'end' }}>
-								<button className="btn primary" onClick={addAbsence} disabled={!currentWeekDate || !absenceForm.name}>추가/업데이트</button>
-							</div>
-						</div>
-						{currentAbsences.length > 0 && (
-							<table className="table" style={{ marginTop: 12 }}>
-								<thead><tr><th>이름</th><th>이유</th><th></th></tr></thead>
+						<div className="assignment-table-wrapper">
+							<table className="table assignment-table">
+								<thead>
+									<tr>
+										<th>부</th>
+										<th>SW</th>
+										<th>자막</th>
+										<th>고정</th>
+										<th>사이드</th>
+										<th>스케치</th>
+									</tr>
+								</thead>
 								<tbody>
-									{currentAbsences.map((a) => (
-										<tr key={a.name}>
-											<td>{a.name}</td>
-											<td>{a.reason ?? '-'}</td>
-											<td><button className="btn-remove" title="삭제" onClick={() => removeAbsence(a.name)} aria-label="삭제"><span className="material-symbol">close</span></button></td>
-										</tr>
-									))}
+									<tr>
+										<td>1부</td>
+										<td data-label="SW"><RoleCell part="part1" role="SW" onSlotClick={handleSlotClick} /></td>
+										<td data-label="자막"><RoleCell part="part1" role="자막" onSlotClick={handleSlotClick} /></td>
+										<td data-label="고정"><RoleCell part="part1" role="고정" onSlotClick={handleSlotClick} /></td>
+										<td data-label="사이드" className="role-cell-group">
+											<RoleCell part="part1" role="사이드" index={0} onSlotClick={handleSlotClick} />
+											<RoleCell part="part1" role="사이드" index={1} onSlotClick={handleSlotClick} />
+										</td>
+										<td data-label="스케치"><RoleCell part="part1" role="스케치" onSlotClick={handleSlotClick} /></td>
+									</tr>
+									<tr>
+										<td>2부</td>
+										<td data-label="SW"><RoleCell part="part2" role="SW" onSlotClick={handleSlotClick} /></td>
+										<td data-label="자막"><RoleCell part="part2" role="자막" onSlotClick={handleSlotClick} /></td>
+										<td data-label="고정"><RoleCell part="part2" role="고정" onSlotClick={handleSlotClick} /></td>
+										<td data-label="사이드" className="role-cell-group">
+											<RoleCell part="part2" role="사이드" index={0} onSlotClick={handleSlotClick} />
+											<RoleCell part="part2" role="사이드" index={1} onSlotClick={handleSlotClick} />
+										</td>
+										<td data-label="스케치"><RoleCell part="part2" role="스케치" onSlotClick={handleSlotClick} /></td>
+									</tr>
 								</tbody>
 							</table>
-						)}
-						{!currentWeekDate && <div className="muted" style={{ marginTop: 8 }}>날짜를 먼저 선택하세요.</div>}
-					</div>
-					<div className="muted assignment-board__hint">
-						<span className="material-symbol" aria-hidden="true">info</span>
-						<span className="hint-desktop">역할 슬롯끼리 드래그하여 위치를 바꿀 수 있습니다.</span>
-						<span className="hint-mobile" style={{ display: 'none' }}>멤버를 터치하여 선택한 후 역할을 누르세요.</span>
-					</div>
+						</div>
 
-					<div className="assignment-table-wrapper">
-						<table className="table assignment-table">
-							<thead>
-								<tr>
-									<th>부</th>
-									<th>SW</th>
-									<th>자막</th>
-									<th>고정</th>
-									<th>사이드</th>
-									<th>스케치</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr>
-									<td>1부</td>
-									<td data-label="SW"><RoleCell part="part1" role="SW" onSlotClick={handleSlotClick} /></td>
-									<td data-label="자막"><RoleCell part="part1" role="자막" onSlotClick={handleSlotClick} /></td>
-									<td data-label="고정"><RoleCell part="part1" role="고정" onSlotClick={handleSlotClick} /></td>
-									<td data-label="사이드" className="role-cell-group">
-										<RoleCell part="part1" role="사이드" index={0} onSlotClick={handleSlotClick} />
-										<RoleCell part="part1" role="사이드" index={1} onSlotClick={handleSlotClick} />
-									</td>
-									<td data-label="스케치"><RoleCell part="part1" role="스케치" onSlotClick={handleSlotClick} /></td>
-								</tr>
-								<tr>
-									<td>2부</td>
-									<td data-label="SW"><RoleCell part="part2" role="SW" onSlotClick={handleSlotClick} /></td>
-									<td data-label="자막"><RoleCell part="part2" role="자막" onSlotClick={handleSlotClick} /></td>
-									<td data-label="고정"><RoleCell part="part2" role="고정" onSlotClick={handleSlotClick} /></td>
-									<td data-label="사이드" className="role-cell-group">
-										<RoleCell part="part2" role="사이드" index={0} onSlotClick={handleSlotClick} />
-										<RoleCell part="part2" role="사이드" index={1} onSlotClick={handleSlotClick} />
-									</td>
-									<td data-label="스케치"><RoleCell part="part2" role="스케치" onSlotClick={handleSlotClick} /></td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
+						<WeekCalendarModal
+							open={calendarOpen}
+							onClose={() => setCalendarOpen(false)}
+							onDateSelect={() => {}}
+						/>
 
-					<WeekCalendarModal
-						open={calendarOpen}
-						onClose={() => setCalendarOpen(false)}
-						onDateSelect={() => {}}
+						<Modal
+							title={editingAbsence ? `사유 수정 - ${editingAbsence.name}` : '사유 수정'}
+							open={editingAbsence !== null}
+							onClose={() => setEditingAbsence(null)}
+							footer={
+								<>
+									<Button onClick={() => setEditingAbsence(null)}>취소</Button>
+									<Button variant="primary" onClick={saveAbsenceReason}>저장</Button>
+								</>
+							}
+						>
+							<div className="col">
+								<label style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: 4 }}>이유</label>
+								<Textarea
+									value={editingAbsence?.reason ?? ''}
+									onChange={(e) => setEditingAbsence((prev) => prev ? { ...prev, reason: e.target.value } : prev)}
+									placeholder="예: 시험, 여행 등"
+								/>
+							</div>
+						</Modal>
+					</Panel>
+
+					<ActivityFeed
+						title="최근 배정 변경 내역"
+						filter={['assignment', 'absence', 'finalize']}
+						emptyMessage="아직 변경 기록이 없습니다. 배정을 시작해보세요."
 					/>
-				</div>
-
-				<ActivityFeed
-					title="최근 배정 변경 내역"
-					filter={['assignment', 'absence', 'finalize']}
-					emptyMessage="아직 변경 기록이 없습니다. 배정을 시작해보세요."
-				/>
-
 				</div>
 			</div>
 		</DndContext>
 	)
 }
-
-

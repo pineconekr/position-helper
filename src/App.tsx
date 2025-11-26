@@ -1,5 +1,4 @@
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Assign from './pages/Assign'
 import Stats from './pages/Stats'
@@ -7,43 +6,32 @@ import Members from './pages/Members'
 import Settings from './pages/Settings'
 import ThemeToggle from './components/common/ThemeToggle'
 import ToastCenter from './components/common/ToastCenter'
-import { useAppStore } from './state/store'
 import './theme/theme.css'
-import { motionDur, motionEase, useShouldReduceMotion } from './utils/motion'
+import { useMotionConfig } from './utils/motion'
 
 export default function App() {
-	const theme = useAppStore((s) => s.theme)
-	const getEffectiveTheme = useAppStore((s) => s.getEffectiveTheme)
 	const location = useLocation()
-	const prefersReducedMotion = useShouldReduceMotion()
-	const pageVariants = prefersReducedMotion
+	const { duration, ease, shouldReduce } = useMotionConfig()
+	const reducedState = { opacity: 1, y: 0, transition: { duration: 0 } }
+	const pageVariants = shouldReduce
 		? {
-				initial: { opacity: 1, y: 0 },
-				animate: { opacity: 1, y: 0 },
-				exit: { opacity: 1, y: 0, transition: { duration: 0 } }
-			}
-			: {
-				initial: { opacity: 0, y: 8, transition: { duration: motionDur.page, ease: motionEase.inOut } },
-				animate: { opacity: 1, y: 0, transition: { duration: motionDur.page, ease: motionEase.inOut } },
-				exit: { opacity: 0, y: -8, transition: { duration: motionDur.medium, ease: motionEase.in } }
-			}
-	
-	useEffect(() => {
-		// 초기 테마 적용
-		const effective = getEffectiveTheme()
-		document.documentElement.setAttribute('data-theme', effective)
-		
-		// 시스템 설정 변경 감지 (system 모드일 때만)
-		if (theme === 'system' && typeof window !== 'undefined') {
-			const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-			const handler = () => {
-				const newEffective = getEffectiveTheme()
-				document.documentElement.setAttribute('data-theme', newEffective)
-			}
-			mediaQuery.addEventListener('change', handler)
-			return () => mediaQuery.removeEventListener('change', handler)
+			initial: reducedState,
+			animate: reducedState,
+			exit: reducedState
 		}
-	}, [theme, getEffectiveTheme])
+		: {
+			initial: { opacity: 0, y: 8 },
+			animate: {
+				opacity: 1,
+				y: 0,
+				transition: { duration: duration.page, ease: ease.default }
+			},
+			exit: {
+				opacity: 0,
+				y: -8,
+				transition: { duration: duration.normal, ease: ease.in }
+			}
+		}
 	
 	return (
 		<div className="app-shell">
@@ -62,7 +50,7 @@ export default function App() {
 			</header>
 			<main className="app-main">
 				<div className="app-main__page">
-					<AnimatePresence initial={false}>
+					<AnimatePresence initial={false} mode="wait">
 						<motion.div
 							key={location.pathname}
 							variants={pageVariants}

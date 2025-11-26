@@ -2,7 +2,10 @@ import Plot from 'react-plotly.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '../../state/store'
 import type { RoleKey, WeekData } from '../../types'
-import { motionDurMs, useShouldReduceMotion } from '../../utils/motion'
+import { motionDurMs, useMotionConfig } from '../../utils/motion'
+import { getChartPalette } from '../../theme/chartColors'
+import { useTheme } from '../../theme/ThemeProvider'
+import { Panel } from '../ui/Panel'
 
 const roles: RoleKey[] = ['SW', '자막', '고정', '사이드', '스케치']
 const chartHelpText = {
@@ -13,151 +16,11 @@ const chartHelpText = {
 	memberRoleHeatmap: '행은 팀원, 열은 역할입니다. 색이 진할수록 출석 대비 해당 역할을 자주 맡았음을 의미하며, 호버 시 비율과 횟수를 확인할 수 있습니다.'
 } as const
 
-const statsStyles = String.raw`
-	.stats-container {
-		display: flex;
-		flex-direction: column;
-		gap: 24px;
-		width: 100%;
-		max-width: 1600px;
-		margin: 0 auto;
-	}
-
-	.stats-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
-		gap: 24px;
-	}
-
-	.stats-panel {
-		background: var(--color-surface-2);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: var(--radius);
-		padding: 24px;
-		box-shadow: var(--shadow-surface);
-		display: flex;
-		flex-direction: column;
-		min-width: 0; /* Grid item overflow fix */
-		position: relative;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
-	}
-	
-	.stats-panel.full-width {
-		grid-column: 1 / -1;
-	}
-
-	.stats-panel:hover {
-		border-color: var(--color-border-strong);
-	}
-
-	.stats-header {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		margin-bottom: 20px;
-	}
-
-	.stats-title-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 12px;
-	}
-
-	.stats-title {
-		font-size: 18px;
-		font-weight: 700;
-		color: var(--color-text-primary);
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		letter-spacing: -0.01em;
-	}
-
-	.stats-desc {
-		font-size: 14px;
-		color: var(--color-text-muted);
-		line-height: 1.5;
-	}
-
-	.stats-controls {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.stats-select-wrapper {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		background: var(--color-surface-1);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: 12px;
-		padding: 6px 14px;
-		transition: all 0.2s ease;
-	}
-	.stats-select-wrapper:hover {
-		border-color: var(--color-border-strong);
-	}
-	.stats-select-wrapper:focus-within {
-		border-color: var(--color-accent);
-		box-shadow: 0 0 0 3px var(--focus-ring);
-	}
-	.stats-select-label {
-		font-size: 13px;
-		font-weight: 600;
-		color: var(--color-text-muted);
-		white-space: nowrap;
-	}
-	.stats-select {
-		border: none;
-		background: transparent;
-		padding: 4px 0;
-		font-size: 14px;
-		font-weight: 500;
-		color: var(--color-text-primary);
-		min-width: 120px;
-		outline: none;
-		cursor: pointer;
-	}
-	
-	.stats-empty {
-		padding: 60px 20px;
-		text-align: center;
-		color: var(--color-text-muted);
-		background: var(--layer-translucent-1);
-		border-radius: 12px;
-		font-size: 14px;
-	}
-
-	@media (max-width: 768px) {
-		.stats-container {
-			gap: 16px;
-		}
-		.stats-grid {
-			grid-template-columns: 1fr;
-			gap: 16px;
-		}
-		.stats-panel {
-			padding: 16px;
-		}
-		.stats-title {
-			font-size: 16px;
-		}
-		.stats-desc {
-			font-size: 13px;
-		}
-	}
-`
-
 function ChartHelp({ description }: { description: string }) {
 	return (
-		<span className="chart-help" title={description} aria-label="차트 해설" tabIndex={0}>
-			<svg width="18" height="18" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-				<path
-					d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2Zm0 15.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm.08-9.906c1.697 0 2.945 1.09 2.945 2.703 0 1.05-.46 1.794-1.387 2.343l-.56.33c-.45.265-.62.48-.62.987v.38h-1.92v-.46c0-1.006.305-1.595 1.07-2.054l.604-.36c.46-.27.676-.55.676-.965 0-.56-.4-.93-1.003-.93-.64 0-1.102.335-1.3.91l-1.78-.74c.39-1.12 1.47-2.144 3.275-2.144Z"
-				/>
+		<span className="chart-help" title={description} aria-label="차트 해설" tabIndex={0} style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 8, color: 'var(--color-text-muted)', cursor: 'help' }}>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2Zm0 15.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm.08-9.906c1.697 0 2.945 1.09 2.945 2.703 0 1.05-.46 1.794-1.387 2.343l-.56.33c-.45.265-.62.48-.62.987v.38h-1.92v-.46c0-1.006.305-1.595 1.07-2.054l.604-.36c.46-.27.676-.55.676-.965 0-.56-.4-.93-1.003-.93-.64 0-1.102.335-1.3.91l-1.78-.74c.39-1.12 1.47-2.144 3.275-2.144Z" fill="currentColor"/>
 			</svg>
 		</span>
 	)
@@ -166,107 +29,48 @@ function ChartHelp({ description }: { description: string }) {
 export default function StatsView() {
 	const app = useAppStore((s) => s.app)
 	const [member, setMember] = useState<string>('')
-	const [theme, setTheme] = useState<'light' | 'dark'>(() => (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light')
-	const prefersReducedMotion = useShouldReduceMotion()
-	const chartHeight = 400
+	const { theme } = useTheme()
+	const { shouldReduce } = useMotionConfig()
 	const getBarChartHeight = (itemCount: number) => Math.max(300, itemCount * 30 + 80)
 	const chartTransition = useMemo(
-		() => (prefersReducedMotion ? { duration: 0 } : { duration: motionDurMs.chart, easing: 'cubic-in-out' as const }),
-		[prefersReducedMotion]
+		() => (shouldReduce ? { duration: 0 } : { duration: motionDurMs.normal, easing: 'cubic-in-out' as const }),
+		[shouldReduce]
 	)
 
+	const [palette, setPalette] = useState(getChartPalette())
+
 	useEffect(() => {
-		const target = document.documentElement
-		const observer = new MutationObserver(() => {
-			const t = (target.getAttribute('data-theme') as 'light' | 'dark') || 'light'
-			setTheme(t)
-		})
-		observer.observe(target, { attributes: true, attributeFilter: ['data-theme'] })
-		return () => observer.disconnect()
-	}, [])
-
-	const stylePalette = useMemo(() => {
-		const isDark = theme === 'dark'
-		const computed = typeof window !== 'undefined' ? getComputedStyle(document.documentElement) : null
-		const fallback = isDark
-			? {
-					text: '#f1f5ff',
-					grid: 'rgba(148,163,184,0.16)',
-					axis: 'rgba(148,163,184,0.36)',
-					panel: '#1d2534',
-					border: '#2b3448',
-					roleBar: '#7dadff',
-					absenceLow: '#44d38a',
-					absenceHigh: '#ff748b',
-					absenceNeutral: '#9aa3bb',
-					line: '#64d2ff',
-					lineMA: '#f7b955',
-					lineCV: '#c4b5fd',
-					medianLine: '#ff87b2'
-				}
-			: {
-					text: '#1f2937',
-					grid: 'rgba(15,23,42,0.12)',
-					axis: 'rgba(15,23,42,0.32)',
-					panel: '#eef2fb',
-					border: '#d5ddeb',
-					roleBar: '#2563eb',
-					absenceLow: '#16a34a',
-					absenceHigh: '#dc2626',
-					absenceNeutral: '#475569',
-					line: '#0d9488',
-					lineMA: '#f97316',
-					lineCV: '#9333ea',
-					medianLine: '#d92d43'
-				}
-
-		const read = (token: string, fallbackValue: string) => {
-			if (!computed) return fallbackValue
-			const value = computed.getPropertyValue(token)
-			return value ? value.trim() || fallbackValue : fallbackValue
-		}
-
-		return {
-			text: read('--color-text-primary', fallback.text),
-			grid: read('--chart-grid', fallback.grid),
-			axis: read('--chart-axis', fallback.axis),
-			panel: read('--color-surface-2', fallback.panel),
-			border: read('--color-border-subtle', fallback.border),
-			roleBar: read('--data-series-1', fallback.roleBar),
-			absenceLow: read('--data-positive', fallback.absenceLow),
-			absenceHigh: read('--data-negative', fallback.absenceHigh),
-			absenceNeutral: read('--data-neutral', fallback.absenceNeutral),
-			line: read('--data-series-2', fallback.line),
-			lineMA: read('--data-series-3', fallback.lineMA),
-			lineCV: read('--data-series-6', fallback.lineCV),
-			medianLine: read('--data-series-5', fallback.medianLine)
-		}
+		// Allow CSS variables to update
+		const timer = setTimeout(() => {
+			setPalette(getChartPalette())
+		}, 50)
+		return () => clearTimeout(timer)
 	}, [theme])
 
 	const baseLayout = useMemo(() => ({
 		paper_bgcolor: 'transparent',
 		plot_bgcolor: 'transparent',
-		font: { color: stylePalette.text, family: 'inherit' },
+		font: { color: palette.text, family: 'inherit' },
 		margin: { l: 40, r: 20, t: 20, b: 40 },
 		hoverlabel: {
-			bgcolor: stylePalette.panel,
-			bordercolor: stylePalette.border,
-			font: { color: stylePalette.text, family: 'inherit' }
+			bgcolor: palette.surface2,
+			bordercolor: palette.border,
+			font: { color: palette.text, family: 'inherit' }
 		},
 		xaxis: {
-			gridcolor: stylePalette.grid,
-			zerolinecolor: stylePalette.grid,
-			linecolor: stylePalette.axis,
+			gridcolor: palette.grid,
+			zerolinecolor: palette.grid,
+			linecolor: palette.axis,
 			tickfont: { size: 12 }
 		},
 		yaxis: {
-			gridcolor: stylePalette.grid,
-			zerolinecolor: stylePalette.grid,
-			linecolor: stylePalette.axis,
+			gridcolor: palette.grid,
+			zerolinecolor: palette.grid,
+			linecolor: palette.axis,
 			tickfont: { size: 12 }
 		},
 		transition: chartTransition
-	}), [stylePalette, chartTransition])
+	}), [palette, chartTransition])
 
 	const memberStatusMap = useMemo(() => {
 		const map = new Map<string, boolean>()
@@ -429,14 +233,7 @@ export default function StatsView() {
 			names: entries.map((entry) => entry.n),
 			counts: values,
 			normalized,
-			stats: {
-				q1,
-				median,
-				q3,
-				iqr: safeIqr,
-				rawIqr,
-				hasVariation: rawIqr !== 0
-			},
+			stats: { q1, median, q3, iqr: safeIqr, rawIqr, hasVariation: rawIqr !== 0 },
 			maxAbs
 		}
 	}, [app.members, app.weeks, getActiveName])
@@ -460,12 +257,12 @@ export default function StatsView() {
 		hovertemplate: '%{y}<br>결석: %{customdata}회<br>편차(IQR): %{x:.2f}<extra></extra>',
 		marker: {
 			color: absenceByMember.normalized.map((value) => {
-				if (value > 0.05) return stylePalette.absenceHigh
-				if (value < -0.05) return stylePalette.absenceLow
-				return stylePalette.absenceNeutral
+				if (value > 0.05) return palette.negative
+				if (value < -0.05) return palette.positive
+				return palette.neutral
 			})
 		}
-	}), [absenceByMember.normalized, absenceByMember.names, absenceByMember.counts, stylePalette.absenceHigh, stylePalette.absenceLow, stylePalette.absenceNeutral])
+	}), [absenceByMember.normalized, absenceByMember.names, absenceByMember.counts, palette.negative, palette.positive, palette.neutral])
 
 	const absenceChartLayout = useMemo(() => ({
 		...baseLayout,
@@ -475,9 +272,9 @@ export default function StatsView() {
 			title: 'IQR 정규화 편차 (중앙값 기준)',
 			range: [-absenceDivergenceExtent, absenceDivergenceExtent] as [number, number],
 			zeroline: true,
-			zerolinecolor: stylePalette.medianLine,
+			zerolinecolor: palette.series[4],
 			zerolinewidth: 2,
-			gridcolor: stylePalette.grid
+			gridcolor: palette.grid
 		},
 		yaxis: {
 			...baseLayout.yaxis,
@@ -493,7 +290,7 @@ export default function StatsView() {
 			x1: 0,
 			y0: 0,
 			y1: 1,
-			line: { color: stylePalette.medianLine, width: 2 }
+			line: { color: palette.series[4], width: 2 }
 		}],
 		annotations: [{
 			x: 0,
@@ -504,12 +301,12 @@ export default function StatsView() {
 			showarrow: false,
 			xanchor: 'left' as const,
 			yanchor: 'bottom' as const,
-			font: { color: stylePalette.medianLine, size: 12 },
-			bgcolor: stylePalette.panel,
-			bordercolor: stylePalette.medianLine,
+			font: { color: palette.series[4], size: 12 },
+			bgcolor: palette.surface2,
+			bordercolor: palette.series[4],
 			borderwidth: 0
 		}]
-	}), [baseLayout, absenceDivergenceExtent, absenceMedianLabel, stylePalette.medianLine, stylePalette.grid, stylePalette.panel])
+	}), [baseLayout, absenceDivergenceExtent, absenceMedianLabel, palette.series, palette.grid])
 
 	const weeklyAbsence = useMemo(() => {
 		const entries = Object.entries(app.weeks).sort((a, b) => a[0].localeCompare(b[0]))
@@ -709,7 +506,6 @@ export default function StatsView() {
 			const record = monthRecords.get(idx)
 			const absences = record?.absences ?? 0
 			const slots = record?.slots ?? 0
-			// 분모를 (불참자 수 + 배정 슬롯 수)로 하여 0~1 사이의 비율로 계산
 			const totalCapacity = absences + slots
 			const rate = totalCapacity === 0 ? 0 : absences / totalCapacity
 			labels.push(label)
@@ -725,41 +521,38 @@ export default function StatsView() {
 	}, [app.weeks])
 
 	return (
-		<div className="stats-container">
-			<style dangerouslySetInnerHTML={{ __html: statsStyles }} />
+		<div className="col" style={{ gap: 24, maxWidth: 1600, margin: '0 auto', width: '100%' }}>
 			
-			<div className="stats-panel full-width">
-				<div className="stats-header">
-					<div className="stats-title-row">
-						<div className="stats-title">
+			<Panel style={{ padding: 24 }}>
+				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
 							<span>직무 배정 통계</span>
 							<ChartHelp description={chartHelpText.roleAssignments} />
 						</div>
-						<div className="stats-controls">
-							<div className="stats-select-wrapper">
-								<span className="stats-select-label">팀원 필터</span>
-								<select 
-									className="stats-select" 
-									value={member} 
-									onChange={(e) => setMember(e.target.value)}
-								>
-									<option value="">전체</option>
-									{memberOptions.map((name) => {
-										const isActive = memberStatusMap.get(name)
-										const label = isActive === false ? `${name} (비활성)` : name
-										return <option key={name} value={name}>{label}</option>
-									})}
-								</select>
-							</div>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--color-surface-1)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: '6px 14px' }}>
+							<span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>팀원 필터</span>
+							<select 
+								style={{ border: 'none', background: 'transparent', padding: '4px 0', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)', minWidth: 120, outline: 'none', cursor: 'pointer' }}
+								value={member} 
+								onChange={(e) => setMember(e.target.value)}
+							>
+								<option value="">전체</option>
+								{memberOptions.map((name) => {
+									const isActive = memberStatusMap.get(name)
+									const label = isActive === false ? `${name} (비활성)` : name
+									return <option key={name} value={name}>{label}</option>
+								})}
+							</select>
 						</div>
 					</div>
-					<div className="stats-desc">
+					<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
 						전체 또는 선택한 팀원의 직무 배정 횟수를 막대 그래프로 확인합니다.
 					</div>
 				</div>
 				<div style={{ minHeight: member ? 400 : getBarChartHeight(x.length) }}>
 					<Plot
-						data={[{ type: 'bar', x, y, marker: { color: stylePalette.roleBar } }]}
+						data={[{ type: 'bar', x, y, marker: { color: palette.series[0] } }]}
 						layout={{
 							...baseLayout,
 							margin: { l: 40, r: 20, t: 20, b: 60 },
@@ -774,17 +567,17 @@ export default function StatsView() {
 						style={{ width: '100%', height: '100%' }}
 					/>
 				</div>
-			</div>
+			</Panel>
 
-			<div className="stats-grid">
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 500px), 1fr))', gap: 24 }}>
 				{/* 1) 개인 불참 편차 */}
-				<div className="stats-panel">
-					<div className="stats-header">
-						<div className="stats-title">
+				<Panel style={{ padding: 24 }}>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
 							<span>개인 불참 편차</span>
 							<ChartHelp description={chartHelpText.absenceDeviation} />
 						</div>
-						<div className="stats-desc">
+						<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
 							중앙값 대비 편차(IQR)로 상습/과소 결석자를 파악합니다.
 						</div>
 					</div>
@@ -807,20 +600,20 @@ export default function StatsView() {
 							)}
 						</>
 					) : (
-						<div className="stats-empty">
+						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
 							불참 데이터가 없습니다.
 						</div>
 					)}
-				</div>
+				</Panel>
 
 				{/* 3) 월별 불참률 추세 */}
-				<div className="stats-panel">
-					<div className="stats-header">
-						<div className="stats-title">
+				<Panel style={{ padding: 24 }}>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
 							<span>월별 불참률 추세</span>
 							<ChartHelp description={chartHelpText.monthlyAbsence} />
 						</div>
-						<div className="stats-desc">
+						<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
 							월별 불참률과 3개월 이동평균으로 추세를 확인합니다.
 						</div>
 					</div>
@@ -834,8 +627,8 @@ export default function StatsView() {
 										x: monthlyAbsenceTrend.x,
 										y: monthlyAbsenceTrend.rate,
 										name: '월별 불참률',
-										line: { color: stylePalette.absenceHigh, width: 2 },
-										marker: { color: stylePalette.absenceHigh, size: 6 },
+										line: { color: palette.negative, width: 2 },
+										marker: { color: palette.negative, size: 6 },
 										hovertemplate: '%{x}<br>불참률: %{y:.2%}<extra></extra>'
 									},
 									{
@@ -844,7 +637,7 @@ export default function StatsView() {
 										x: monthlyAbsenceTrend.x,
 										y: monthlyAbsenceTrend.ma3,
 										name: '3개월 이동평균',
-										line: { color: stylePalette.lineMA, width: 3 },
+										line: { color: palette.series[2], width: 3 },
 										hovertemplate: '%{x}<br>3개월 MA: %{y:.2%}<extra></extra>'
 									}
 								]}
@@ -876,21 +669,21 @@ export default function StatsView() {
 							/>
 						</div>
 					) : (
-						<div className="stats-empty">
+						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
 							월별 데이터가 없습니다.
 						</div>
 					)}
-				</div>
+				</Panel>
 			</div>
 
 			{/* 2) 주차별 불참 vs 배정 편차 (Dual Axis) */}
-			<div className="stats-panel full-width">
-				<div className="stats-header">
-					<div className="stats-title">
+			<Panel style={{ padding: 24, gridColumn: '1 / -1' }}>
+				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+					<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
 						<span>주차별 불참 & 배정 공정성</span>
 						<ChartHelp description={chartHelpText.weeklyAbsence} />
 					</div>
-					<div className="stats-desc">
+					<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
 						불참자 수(막대)와 배정 변동계수(CV, 꺾은선)를 비교하여 공정성 저하 구간을 찾습니다.
 					</div>
 				</div>
@@ -903,7 +696,7 @@ export default function StatsView() {
 									x: weeklyAbsence.x,
 									y: weeklyAbsence.y,
 									name: '불참자 수',
-									marker: { color: stylePalette.absenceHigh, opacity: 0.8 },
+									marker: { color: palette.negative, opacity: 0.8 },
 									hovertemplate: '%{x}<br>불참자: %{y}명<extra></extra>',
 									yaxis: 'y'
 								},
@@ -913,7 +706,7 @@ export default function StatsView() {
 									x: weeklyAbsence.x,
 									y: weeklyAbsenceMA,
 									name: '불참 4주 이동평균',
-									line: { color: stylePalette.line, width: 2, dash: 'dot' },
+									line: { color: palette.series[1], width: 2, dash: 'dot' },
 									hovertemplate: '%{x}<br>4주 평균: %{y:.2f}명<extra></extra>',
 									yaxis: 'y'
 								},
@@ -923,8 +716,8 @@ export default function StatsView() {
 									x: weeklyFairness.x,
 									y: weeklyFairness.cv,
 									name: '배정 CV',
-									line: { color: stylePalette.lineCV, width: 3 },
-									marker: { color: stylePalette.lineCV, size: 6 },
+									line: { color: palette.series[5], width: 3 },
+									marker: { color: palette.series[5], size: 6 },
 									hovertemplate: '%{x}<br>CV: %{y:.3f}<extra></extra>',
 									yaxis: 'y2'
 								}
@@ -943,8 +736,8 @@ export default function StatsView() {
 								},
 								yaxis2: {
 									title: '배정 변동계수(CV)',
-									titlefont: { color: stylePalette.lineCV },
-									tickfont: { color: stylePalette.lineCV },
+									titlefont: { color: palette.series[5] },
+									tickfont: { color: palette.series[5] },
 									overlaying: 'y',
 									side: 'right',
 									zeroline: false,
@@ -964,20 +757,20 @@ export default function StatsView() {
 						/>
 					</div>
 				) : (
-					<div className="stats-empty">
+					<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
 						주차별 데이터가 없습니다.
 					</div>
 				)}
-			</div>
+			</Panel>
 
 			{/* 4) 팀원 × 역할 출석 보정 히트맵 */}
-			<div className="stats-panel full-width">
-				<div className="stats-header">
-					<div className="stats-title">
+			<Panel style={{ padding: 24, gridColumn: '1 / -1' }}>
+				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+					<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
 						<span>팀원/역할 배정 히트맵</span>
 						<ChartHelp description={chartHelpText.memberRoleHeatmap} />
 					</div>
-					<div className="stats-desc">
+					<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
 						출석 횟수 대비 특정 역할을 얼마나 자주 맡았는지(비율) 시각화합니다.
 					</div>
 				</div>
@@ -1016,11 +809,11 @@ export default function StatsView() {
 						/>
 					</div>
 				) : (
-					<div className="stats-empty">
+					<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
 						분석할 데이터가 없습니다.
 					</div>
 				)}
-			</div>
+			</Panel>
 		</div>
 	)
 }

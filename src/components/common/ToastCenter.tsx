@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useFeedbackStore } from '../../state/feedback'
-import { motionDur, motionEase, useShouldReduceMotion } from '../../utils/motion'
+import { useMotionConfig } from '../../utils/motion'
 
 const kindIcon: Record<string, string> = {
 	success: 'check_circle',
@@ -13,7 +13,7 @@ const kindIcon: Record<string, string> = {
 export default function ToastCenter() {
 	const toasts = useFeedbackStore((s) => s.toasts)
 	const dismiss = useFeedbackStore((s) => s.dismiss)
-	const prefersReducedMotion = useShouldReduceMotion()
+	const { duration, ease, shouldReduce } = useMotionConfig()
 
 	const handleDismiss = useCallback(
 		(id: string) => {
@@ -33,14 +33,14 @@ export default function ToastCenter() {
 						className={`toast toast--${toast.kind}`}
 						role={toast.kind === 'error' ? 'alert' : 'status'}
 						layout
-						initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+						initial={shouldReduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={
-							prefersReducedMotion
+							shouldReduce
 								? { opacity: 1, y: 0 }
-								: { opacity: 0, y: -10, transition: { duration: motionDur.quick, ease: motionEase.in } }
+								: { opacity: 0, y: -10, transition: { duration: duration.fast, ease: ease.in } }
 						}
-						transition={prefersReducedMotion ? { duration: 0 } : { duration: motionDur.medium, ease: motionEase.out }}
+						transition={{ duration: duration.normal, ease: ease.out }}
 					>
 						<div className="toast__icon" aria-hidden="true">
 							<span className="material-symbol">{kindIcon[toast.kind] ?? 'info'}</span>

@@ -3,6 +3,8 @@ import { useAppStore } from '../state/store'
 import { saveJsonFile, openJsonFile } from '../utils/json'
 import { useToast } from '../hooks/useToast'
 import { analyzeDraft } from '../utils/assignment'
+import { Button } from '../components/ui/Button'
+import { Panel } from '../components/ui/Panel'
 
 export default function Assign() {
 	const finalize = useAppStore((s) => s.finalizeCurrentWeek)
@@ -23,11 +25,12 @@ export default function Assign() {
 
 	return (
 		<div className="col" style={{ gap: 16 }}>
-			<div className="toolbar">
-				<div className="muted">드래그 앤 드롭으로 배정하세요. 저장은 JSON 내보내기/불러오기를 사용합니다.</div>
+			<Panel style={{ padding: 16, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
+				<div className="muted" style={{ fontSize: '0.9375rem' }}>드래그 앤 드롭으로 배정하세요. 저장은 JSON 내보내기/불러오기를 사용합니다.</div>
 				<div style={{ display: 'flex', gap: 8 }}>
-					<button
-						className="btn"
+					<Button
+						variant="secondary"
+						icon="upload"
 						onClick={async () => {
 							const data = await openJsonFile()
 							if (data) {
@@ -47,9 +50,10 @@ export default function Assign() {
 						}}
 					>
 						JSON 불러오기
-					</button>
-					<button
-						className="btn"
+					</Button>
+					<Button
+						variant="secondary"
+						icon="download"
 						onClick={async () => {
 							const success = await saveJsonFile(exportData(), buildFileName(currentWeekDate))
 							if (success) {
@@ -68,9 +72,10 @@ export default function Assign() {
 						}}
 					>
 						JSON 내보내기
-					</button>
-					<button
-						className="btn primary"
+					</Button>
+					<Button
+						variant="primary"
+						icon="check"
 						onClick={() => {
 							const { emptySlots } = analyzeDraft(draft)
 							if (emptySlots.length > 0) {
@@ -98,12 +103,10 @@ export default function Assign() {
 						}}
 					>
 						이번 주 확정
-					</button>
+					</Button>
 				</div>
-			</div>
+			</Panel>
 			<AssignmentBoard />
 		</div>
 	)
 }
-
-

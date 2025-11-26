@@ -1,3 +1,19 @@
+:root {
+    --legacy-scrollbar-track: rgba(15, 23, 42, 0.08);
+    --legacy-scrollbar-thumb: rgba(15, 23, 42, 0.35);
+    --legacy-scrollbar-thumb-hover: rgba(15, 23, 42, 0.55);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
 .code-block {
   background: #0f172a;
   color: #e5e7eb;
@@ -25,6 +41,75 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+:where(
+    body,
+    .custom-tabs .tabs-wrapper,
+    .tab-content-wrapper,
+    .edit-modal .modal-content,
+    .modern-textarea,
+    .scrollable-panel,
+    .team-activity-log
+) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--legacy-scrollbar-thumb) var(--legacy-scrollbar-track);
+    scrollbar-gutter: stable both-edges;
+    scroll-behavior: smooth;
+}
+
+:where(
+    body,
+    .custom-tabs .tabs-wrapper,
+    .tab-content-wrapper,
+    .edit-modal .modal-content,
+    .modern-textarea,
+    .scrollable-panel,
+    .team-activity-log
+)::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+:where(
+    body,
+    .custom-tabs .tabs-wrapper,
+    .tab-content-wrapper,
+    .edit-modal .modal-content,
+    .modern-textarea,
+    .scrollable-panel,
+    .team-activity-log
+)::-webkit-scrollbar-track {
+    background: var(--legacy-scrollbar-track);
+    border-radius: 999px;
+}
+
+:where(
+    body,
+    .custom-tabs .tabs-wrapper,
+    .tab-content-wrapper,
+    .edit-modal .modal-content,
+    .modern-textarea,
+    .scrollable-panel,
+    .team-activity-log
+)::-webkit-scrollbar-thumb {
+    background: var(--legacy-scrollbar-thumb);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
+}
+
+:where(
+    body,
+    .custom-tabs .tabs-wrapper,
+    .tab-content-wrapper,
+    .edit-modal .modal-content,
+    .modern-textarea,
+    .scrollable-panel,
+    .team-activity-log
+)::-webkit-scrollbar-thumb:hover {
+    background: var(--legacy-scrollbar-thumb-hover);
+}
+
 #app-container {
     max-width: 1200px;
     margin: auto;
@@ -46,6 +131,9 @@ hr {
 body.dark-theme-active {
     background-color: #121212; /* Dark background */
     color: #e0e0e0; /* Light grey text */
+    --legacy-scrollbar-track: rgba(255, 255, 255, 0.12);
+    --legacy-scrollbar-thumb: rgba(255, 255, 255, 0.45);
+    --legacy-scrollbar-thumb-hover: rgba(255, 255, 255, 0.65);
 }
 
 /* Update selectors to be based on body.dark-theme-active */
@@ -1079,12 +1167,6 @@ body.dark-theme-active .custom-tabs .tab:disabled:hover {
     display: flex;
     align-items: flex-end;
     overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.custom-tabs .tabs-wrapper::-webkit-scrollbar {
-    display: none;
 }
 
 /* 모바일 대응 */
@@ -1635,35 +1717,6 @@ body.dark-theme-active .status-badge[style*="background-color: #fff3cd"] {
 }
 
 /* 스크롤바 스타일링 */
-.modern-textarea::-webkit-scrollbar {
-    width: 6px;
-}
-
-.modern-textarea::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.modern-textarea::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-}
-
-.modern-textarea::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-body.dark-theme-active .modern-textarea::-webkit-scrollbar-track {
-    background: #2c2c2e;
-}
-
-body.dark-theme-active .modern-textarea::-webkit-scrollbar-thumb {
-    background: #48484a;
-}
-
-body.dark-theme-active .modern-textarea::-webkit-scrollbar-thumb:hover {
-    background: #5a5a5a;
-}
 
 /* === 편집 모달 스타일 === */
 

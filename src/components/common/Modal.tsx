@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { motionDur, motionEase, useShouldReduceMotion } from '../../utils/motion'
+import { useMotionConfig } from '../../utils/motion'
 
 type Props = {
 	title: string
@@ -12,7 +12,7 @@ type Props = {
 }
 
 export default function Modal({ title, open, onClose, children, footer }: Props) {
-	const prefersReducedMotion = useShouldReduceMotion()
+	const { duration, ease, shouldReduce } = useMotionConfig()
 
 	useEffect(() => {
 		if (!open) return
@@ -45,24 +45,24 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 						placeItems: 'center',
 						zIndex: 1000
 					}}
-					initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+					initial={shouldReduce ? { opacity: 1 } : { opacity: 0 }}
 					animate={{ opacity: 1 }}
-					exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, transition: { duration: motionDur.quick, ease: motionEase.in } }}
-					transition={prefersReducedMotion ? { duration: 0 } : { duration: motionDur.medium, ease: motionEase.out }}
+					exit={shouldReduce ? { opacity: 1 } : { opacity: 0, transition: { duration: duration.fast, ease: ease.in } }}
+					transition={{ duration: duration.normal, ease: ease.out }}
 					role="presentation"
 				>
 					<motion.div
 						className="panel modal-panel"
 						role="dialog"
 						aria-modal="true"
-						initial={prefersReducedMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 16, scale: 0.98 }}
+						initial={shouldReduce ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 16, scale: 0.98 }}
 						animate={{ opacity: 1, y: 0, scale: 1 }}
 						exit={
-							prefersReducedMotion
+							shouldReduce
 								? { opacity: 1, y: 0, scale: 1 }
-								: { opacity: 0, y: 12, scale: 0.98, transition: { duration: motionDur.quick, ease: motionEase.in } }
+								: { opacity: 0, y: 12, scale: 0.98, transition: { duration: duration.fast, ease: ease.in } }
 						}
-						transition={prefersReducedMotion ? { duration: 0 } : { duration: motionDur.medium, ease: motionEase.out }}
+						transition={{ duration: duration.normal, ease: ease.out }}
 					>
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
 							<h3 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{title}</h3>
@@ -70,8 +70,8 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 								onClick={onClose}
 								title="닫기"
 								style={{
-									background: 'var(--button-bg)',
-									border: 'none',
+									background: 'var(--color-surface-2)',
+									border: '1px solid var(--color-border-subtle)',
 									cursor: 'pointer',
 									width: 32,
 									height: 32,
@@ -79,15 +79,17 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 									display: 'grid',
 									placeItems: 'center',
 									color: 'var(--color-text-muted)',
-									transition: 'all 0.2s ease'
+									transition: 'all var(--motion-duration-fast) var(--motion-ease-default)'
 								}}
 								onMouseOver={(e) => {
-									e.currentTarget.style.background = 'var(--button-bg-hover)'
+									e.currentTarget.style.background = 'var(--color-surface-1)'
 									e.currentTarget.style.color = 'var(--color-text-primary)'
+									e.currentTarget.style.borderColor = 'var(--color-border-strong)'
 								}}
 								onMouseOut={(e) => {
-									e.currentTarget.style.background = 'var(--button-bg)'
+									e.currentTarget.style.background = 'var(--color-surface-2)'
 									e.currentTarget.style.color = 'var(--color-text-muted)'
+									e.currentTarget.style.borderColor = 'var(--color-border-subtle)'
 								}}
 								aria-label="닫기"
 							>

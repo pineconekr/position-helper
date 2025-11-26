@@ -1,7 +1,7 @@
+import { Badge } from '../ui/Badge'
+
 type Props = { count: number }
 export default function WarningBadge({ count }: Props) {
-	if (count <= 0) return <span className="badge">경고 없음</span>
-	return <span className="badge danger">⚠ {count}건</span>
+	if (count <= 0) return <Badge variant="success">경고 없음</Badge>
+	return <Badge variant="critical">⚠ {count}건</Badge>
 }
-
-

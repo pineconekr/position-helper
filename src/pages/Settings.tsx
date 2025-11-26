@@ -1,5 +1,7 @@
 import { useAppStore } from '../state/store'
 import type { MotionPreference } from '../state/store'
+import { useTheme } from '../theme/ThemeProvider'
+import { Panel } from '../components/ui/Panel'
 
 const motionOptions: Array<{ value: MotionPreference; title: string; description: string; icon: string }> = [
 	{
@@ -23,9 +25,7 @@ const motionOptions: Array<{ value: MotionPreference; title: string; description
 ]
 
 export default function Settings() {
-	const theme = useAppStore((s) => s.theme)
-	const setTheme = useAppStore((s) => s.setTheme)
-	const effectiveTheme = useAppStore((s) => s.getEffectiveTheme())
+	const { theme, setTheme, effectiveTheme } = useTheme()
 	const motionPreference = useAppStore((s) => s.motionPreference)
 	const setMotionPreference = useAppStore((s) => s.setMotionPreference)
 
@@ -51,10 +51,12 @@ export default function Settings() {
 	]
 
 	return (
-		<div className="panel settings-panel">
+		<Panel className="col" style={{ gap: 32, padding: 24 }}>
 			<div className="settings-section">
-				<h3 className="settings-section__title">테마</h3>
-				<p className="settings-section__description">상단 내비게이션의 아이콘 버튼으로도 빠르게 전환할 수 있습니다.</p>
+				<h3 className="settings-section__title" style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: 8 }}>테마</h3>
+				<p className="settings-section__description" style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
+					상단 내비게이션의 아이콘 버튼으로도 빠르게 전환할 수 있습니다.
+				</p>
 				<div className="settings-choice-grid" role="radiogroup" aria-label="테마 모드">
 					{themeOptions.map((option) => {
 						const isActive = theme === option.value
@@ -88,8 +90,8 @@ export default function Settings() {
 			</div>
 
 			<div className="settings-section">
-				<h3 className="settings-section__title">애니메이션</h3>
-				<p className="settings-section__description">
+				<h3 className="settings-section__title" style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: 8 }}>애니메이션</h3>
+				<p className="settings-section__description" style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
 					데이터 변환과 페이지 전환을 부드럽게 보여주되, 필요할 때는 애니메이션을 최소화하거나 시스템 설정을 따를 수 있습니다.
 				</p>
 				<div className="settings-choice-grid" role="radiogroup" aria-label="애니메이션 선호도">
@@ -123,7 +125,6 @@ export default function Settings() {
 					})}
 				</div>
 			</div>
-		</div>
+		</Panel>
 	)
 }
-
