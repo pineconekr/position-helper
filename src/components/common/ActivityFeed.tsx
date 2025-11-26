@@ -88,7 +88,7 @@ export default function ActivityFeed({
 									aria-label="이 활동 로그 삭제"
 									title="이 활동 로그 삭제"
 								>
-									×
+									<span className="material-symbol">close</span>
 								</button>
 							</div>
 						</div>

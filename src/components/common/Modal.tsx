@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { motionDur, motionEase, useShouldReduceMotion } from '../../utils/motion'
@@ -13,6 +13,21 @@ type Props = {
 
 export default function Modal({ title, open, onClose, children, footer }: Props) {
 	const prefersReducedMotion = useShouldReduceMotion()
+
+	useEffect(() => {
+		if (!open) return
+
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === 'Escape') {
+				onClose()
+			}
+		}
+
+		document.addEventListener('keydown', handleKeyDown)
+		return () => {
+			document.removeEventListener('keydown', handleKeyDown)
+		}
+	}, [open, onClose])
 
 	if (typeof document === 'undefined') return null
 
@@ -37,8 +52,7 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 					role="presentation"
 				>
 					<motion.div
-						className="panel"
-						style={{ width: 680, maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 24, borderRadius: 20, boxShadow: 'var(--shadow-floating)' }}
+						className="panel modal-panel"
 						role="dialog"
 						aria-modal="true"
 						initial={prefersReducedMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 16, scale: 0.98 }}
@@ -77,10 +91,10 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 								}}
 								aria-label="닫기"
 							>
-								<span style={{ fontSize: 20, lineHeight: 1 }}>×</span>
+								<span className="material-symbol" style={{ fontSize: 20, lineHeight: 1 }}>close</span>
 							</button>
 						</div>
-						<div style={{ flex: 1, overflow: 'auto', minHeight: 0, marginBottom: footer ? 20 : 0 }}>{children}</div>
+						<div style={{ flex: 1, overflow: 'auto', overflowX: 'hidden', minHeight: 0, marginBottom: footer ? 20 : 0 }}>{children}</div>
 						{footer && <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 20, borderTop: '1px solid var(--color-border-subtle)' }}>{footer}</div>}
 					</motion.div>
 				</motion.div>

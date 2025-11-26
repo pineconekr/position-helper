@@ -1,25 +1,39 @@
 import { useMemo } from 'react'
-import { useDraggable } from '@dnd-kit/core'
 import { useAppStore } from '../../state/store'
 
-function DraggableMember({ id, name }: { id: string; name: string }) {
-	const { attributes, listeners, setNodeRef, transform } = useDraggable({ id })
-	const style = { transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined }
+type Props = {
+	orientation?: 'vertical' | 'horizontal'
+	selectedMember?: string | null
+	onMemberClick?: (name: string) => void
+}
+
+function MemberItem({ name, selected, onClick }: { name: string; selected?: boolean; onClick?: () => void }) {
 	return (
-		<div ref={setNodeRef} style={style as any} className="member-item" {...listeners} {...attributes}>
+		<div
+			className={`member-item${selected ? ' member-item--selected' : ''}`}
+			onClick={onClick}
+			style={{ cursor: 'pointer' }}
+		>
 			{name}
 		</div>
 	)
 }
 
-export default function MemberList({ orientation = 'vertical' }: { orientation?: 'vertical' | 'horizontal' }) {
+export default function MemberList({ orientation = 'vertical', selectedMember, onMemberClick }: Props) {
 	const members = useAppStore((s) => s.app.members)
 	const items = useMemo(() => members.map((m) => ({ id: `member:${m.name}`, name: m.name })), [members])
 	return (
 		<div className="panel" style={{ padding: 12 }}>
-			<div style={{ fontWeight: 600, marginBottom: 8 }}>팀원</div>
-			<div className={orientation === 'horizontal' ? 'member-list horizontal' : undefined}>
-				{items.map((i) => <DraggableMember key={i.id} id={i.id} name={i.name} />)}
+			<div style={{ fontWeight: 600, marginBottom: 8 }}>팀원 목록</div>
+			<div className={orientation === 'horizontal' ? 'member-list horizontal' : 'member-list'}>
+				{items.map((i) => (
+					<MemberItem
+						key={i.id}
+						name={i.name}
+						selected={selectedMember === i.name}
+						onClick={() => onMemberClick?.(i.name)}
+					/>
+				))}
 				{items.length === 0 && <div className="muted">팀원을 먼저 추가하세요</div>}
 			</div>
 		</div>

@@ -4,10 +4,10 @@ import { useFeedbackStore } from '../../state/feedback'
 import { motionDur, motionEase, useShouldReduceMotion } from '../../utils/motion'
 
 const kindIcon: Record<string, string> = {
-	success: '✅',
-	info: 'ℹ️',
-	warning: '⚠️',
-	error: '⛔'
+	success: 'check_circle',
+	info: 'info',
+	warning: 'warning',
+	error: 'block'
 }
 
 export default function ToastCenter() {
@@ -43,7 +43,7 @@ export default function ToastCenter() {
 						transition={prefersReducedMotion ? { duration: 0 } : { duration: motionDur.medium, ease: motionEase.out }}
 					>
 						<div className="toast__icon" aria-hidden="true">
-							{kindIcon[toast.kind] ?? 'ℹ️'}
+							<span className="material-symbol">{kindIcon[toast.kind] ?? 'info'}</span>
 						</div>
 						<div className="toast__body">
 							<div className="toast__title">{toast.title}</div>
@@ -55,7 +55,7 @@ export default function ToastCenter() {
 							onClick={() => handleDismiss(toast.id)}
 							aria-label="알림 닫기"
 						>
-							×
+							<span className="material-symbol">close</span>
 						</button>
 					</motion.div>
 				))}

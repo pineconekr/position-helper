@@ -80,24 +80,33 @@ const calendarStyles = String.raw`
 		min-height: 90px;
 	}
 	.fc-daygrid-day-top {
-		justify-content: center;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 4px;
 		margin-bottom: 4px;
 	}
 	.fc-daygrid-day-number {
 		font-size: 14px;
-		color: var(--color-text-secondary);
+		color: var(--color-text-primary);
 		text-decoration: none !important;
-		width: 28px;
-		height: 28px;
-		display: flex;
+		width: auto;
+		height: auto;
+		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-		transition: background-color 0.2s ease;
+		justify-content: flex-start;
+		border-radius: 0;
+		padding: 0;
+		transition: color 0.2s ease;
 	}
 	.fc-day-sun .fc-daygrid-day-number {
 		color: var(--color-critical);
 		font-weight: 600;
+	}
+	/* 요일 표시 숨김 (한국어 로케일에서는 보통 표시되지 않지만 확실히) */
+	.fc-daygrid-day-weekday {
+		display: none !important;
 	}
 
 	.fc-daygrid-day:not(.fc-day-disabled) {
@@ -105,7 +114,10 @@ const calendarStyles = String.raw`
 		transition: background-color 0.2s ease, transform 0.2s ease;
 	}
 	.fc-daygrid-day:not(.fc-day-disabled):hover {
-		background-color: var(--color-surface-3) !important;
+		background-color: var(--layer-translucent-2) !important;
+		transform: scale(0.98);
+		border-radius: 8px;
+		z-index: 1;
 	}
 	.fc-day-sun:not(.fc-day-disabled):hover .fc-daygrid-day-number {
 		background-color: var(--color-critical-soft);
@@ -116,9 +128,14 @@ const calendarStyles = String.raw`
 	}
 
 	.fc-daygrid-day:not(.fc-day-sun):not(.fc-day-disabled) {
-		opacity: 0.35;
-		cursor: not-allowed;
-		background: var(--layer-translucent-1);
+		opacity: 0.5;
+		cursor: default;
+	}
+	/* 일요일이 아닌 날짜도 호버 효과는 주되 커서는 기본 */
+	.fc-daygrid-day:not(.fc-day-sun):not(.fc-day-disabled):hover {
+		cursor: default;
+		transform: none;
+		background-color: var(--layer-translucent-1) !important;
 	}
 
 	.fc-daygrid-event,
@@ -158,17 +175,28 @@ export default function WeekCalendarModal({ open, onClose, mode: initialMode = '
 
 	const calendarEvents = useMemo(() => {
 		const entries = Object.entries(app.weeks).sort(([a], [b]) => a.localeCompare(b))
-		const out: Array<{ title: string; start: string; type: 'history' | 'absence'; absenceName?: string }> = []
+		// 타입 정의: absence는 이제 리스트를 가짐
+		const out: Array<{ 
+			title: string; 
+			start: string; 
+			type: 'history' | 'absence'; 
+			absences?: string[] 
+		}> = []
 
 		Object.keys(app.weeks).forEach((d) => {
 			out.push({ title: '', start: d, type: 'history' })
 		})
 
 		for (const [date, week] of entries) {
-			week.absences.forEach((a) => {
-				const nameOnly = a.name.replace(/^\d+\s*/, '').trim()
-				out.push({ title: nameOnly, start: date, type: 'absence', absenceName: nameOnly })
-			})
+			if (week.absences.length > 0) {
+				const names = week.absences.map((a) => a.name.replace(/^\d+\s*/, '').trim())
+				out.push({ 
+					title: `불참 ${names.length}`, 
+					start: date, 
+					type: 'absence', 
+					absences: names 
+				})
+			}
 		}
 
 		return out
@@ -215,55 +243,62 @@ export default function WeekCalendarModal({ open, onClose, mode: initialMode = '
 
 	function renderEventContent(eventInfo: any) {
 		const eventType = eventInfo.event.extendedProps?.type
+		
+		// 이력: 간결한 점으로 표시
 		if (eventType === 'history') {
 			return (
 				<div
 					title="배정 이력 있음"
 					style={{
-						display: 'inline-flex',
-						alignItems: 'center',
-						gap: 6,
-						fontSize: 11,
-						fontWeight: 600,
-						color: 'var(--color-accent)',
-						padding: '2px 6px',
-						borderRadius: 999,
-						border: '1px solid rgba(125, 173, 255, 0.45)',
-						background: 'rgba(125, 173, 255, 0.12)'
+						display: 'flex',
+						justifyContent: 'center',
+						marginTop: 2
 					}}
 				>
-					<span
+					<div 
 						style={{
 							width: 6,
 							height: 6,
 							borderRadius: '50%',
-							background: 'var(--color-accent)'
+							background: 'var(--color-accent)',
+							opacity: 0.8
 						}}
 					/>
-					<span>이력</span>
 				</div>
 			)
 		}
 
+		// 불참: 축약 표시 + 호버 시 전체 목록
 		if (eventType === 'absence') {
-			const name = eventInfo.event.extendedProps?.absenceName || eventInfo.event.title
+			const names = eventInfo.event.extendedProps?.absences || []
+			const count = names.length
+			if (count === 0) return null
+
+			// 2명까지는 이름 표시, 그 이상은 "A, B 외 N명"
+			let label = ''
+			if (count <= 2) {
+				label = names.join(', ')
+			} else {
+				label = `${names[0]}, ${names[1]} 외 ${count - 2}명`
+			}
+
 			return (
 				<div
+					title={`불참자: ${names.join(', ')}`}
 					style={{
-						display: 'inline-flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						fontSize: 12,
-						fontWeight: 700,
-						borderRadius: 999,
-						padding: '3px 12px',
-						background: 'rgba(247, 185, 85, 0.25)',
-						color: 'var(--color-warning)',
-						border: '1.5px solid rgba(247, 185, 85, 0.6)',
-						boxShadow: '0 1px 3px rgba(247, 185, 85, 0.15)'
+						fontSize: 11,
+						color: 'var(--color-text-subtle)', // 강조 수준 낮춤
+						background: 'var(--layer-translucent-1)',
+						padding: '2px 6px',
+						borderRadius: 4,
+						marginTop: 2,
+						whiteSpace: 'nowrap',
+						overflow: 'hidden',
+						textOverflow: 'ellipsis',
+						textAlign: 'center'
 					}}
 				>
-					{name}
+					{label}
 				</div>
 			)
 		}
@@ -278,21 +313,21 @@ export default function WeekCalendarModal({ open, onClose, mode: initialMode = '
 			onClose={onClose}
 			footer={<button className="btn" onClick={onClose}>닫기</button>}
 		>
-			<div className="col">
-				<div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+			<div className="col" style={{ overflowX: 'hidden' }}>
+				<div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
 					<div className="muted" style={{ flex: 1, minWidth: 220 }}>{description}</div>
-					<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+					<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', minWidth: 0 }}>
 						<button
 							className={mode === 'select' ? 'btn primary' : 'btn'}
 							onClick={() => setMode('select')}
-							style={{ fontSize: 13, padding: '6px 12px' }}
+							style={{ fontSize: 13, padding: '6px 12px', flexShrink: 0 }}
 						>
 							주차 선택
 						</button>
 						<button
 							className={mode === 'load' ? 'btn primary' : 'btn'}
 							onClick={() => setMode('load')}
-							style={{ fontSize: 13, padding: '6px 12px' }}
+							style={{ fontSize: 13, padding: '6px 12px', flexShrink: 0 }}
 						>
 							이력 불러오기
 						</button>

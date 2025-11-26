@@ -25,6 +25,7 @@ export default function AssignmentBoard() {
 	const [calendarOpen, setCalendarOpen] = useState(false)
 	const [absenceForm, setAbsenceForm] = useState<{ name: string; reason: string }>({ name: '', reason: '' })
 	const [warningGroupBy, setWarningGroupBy] = useState<'none' | 'role' | 'name'>('role')
+	const [selectedMember, setSelectedMember] = useState<string | null>(null)
 	const absenceSectionRef = useRef<HTMLDivElement | null>(null)
 
 	// 초기 렌더 시 날짜가 비어 있으면 오늘 날짜로 기본 설정
@@ -65,6 +66,39 @@ export default function AssignmentBoard() {
 		return false
 	}
 
+	function handleMemberClick(name: string) {
+		setSelectedMember((prev) => (prev === name ? null : name))
+	}
+
+	function handleSlotClick(part: 'part1' | 'part2', role: RoleKey, index?: 0 | 1) {
+		if (!selectedMember) return // 멤버 선택 없이 슬롯 클릭 시 아무 동작 안 함 (기존 X 버튼으로 삭제)
+
+		// 이미 배정된 멤버인지 확인
+		if (nameExistsInPart(part, selectedMember)) {
+			// 같은 위치 클릭이 아니면 무시하거나, 이동 처리? 일단 간단히 토스트나 무시
+			// 여기서는 무시 (드래그로 이동 유도 또는 재선택 유도)
+			if (role === '사이드') {
+				const current = draft[part]['사이드'][index ?? 0]
+				if (current === selectedMember) {
+					setSelectedMember(null) // 선택 해제
+					return
+				}
+			} else {
+				const current = (draft[part] as any)[role]
+				if (current === selectedMember) {
+					setSelectedMember(null)
+					return
+				}
+			}
+			// 다른 위치에 있다면? 일단 단순화: 중복 배정 방지
+			return
+		}
+
+		// 배정 수행
+		assignRole(part, role, selectedMember, index)
+		setSelectedMember(null) // 배정 후 선택 해제
+	}
+
 	function handleDragEnd(ev: DragEndEvent) {
 		const activeId = String(ev.active.id)
 		const overId = String(ev.over?.id ?? '')
@@ -74,22 +108,7 @@ export default function AssignmentBoard() {
 		if (tPart !== 'part1' && tPart !== 'part2') return
 		const targetPart = tPart as 'part1' | 'part2'
 
-		// 1) 팀원 목록에서 드래그
-		if (activeId.startsWith('member:')) {
-			const name = activeId.split(':')[1] || ''
-			// 같은 부 내 중복 방지
-			if (nameExistsInPart(targetPart, name)) return
-			if (tRole === '사이드') {
-				const idx = tIdx === 'single' ? 0 : Number(tIdx)
-				if (idx !== 0 && idx !== 1) return
-				assignRole(targetPart, '사이드', name, idx as 0 | 1)
-			} else {
-				assignRole(targetPart, tRole as any, name)
-			}
-			return
-		}
-
-		// 2) 테이블 내부에서 드래그(스왑/이동)
+		// 2) 테이블 내부에서 드래그(스왑/이동) - 이제 이것만 유효
 		if (activeId.startsWith('assigned:')) {
 			const [, sPart, sRole, sIdx, nameRaw] = activeId.split(':')
 			if (sPart !== 'part1' && sPart !== 'part2') return
@@ -150,38 +169,42 @@ export default function AssignmentBoard() {
 
 	return (
 		<DndContext onDragEnd={handleDragEnd}>
-			<div className="col" style={{ gap: 16 }}>
-			<AssignmentSummary
-				onOpenCalendar={() => setCalendarOpen(true)}
-				onFocusAbsence={() => {
-					if (absenceSectionRef.current) {
-						absenceSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-					}
-				}}
-			/>
-				<div className="panel" style={{ padding: 12 }}>
-					<div className="toolbar">
-						<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-							<label>주차(일요일)</label>
-							<input
-								type="date"
-								value={currentWeekDate || formatDateISO(new Date())}
-								onChange={(e) => {
-									const next = e.target.value
-									if (!next) return
-									setWeekDate(next)
-									loadWeekToDraft(next)
-								}}
-							/>
-							<button className="btn" onClick={() => setCalendarOpen(true)}>캘린더</button>
-							{currentAbsences.length > 0 && (
-								<span className="badge">{`불참 ${currentAbsences.length}`}</span>
-							)}
-						</div>
-						<WarningBadge count={warnings.length} />
-					</div>
+			<div className="dnd-container">
+				<div className="assignment-board__sidebar">
+					<MemberList 
+						orientation="vertical" 
+						selectedMember={selectedMember}
+						onMemberClick={handleMemberClick}
+					/>
+				</div>
 
-					{warnings.length > 0 && (() => {
+				<div className="assignment-board__main">
+					<AssignmentSummary
+						onOpenCalendar={() => setCalendarOpen(true)}
+					/>
+					
+					<div className="panel" style={{ padding: 12 }}>
+						<div className="toolbar">
+							<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+								<label>주차(일요일)</label>
+								<input
+									type="date"
+									value={currentWeekDate || formatDateISO(new Date())}
+									onChange={(e) => {
+										const next = e.target.value
+										if (!next) return
+										setWeekDate(next)
+										loadWeekToDraft(next)
+									}}
+								/>
+								<button className="btn" onClick={() => setCalendarOpen(true)}>캘린더</button>
+								{currentAbsences.length > 0 && (
+									<span className="badge">{`불참 ${currentAbsences.length}`}</span>
+								)}
+							</div>
+							<WarningBadge count={warnings.length} />
+						</div>
+						{warnings.length > 0 && (() => {
 						const severityRank = (lv: Warning['level']) => lv === 'error' ? 2 : lv === 'warn' ? 1 : 0
 						const roleOrder: RoleKey[] = ['SW', '고정', '스케치', '사이드', '자막']
 						const roleRank = (r?: RoleKey) => (r ? roleOrder.indexOf(r) : roleOrder.length + 1)
@@ -335,7 +358,7 @@ export default function AssignmentBoard() {
 										<tr key={a.name}>
 											<td>{a.name}</td>
 											<td>{a.reason ?? '-'}</td>
-											<td><button className="btn-remove" title="삭제" onClick={() => removeAbsence(a.name)}>×</button></td>
+											<td><button className="btn-remove" title="삭제" onClick={() => removeAbsence(a.name)} aria-label="삭제"><span className="material-symbol">close</span></button></td>
 										</tr>
 									))}
 								</tbody>
@@ -343,43 +366,50 @@ export default function AssignmentBoard() {
 						)}
 						{!currentWeekDate && <div className="muted" style={{ marginTop: 8 }}>날짜를 먼저 선택하세요.</div>}
 					</div>
+					<div className="muted assignment-board__hint">
+						<span className="material-symbol" aria-hidden="true">info</span>
+						<span className="hint-desktop">역할 슬롯끼리 드래그하여 위치를 바꿀 수 있습니다.</span>
+						<span className="hint-mobile" style={{ display: 'none' }}>멤버를 터치하여 선택한 후 역할을 누르세요.</span>
+					</div>
 
-					<table className="table">
-						<thead>
-							<tr>
-								<th>부</th>
-								<th>SW</th>
-								<th>자막</th>
-								<th>고정</th>
-								<th>사이드</th>
-								<th>스케치</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>1부</td>
-								<td><RoleCell part="part1" role="SW" /></td>
-								<td><RoleCell part="part1" role="자막" /></td>
-								<td><RoleCell part="part1" role="고정" /></td>
-								<td style={{ display: 'flex', gap: 8 }}>
-									<RoleCell part="part1" role="사이드" index={0} />
-									<RoleCell part="part1" role="사이드" index={1} />
-								</td>
-								<td><RoleCell part="part1" role="스케치" /></td>
-							</tr>
-							<tr>
-								<td>2부</td>
-								<td><RoleCell part="part2" role="SW" /></td>
-								<td><RoleCell part="part2" role="자막" /></td>
-								<td><RoleCell part="part2" role="고정" /></td>
-								<td style={{ display: 'flex', gap: 8 }}>
-									<RoleCell part="part2" role="사이드" index={0} />
-									<RoleCell part="part2" role="사이드" index={1} />
-								</td>
-								<td><RoleCell part="part2" role="스케치" /></td>
-							</tr>
-						</tbody>
-					</table>
+					<div className="assignment-table-wrapper">
+						<table className="table assignment-table">
+							<thead>
+								<tr>
+									<th>부</th>
+									<th>SW</th>
+									<th>자막</th>
+									<th>고정</th>
+									<th>사이드</th>
+									<th>스케치</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>1부</td>
+									<td data-label="SW"><RoleCell part="part1" role="SW" onSlotClick={handleSlotClick} /></td>
+									<td data-label="자막"><RoleCell part="part1" role="자막" onSlotClick={handleSlotClick} /></td>
+									<td data-label="고정"><RoleCell part="part1" role="고정" onSlotClick={handleSlotClick} /></td>
+									<td data-label="사이드" className="role-cell-group">
+										<RoleCell part="part1" role="사이드" index={0} onSlotClick={handleSlotClick} />
+										<RoleCell part="part1" role="사이드" index={1} onSlotClick={handleSlotClick} />
+									</td>
+									<td data-label="스케치"><RoleCell part="part1" role="스케치" onSlotClick={handleSlotClick} /></td>
+								</tr>
+								<tr>
+									<td>2부</td>
+									<td data-label="SW"><RoleCell part="part2" role="SW" onSlotClick={handleSlotClick} /></td>
+									<td data-label="자막"><RoleCell part="part2" role="자막" onSlotClick={handleSlotClick} /></td>
+									<td data-label="고정"><RoleCell part="part2" role="고정" onSlotClick={handleSlotClick} /></td>
+									<td data-label="사이드" className="role-cell-group">
+										<RoleCell part="part2" role="사이드" index={0} onSlotClick={handleSlotClick} />
+										<RoleCell part="part2" role="사이드" index={1} onSlotClick={handleSlotClick} />
+									</td>
+									<td data-label="스케치"><RoleCell part="part2" role="스케치" onSlotClick={handleSlotClick} /></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 
 					<WeekCalendarModal
 						open={calendarOpen}
@@ -388,15 +418,13 @@ export default function AssignmentBoard() {
 					/>
 				</div>
 
-				{/* 팀원 리스트 - 배정 박스 하단 가로 배열 */}
-				<MemberList orientation="horizontal" />
-
 				<ActivityFeed
 					title="최근 배정 변경 내역"
 					filter={['assignment', 'absence', 'finalize']}
 					emptyMessage="아직 변경 기록이 없습니다. 배정을 시작해보세요."
 				/>
 
+				</div>
 			</div>
 		</DndContext>
 	)

@@ -7,9 +7,10 @@ type Props = {
 	part: 'part1' | 'part2'
 	role: RoleKey
 	index?: 0 | 1
+	onSlotClick?: (part: 'part1' | 'part2', role: RoleKey, index?: 0 | 1) => void
 }
 
-export default function RoleCell({ part, role, index }: Props) {
+export default function RoleCell({ part, role, index, onSlotClick }: Props) {
 	const id = `drop:${part}:${role}:${index ?? 'single'}`
 	const { isOver, setNodeRef } = useDroppable({ id })
 	const assignRole = useAppStore((s) => s.assignRole)
@@ -23,18 +24,30 @@ export default function RoleCell({ part, role, index }: Props) {
 
 	return (
 		<div ref={setNodeRef} className="role-cell" style={{ background: bg }}>
-			<div className="role-slot" style={{ minWidth: 120 }}>
+			<div
+				className="role-slot"
+				onClick={() => onSlotClick?.(part, role, index)}
+				role="button"
+				tabIndex={0}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault()
+						onSlotClick?.(part, role, index)
+					}
+				}}
+			>
 				{value ? (
 					<AssignedPill part={part} role={role} index={index} name={value} />
-				) : <span className="muted">드롭</span>}
+				) : <span className="muted">드롭/선택</span>}
 			</div>
 			{value && (
 				<button 
 					className="btn-remove" 
 					onClick={() => clearRole(part, role as any, index as any)}
 					title="지우기"
+					aria-label="지우기"
 				>
-					×
+					<span className="material-symbol">close</span>
 				</button>
 			)}
 		</div>

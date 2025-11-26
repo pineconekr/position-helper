@@ -4,19 +4,19 @@ import type { MotionPreference } from '../state/store'
 const motionOptions: Array<{ value: MotionPreference; title: string; description: string; icon: string }> = [
 	{
 		value: 'allow',
-		icon: '✨',
+		icon: 'auto_awesome',
 		title: '애니메이션 사용',
 		description: '항상 부드러운 전환을 사용합니다. 시스템 설정과 무관하게 애니메이션이 유지됩니다.'
 	},
 	{
 		value: 'system',
-		icon: '🖥️',
+		icon: 'computer',
 		title: '시스템과 동일',
 		description: '운영체제의 접근성 설정(prefers-reduced-motion)을 그대로 따릅니다.'
 	},
 	{
 		value: 'reduce',
-		icon: '🌿',
+		icon: 'eco',
 		title: '애니메이션 최소화',
 		description: '전환·차트 모션을 즉시 완료해 움직임을 줄입니다.'
 	}
@@ -32,19 +32,19 @@ export default function Settings() {
 	const themeOptions = [
 		{
 			value: 'system' as const,
-			icon: '🖥️',
+			icon: 'settings_brightness',
 			title: '시스템 모드',
 			description: `운영체제 설정에 맞춰 자동으로 ${effectiveTheme === 'dark' ? '다크' : '라이트'} 모드가 적용됩니다.`
 		},
 		{
 			value: 'light' as const,
-			icon: '🌞',
+			icon: 'light_mode',
 			title: '라이트 모드',
 			description: '밝고 선명한 화면 구성으로 실내 환경에서 또렷하게 확인하세요.'
 		},
 		{
 			value: 'dark' as const,
-			icon: '🌙',
+			icon: 'dark_mode',
 			title: '다크 모드',
 			description: '눈부심을 줄여 야간에도 편안하게 사용할 수 있습니다.'
 		}
@@ -54,7 +54,7 @@ export default function Settings() {
 		<div className="panel settings-panel">
 			<div className="settings-section">
 				<h3 className="settings-section__title">테마</h3>
-				<p className="settings-section__description">상단 내비게이션의 이모지 버튼으로도 빠르게 전환할 수 있습니다.</p>
+				<p className="settings-section__description">상단 내비게이션의 아이콘 버튼으로도 빠르게 전환할 수 있습니다.</p>
 				<div className="settings-choice-grid" role="radiogroup" aria-label="테마 모드">
 					{themeOptions.map((option) => {
 						const isActive = theme === option.value
@@ -74,7 +74,7 @@ export default function Settings() {
 								<span className="settings-choice-card__indicator" aria-hidden="true" />
 								<span className="settings-choice-card__body">
 									<span className="settings-choice-card__icon" aria-hidden="true">
-										{option.icon}
+										<span className="material-symbol">{option.icon}</span>
 									</span>
 									<span className="settings-choice-card__text">
 										<span className="settings-choice-card__title">{option.title}</span>
@@ -111,7 +111,7 @@ export default function Settings() {
 								<span className="settings-choice-card__indicator" aria-hidden="true" />
 								<span className="settings-choice-card__body">
 									<span className="settings-choice-card__icon" aria-hidden="true">
-										{option.icon}
+										<span className="material-symbol">{option.icon}</span>
 									</span>
 									<span className="settings-choice-card__text">
 										<span className="settings-choice-card__title">{option.title}</span>

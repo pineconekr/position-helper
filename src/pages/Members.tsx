@@ -71,8 +71,8 @@ export default function Members() {
 					<h3 style={{ margin: 0, fontSize: 20 }}>팀원 관리</h3>
 					<div className="muted" style={{ fontSize: 13 }}>팀원 정보를 수정하면 아래 활동 로그에 기록됩니다.</div>
 				</div>
-				<div className="row" style={{ alignItems: 'flex-start' }}>
-					<div className="col" style={{ flex: 1 }}>
+				<div className="members-layout">
+					<div className="col" style={{ flex: 1, minWidth: '300px' }}>
 						<div style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 14, padding: 14, background: 'var(--color-surface-1)' }}>
 							<div className="row" style={{ gap: 8 }}>
 								<div className="col">

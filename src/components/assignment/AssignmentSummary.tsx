@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
 import { useAppStore } from '../../state/store'
-import { analyzeDraft, slotToLabel } from '../../utils/assignment'
+import { analyzeDraft } from '../../utils/assignment'
 
 type Props = {
 	onOpenCalendar: () => void
-	onFocusAbsence: () => void
 }
 
-export default function AssignmentSummary({ onOpenCalendar, onFocusAbsence }: Props) {
+export default function AssignmentSummary({ onOpenCalendar }: Props) {
 	const currentWeekDate = useAppStore((s) => s.currentWeekDate)
 	const draft = useAppStore((s) => s.currentDraft)
 	const warnings = useAppStore((s) => s.warnings)
@@ -25,18 +24,6 @@ export default function AssignmentSummary({ onOpenCalendar, onFocusAbsence }: Pr
 	const { total, assigned, emptySlots } = useMemo(() => analyzeDraft(draft), [draft])
 	const progressPercent = total === 0 ? 0 : Math.round((assigned / total) * 100)
 	const hasUnassigned = emptySlots.length > 0
-
-	const nextActions = [
-		hasUnassigned
-			? `미배정 ${emptySlots.length}개 채우기`
-			: '모든 역할이 채워졌습니다',
-		warnings.length > 0
-			? `경고 ${warnings.length}건 검토`
-			: '경고 없음',
-		'최종 확정 전에 JSON 백업'
-	]
-
-	const topEmptySlots = emptySlots.slice(0, 3)
 
 	return (
 		<div className="panel assignment-summary">
@@ -81,40 +68,9 @@ export default function AssignmentSummary({ onOpenCalendar, onFocusAbsence }: Pr
 				</div>
 			</div>
 
-			<div className="assignment-summary__body">
-				<div className="assignment-summary__section">
-					<div className="assignment-summary__section-title">다음 작업</div>
-					<ul className="assignment-summary__checklist">
-						{nextActions.map((action, idx) => (
-							<li key={idx}>{action}</li>
-						))}
-					</ul>
-				</div>
-				<div className="assignment-summary__section">
-					<div className="assignment-summary__section-title">미배정 상위 목록</div>
-					{topEmptySlots.length > 0 ? (
-						<ul className="assignment-summary__empties">
-							{topEmptySlots.map((slot) => (
-								<li key={`${slot.part}-${slot.role}-${slot.index ?? 'single'}`}>
-									{slotToLabel(slot)}
-								</li>
-							))}
-							{emptySlots.length > topEmptySlots.length && (
-								<li className="muted">외 {emptySlots.length - topEmptySlots.length}건</li>
-							)}
-						</ul>
-					) : (
-						<div className="muted">모든 역할이 배정되었습니다.</div>
-					)}
-				</div>
-			</div>
-
 			<div className="assignment-summary__actions">
 				<button type="button" className="btn" onClick={onOpenCalendar}>
 					주차 선택
-				</button>
-				<button type="button" className="btn" onClick={onFocusAbsence}>
-					불참자 관리로 이동
 				</button>
 			</div>
 		</div>

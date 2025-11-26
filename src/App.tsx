@@ -48,7 +48,10 @@ export default function App() {
 	return (
 		<div className="app-shell">
 			<header className="app-header">
-				<div className="brand">📸 Position Helper</div>
+				<div className="brand">
+					<span className="material-symbol" aria-hidden="true">photo_camera</span>
+					<span> Position Helper</span>
+				</div>
 				<nav className="nav">
 					<NavLink to="/" end>배정</NavLink>
 					<NavLink to="/stats">통계</NavLink>

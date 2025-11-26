@@ -3,43 +3,40 @@ import { useAppStore } from '../../state/store'
 export default function ThemeToggle() {
 	const theme = useAppStore((s) => s.theme)
 	const setTheme = useAppStore((s) => s.setTheme)
-	const effectiveTheme = useAppStore((s) => s.getEffectiveTheme())
+
+	// 시스템 모드인 경우 라이트 모드로 변환
+	const currentTheme = theme === 'system' ? 'light' : theme
 
 	function cycleTheme() {
-		if (theme === 'system') setTheme('light')
-		else if (theme === 'light') setTheme('dark')
-		else setTheme('system')
+		if (currentTheme === 'light') {
+			setTheme('dark')
+		} else {
+			setTheme('light')
+		}
 	}
 
-	const emojiMap: Record<typeof theme, string> = {
-		system: '🖥️',
-		light: '🌞',
-		dark: '🌙'
+	const iconMap: Record<'light' | 'dark', string> = {
+		light: 'light_mode',
+		dark: 'dark_mode'
 	}
-	const labelMap: Record<typeof theme, string> = {
-		system: `시스템 (${effectiveTheme === 'dark' ? '다크' : '라이트'} 적용)`,
+	const labelMap: Record<'light' | 'dark', string> = {
 		light: '라이트 모드',
 		dark: '다크 모드'
 	}
 
-	const nextTheme = theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system'
-	const nextLabelMap: Record<typeof theme, string> = {
-		system: '라이트 모드로 전환',
-		light: '다크 모드로 전환',
-		dark: '시스템 모드로 전환'
-	}
+	const nextTheme = currentTheme === 'light' ? 'dark' : 'light'
+	const nextLabel = nextTheme === 'light' ? '라이트 모드로 전환' : '다크 모드로 전환'
 
 	return (
 		<button
 			className="btn theme-toggle"
 			onClick={cycleTheme}
-			aria-label={`현재 ${labelMap[theme]}. ${nextLabelMap[theme]}`}
-			title={`${labelMap[theme]} · ${nextLabelMap[theme]}`}
+			aria-label={`현재 ${labelMap[currentTheme]}. ${nextLabel}`}
+			title={`${labelMap[currentTheme]} · ${nextLabel}`}
 		>
-			<span className="theme-toggle__emoji" aria-hidden="true">
-				{emojiMap[theme]}
+			<span className="material-symbol theme-toggle__icon" aria-hidden="true">
+				{iconMap[currentTheme]}
 			</span>
-			<span className="theme-toggle__text">{labelMap[theme]}</span>
 		</button>
 	)
 }
