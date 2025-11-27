@@ -1,4 +1,3 @@
-import Plot from 'react-plotly.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAppStore } from '../../state/store'
 import type { RoleKey, WeekData } from '../../types'
@@ -6,6 +5,7 @@ import { motionDurMs, useMotionConfig } from '../../utils/motion'
 import { getChartPalette } from '../../theme/chartColors'
 import { useTheme } from '../../theme/ThemeProvider'
 import { Panel } from '../ui/Panel'
+import { ResponsivePlot } from './ResponsivePlot'
 
 const roles: RoleKey[] = ['SW', '자막', '고정', '사이드', '스케치']
 const chartHelpText = {
@@ -31,7 +31,7 @@ export default function StatsView() {
 	const [member, setMember] = useState<string>('')
 	const { theme } = useTheme()
 	const { shouldReduce } = useMotionConfig()
-	const getBarChartHeight = (itemCount: number) => Math.max(300, itemCount * 30 + 80)
+	const getBarChartHeight = (itemCount: number) => Math.max(360, itemCount * 34 + 120)
 	const chartTransition = useMemo(
 		() => (shouldReduce ? { duration: 0 } : { duration: motionDurMs.normal, easing: 'cubic-in-out' as const }),
 		[shouldReduce]
@@ -176,6 +176,9 @@ export default function StatsView() {
 		return { x, y }
 	}, [member, memberOptions, roleCounts])
 
+	const roleCategoryCount = x.length
+	const roleChartHeight = member ? 400 : getBarChartHeight(roleCategoryCount)
+
 	// 불참 데이터 집계
 	const absenceByMember = useMemo(() => {
 		const knownNames = new Set<string>()
@@ -238,6 +241,7 @@ export default function StatsView() {
 		}
 	}, [app.members, app.weeks, getActiveName])
 
+	const absenceChartHeight = getBarChartHeight(absenceByMember.names.length)
 	const absenceDivergenceExtent = useMemo(() => (absenceByMember.maxAbs === 0 ? 1 : absenceByMember.maxAbs * 1.15), [absenceByMember.maxAbs])
 	const absenceMedianLabel = useMemo(() => {
 		const median = absenceByMember.stats.median
@@ -266,7 +270,7 @@ export default function StatsView() {
 
 	const absenceChartLayout = useMemo(() => ({
 		...baseLayout,
-		margin: { l: 120, r: 10, t: 10, b: 40 },
+		margin: { l: 130, r: 24, t: 24, b: 52 },
 		xaxis: {
 			...baseLayout.xaxis,
 			title: 'IQR 정규화 편차 (중앙값 기준)',
@@ -464,6 +468,9 @@ export default function StatsView() {
 		}
 	}, [app.members, app.weeks, getActiveName])
 
+	const heatmapHeight = getBarChartHeight(memberRoleHeatmap.y.length)
+	const weeklyChartHeight = 460
+	const monthlyChartHeight = 360
 	const monthlyAbsenceTrend = useMemo(() => {
 		const monthRecords = new Map<number, { absences: number; slots: number }>()
 		let minIndex = Number.POSITIVE_INFINITY
@@ -521,7 +528,7 @@ export default function StatsView() {
 	}, [app.weeks])
 
 	return (
-		<div className="col" style={{ gap: 24, maxWidth: 1600, margin: '0 auto', width: '100%' }}>
+		<div className="col" style={{ gap: 32, maxWidth: 1800, margin: '0 auto', padding: '0 12px', width: '100%' }}>
 			
 			<Panel style={{ padding: 24 }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
@@ -550,26 +557,23 @@ export default function StatsView() {
 						전체 또는 선택한 팀원의 직무 배정 횟수를 막대 그래프로 확인합니다.
 					</div>
 				</div>
-				<div style={{ minHeight: member ? 400 : getBarChartHeight(x.length) }}>
-					<Plot
-						data={[{ type: 'bar', x, y, marker: { color: palette.series[0] } }]}
-						layout={{
-							...baseLayout,
-							margin: { l: 40, r: 20, t: 20, b: 60 },
-							xaxis: {
-								...baseLayout.xaxis,
-								tickangle: -45,
-								automargin: true
-							}
-						}}
-						config={{ displayModeBar: false, responsive: true }}
-						useResizeHandler
-						style={{ width: '100%', height: '100%' }}
-					/>
-				</div>
+				<ResponsivePlot
+					height={roleChartHeight}
+					data={[{ type: 'bar', x, y, marker: { color: palette.series[0] } }]}
+					layout={{
+						...baseLayout,
+						margin: { l: 48, r: 24, t: 28, b: 80 },
+						xaxis: {
+							...baseLayout.xaxis,
+							tickangle: -45,
+							automargin: true
+						}
+					}}
+					config={{ displayModeBar: false }}
+				/>
 			</Panel>
 
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 500px), 1fr))', gap: 24 }}>
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 560px), 1fr))', gap: 28 }}>
 				{/* 1) 개인 불참 편차 */}
 				<Panel style={{ padding: 24 }}>
 					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
@@ -583,16 +587,13 @@ export default function StatsView() {
 					</div>
 					{absenceByMember.names.length > 0 ? (
 						<>
-							<div style={{ minHeight: getBarChartHeight(absenceByMember.names.length) }}>
-								<Plot
-									key="absence-deviation-chart"
-									data={[absenceChartData]}
-									layout={absenceChartLayout}
-									config={{ displayModeBar: false, responsive: true }}
-									useResizeHandler
-									style={{ width: '100%', height: '100%' }}
-								/>
-							</div>
+							<ResponsivePlot
+								height={absenceChartHeight}
+								key="absence-deviation-chart"
+								data={[absenceChartData]}
+								layout={absenceChartLayout}
+								config={{ displayModeBar: false }}
+							/>
 							{!absenceByMember.stats.hasVariation && (
 								<div className="muted" style={{ marginTop: 8, fontSize: 13, textAlign: 'center' }}>
 									모든 구성원의 결석 횟수가 동일해 편차가 0입니다.
@@ -618,56 +619,53 @@ export default function StatsView() {
 						</div>
 					</div>
 					{monthlyAbsenceTrend.x.length > 0 ? (
-						<div style={{ flex: 1, minHeight: 300 }}>
-							<Plot
-								data={[
-									{
-										type: 'scatter',
-										mode: 'lines+markers',
-										x: monthlyAbsenceTrend.x,
-										y: monthlyAbsenceTrend.rate,
-										name: '월별 불참률',
-										line: { color: palette.negative, width: 2 },
-										marker: { color: palette.negative, size: 6 },
-										hovertemplate: '%{x}<br>불참률: %{y:.2%}<extra></extra>'
-									},
-									{
-										type: 'scatter',
-										mode: 'lines',
-										x: monthlyAbsenceTrend.x,
-										y: monthlyAbsenceTrend.ma3,
-										name: '3개월 이동평균',
-										line: { color: palette.series[2], width: 3 },
-										hovertemplate: '%{x}<br>3개월 MA: %{y:.2%}<extra></extra>'
-									}
-								]}
-								layout={{
-									...baseLayout,
-									margin: { l: 60, r: 20, t: 20, b: 40 },
-									yaxis: {
-										...baseLayout.yaxis,
-										title: '불참률',
-										rangemode: 'tozero',
-										tickformat: '.0%'
-									},
-									xaxis: {
-										...baseLayout.xaxis,
-										type: 'category',
-										tickangle: -45
-									},
-									legend: {
-										orientation: 'h',
-										yanchor: 'bottom',
-										y: 1.05,
-										xanchor: 'right',
-										x: 1
-									}
-								}}
-								config={{ displayModeBar: false, responsive: true }}
-								useResizeHandler
-								style={{ width: '100%', height: '100%' }}
-							/>
-						</div>
+						<ResponsivePlot
+							height={monthlyChartHeight}
+							data={[
+								{
+									type: 'scatter',
+									mode: 'lines+markers',
+									x: monthlyAbsenceTrend.x,
+									y: monthlyAbsenceTrend.rate,
+									name: '월별 불참률',
+									line: { color: palette.negative, width: 2 },
+									marker: { color: palette.negative, size: 6 },
+									hovertemplate: '%{x}<br>불참률: %{y:.2%}<extra></extra>'
+								},
+								{
+									type: 'scatter',
+									mode: 'lines',
+									x: monthlyAbsenceTrend.x,
+									y: monthlyAbsenceTrend.ma3,
+									name: '3개월 이동평균',
+									line: { color: palette.series[2], width: 3 },
+									hovertemplate: '%{x}<br>3개월 MA: %{y:.2%}<extra></extra>'
+								}
+							]}
+							layout={{
+								...baseLayout,
+								margin: { l: 68, r: 28, t: 28, b: 64 },
+								yaxis: {
+									...baseLayout.yaxis,
+									title: '불참률',
+									rangemode: 'tozero',
+									tickformat: '.0%'
+								},
+								xaxis: {
+									...baseLayout.xaxis,
+									type: 'category',
+									tickangle: -45
+								},
+								legend: {
+									orientation: 'h',
+									yanchor: 'bottom',
+									y: 1.05,
+									xanchor: 'right',
+									x: 1
+								}
+							}}
+							config={{ displayModeBar: false }}
+						/>
 					) : (
 						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
 							월별 데이터가 없습니다.
@@ -688,74 +686,71 @@ export default function StatsView() {
 					</div>
 				</div>
 				{weeklyAbsence.x.length > 0 ? (
-					<div style={{ minHeight: 400 }}>
-						<Plot
-							data={[
-								{
-									type: 'bar',
-									x: weeklyAbsence.x,
-									y: weeklyAbsence.y,
-									name: '불참자 수',
-									marker: { color: palette.negative, opacity: 0.8 },
-									hovertemplate: '%{x}<br>불참자: %{y}명<extra></extra>',
-									yaxis: 'y'
-								},
-								{
-									type: 'scatter',
-									mode: 'lines',
-									x: weeklyAbsence.x,
-									y: weeklyAbsenceMA,
-									name: '불참 4주 이동평균',
-									line: { color: palette.series[1], width: 2, dash: 'dot' },
-									hovertemplate: '%{x}<br>4주 평균: %{y:.2f}명<extra></extra>',
-									yaxis: 'y'
-								},
-								{
-									type: 'scatter',
-									mode: 'lines+markers',
-									x: weeklyFairness.x,
-									y: weeklyFairness.cv,
-									name: '배정 CV',
-									line: { color: palette.series[5], width: 3 },
-									marker: { color: palette.series[5], size: 6 },
-									hovertemplate: '%{x}<br>CV: %{y:.3f}<extra></extra>',
-									yaxis: 'y2'
-								}
-							]}
-							layout={{
-								...baseLayout,
-								margin: { l: 40, r: 40, t: 30, b: 40 },
-								xaxis: {
-									...baseLayout.xaxis,
-									tickangle: -45
-								},
-								yaxis: {
-									...baseLayout.yaxis,
-									title: '불참자 수',
-									rangemode: 'tozero'
-								},
-								yaxis2: {
-									title: '배정 변동계수(CV)',
-									titlefont: { color: palette.series[5] },
-									tickfont: { color: palette.series[5] },
-									overlaying: 'y',
-									side: 'right',
-									zeroline: false,
-									showgrid: false
-								},
-								legend: {
-									orientation: 'h',
-									yanchor: 'bottom',
-									y: 1.05,
-									xanchor: 'left',
-									x: 0
-								}
-							}}
-							config={{ displayModeBar: false, responsive: true }}
-							useResizeHandler
-							style={{ width: '100%', height: '100%' }}
-						/>
-					</div>
+					<ResponsivePlot
+						height={weeklyChartHeight}
+						data={[
+							{
+								type: 'bar',
+								x: weeklyAbsence.x,
+								y: weeklyAbsence.y,
+								name: '불참자 수',
+								marker: { color: palette.negative, opacity: 0.8 },
+								hovertemplate: '%{x}<br>불참자: %{y}명<extra></extra>',
+								yaxis: 'y'
+							},
+							{
+								type: 'scatter',
+								mode: 'lines',
+								x: weeklyAbsence.x,
+								y: weeklyAbsenceMA,
+								name: '불참 4주 이동평균',
+								line: { color: palette.series[1], width: 2, dash: 'dot' },
+								hovertemplate: '%{x}<br>4주 평균: %{y:.2f}명<extra></extra>',
+								yaxis: 'y'
+							},
+							{
+								type: 'scatter',
+								mode: 'lines+markers',
+								x: weeklyFairness.x,
+								y: weeklyFairness.cv,
+								name: '배정 CV',
+								line: { color: palette.series[5], width: 3 },
+								marker: { color: palette.series[5], size: 6 },
+								hovertemplate: '%{x}<br>CV: %{y:.3f}<extra></extra>',
+								yaxis: 'y2'
+							}
+						]}
+						layout={{
+							...baseLayout,
+							margin: { l: 48, r: 48, t: 36, b: 64 },
+							xaxis: {
+								...baseLayout.xaxis,
+								tickangle: -45
+							},
+							yaxis: {
+								...baseLayout.yaxis,
+								title: '불참자 수',
+								rangemode: 'tozero'
+							},
+							yaxis2: {
+								title: '배정 변동계수(CV)',
+								titlefont: { color: palette.series[5] },
+								tickfont: { color: palette.series[5] },
+								overlaying: 'y',
+								side: 'right',
+								zeroline: false,
+								showgrid: false
+							},
+							legend: {
+								orientation: 'h',
+								yanchor: 'bottom',
+								y: 1.05,
+								xanchor: 'left',
+								x: 0
+							}
+						}}
+						config={{ displayModeBar: false }}
+					/>
 				) : (
 					<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
 						주차별 데이터가 없습니다.
@@ -775,39 +770,36 @@ export default function StatsView() {
 					</div>
 				</div>
 				{memberRoleHeatmap.hasData ? (
-					<div style={{ minHeight: getBarChartHeight(memberRoleHeatmap.y.length) }}>
-						<Plot
-							data={[{
-								type: 'heatmap',
-								x: memberRoleHeatmap.x,
-								y: memberRoleHeatmap.y,
-								z: memberRoleHeatmap.z,
-								customdata: memberRoleHeatmap.customData,
-								colorscale: 'Blues',
-								zmin: 0,
-								zmax: 1,
-								colorbar: { title: '배정 비율' },
-								hovertemplate: '%{y} · %{x}<br>비율: %{z:.2f}<br>배정: %{customdata[0]}회<br>출석: %{customdata[1]}주<extra></extra>'
-							}]}
-							layout={{
-								...baseLayout,
-								margin: { l: 120, r: 40, t: 20, b: 40 },
-								yaxis: {
-									...baseLayout.yaxis,
-									type: 'category',
-									automargin: true
-								},
-								xaxis: {
-									...baseLayout.xaxis,
-									title: '역할',
-									type: 'category'
-								}
-							}}
-							config={{ displayModeBar: false, responsive: true }}
-							useResizeHandler
-							style={{ width: '100%', height: '100%' }}
-						/>
-					</div>
+					<ResponsivePlot
+						height={heatmapHeight}
+						data={[{
+							type: 'heatmap',
+							x: memberRoleHeatmap.x,
+							y: memberRoleHeatmap.y,
+							z: memberRoleHeatmap.z,
+							customdata: memberRoleHeatmap.customData,
+							colorscale: 'Blues',
+							zmin: 0,
+							zmax: 1,
+							colorbar: { title: '배정 비율' },
+							hovertemplate: '%{y} · %{x}<br>비율: %{z:.2f}<br>배정: %{customdata[0]}회<br>출석: %{customdata[1]}주<extra></extra>'
+						}]}
+						layout={{
+							...baseLayout,
+							margin: { l: 132, r: 48, t: 28, b: 56 },
+							yaxis: {
+								...baseLayout.yaxis,
+								type: 'category',
+								automargin: true
+							},
+							xaxis: {
+								...baseLayout.xaxis,
+								title: '역할',
+								type: 'category'
+							}
+						}}
+						config={{ displayModeBar: false }}
+					/>
 				) : (
 					<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
 						분석할 데이터가 없습니다.
