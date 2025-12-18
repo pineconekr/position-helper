@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useDraggable } from '@dnd-kit/core'
 import { useAppStore } from '@/shared/state/store'
 
 type Props = {
@@ -9,14 +10,34 @@ type Props = {
 	title?: string | null
 }
 
-function MemberItem({ name, selected, onClick }: { name: string; selected?: boolean; onClick?: () => void }) {
+type MemberItemProps = {
+	label: string
+	value: string
+	selected?: boolean
+	onClick?: () => void
+}
+
+function MemberItem({ label, value, selected, onClick }: MemberItemProps) {
+	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+		id: value === '' ? 'member:__blank__' : `member:${value}`
+	})
+	const style = {
+		cursor: 'grab',
+		userSelect: 'none' as const,
+		transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+		opacity: isDragging ? 0.7 : 1
+	}
+
 	return (
 		<div
+			ref={setNodeRef}
 			className={`member-item${selected ? ' member-item--selected' : ''}`}
 			onClick={onClick}
-			style={{ cursor: 'pointer' }}
+			style={style}
+			{...attributes}
+			{...listeners}
 		>
-			{name}
+			{label}
 		</div>
 	)
 }
@@ -29,7 +50,21 @@ export default function MemberList({
 	title = '팀원 목록'
 }: Props) {
 	const members = useAppStore((s) => s.app.members)
-	const items = useMemo(() => members.map((m) => ({ id: `member:${m.name}`, name: m.name })), [members])
+	const items = useMemo(() => {
+		const byCohort = [...members].sort((a, b) => {
+			const parse = (name: string) => {
+				const m = name.match(/^(\d{2})\s/)
+				return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER
+			}
+			const aGen = parse(a.name)
+			const bGen = parse(b.name)
+			if (aGen !== bGen) return aGen - bGen
+			return a.name.localeCompare(b.name, 'ko')
+		})
+		const mapped = byCohort.map((m) => ({ id: `member:${m.name}`, label: m.name, value: m.name }))
+		const blank = { id: 'member:__blank__', label: '-', value: '' }
+		return [...mapped, blank]
+	}, [members])
 
 	const isInline = variant === 'inline'
 	const containerStyle = isInline
@@ -59,9 +94,10 @@ export default function MemberList({
 				{items.map((i) => (
 					<MemberItem
 						key={i.id}
-						name={i.name}
-						selected={selectedMember === i.name}
-						onClick={() => onMemberClick?.(i.name)}
+						label={i.label}
+						value={i.value}
+						selected={selectedMember === i.value}
+						onClick={i.value === '' ? undefined : () => onMemberClick?.(i.value)}
 					/>
 				))}
 				{items.length === 0 && <div className="muted">팀원을 먼저 추가하세요</div>}

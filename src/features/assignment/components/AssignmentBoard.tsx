@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import AssignmentSummary from './AssignmentSummary'
 import MemberList from './MemberList'
 import RoleCell from './RoleCell'
+import WarningWidget from './WarningWidget'
 import Modal from '@/shared/components/common/Modal'
 import WarningBadge from '@/shared/components/common/WarningBadge'
 import WeekCalendarModal from '@/shared/components/common/WeekCalendarModal'
@@ -31,7 +32,6 @@ export default function AssignmentBoard() {
 
 	const [calendarOpen, setCalendarOpen] = useState(false)
 	const [absenceForm, setAbsenceForm] = useState<{ name: string; reason: string }>({ name: '', reason: '' })
-	const [warningGroupBy, setWarningGroupBy] = useState<'none' | 'role' | 'name'>('role')
 	const [selectedMember, setSelectedMember] = useState<string | null>(null)
 	const absenceSectionRef = useRef<HTMLDivElement | null>(null)
 	const [editingAbsence, setEditingAbsence] = useState<{ name: string; reason: string } | null>(null)
@@ -125,7 +125,8 @@ export default function AssignmentBoard() {
 		const activeId = String(ev.active.id)
 		const overId = String(ev.over?.id ?? '')
 		if (!overId.startsWith('drop:')) return
-		const [, tPart, tRole, tIdx] = overId.split(':')
+		const [, tPart, tRole, tIdxRaw] = overId.split(':')
+		const tIdx = tIdxRaw ?? ''
 		if (!tRole) return
 		if (tPart !== 'part1' && tPart !== 'part2') return
 		const targetPart = tPart as 'part1' | 'part2'
@@ -143,9 +144,31 @@ export default function AssignmentBoard() {
 			return { part, role }
 		}
 
+		// 멤버 목록에서 드래그 → 슬롯 배정
+		if (activeId.startsWith('member:')) {
+			const rawName = activeId.replace(/^member:/, '')
+			// 공란 pill 드래그 시 실제 값은 빈 문자열이 아닌 '__blank__'로 처리하여 '배정'으로 인식되도록 함
+			// (빈 문자열이면 clearRole 처럼 동작하거나 무시될 수 있으므로, 명시적 값 할당)
+			// 단, 저장 로직에서 '__blank__'는 빈 값처럼 보이지만 '배정된 상태'로 취급되어야 경고가 사라짐.
+			// 현재 구조상 '이름이 있어야' 배정으로 간주됨.
+			// 따라서 화면상 '-'로 보이지만 내부 값은 '__blank__' 같은 식별자를 써야 '미배정 경고'를 우회 가능.
+			// 하지만 JSON 저장 시에는 빈 문자열로 저장되어야 한다면, store 로직 수정이 필요함.
+			// 우선 store.assignRole은 문자열을 그대로 받으므로 '__blank__'를 넘기면 draft에 '__blank__'가 들어감.
+			// RoleCell 등에서 '__blank__'를 '-'로 렌더링하고, JSON 저장 시(export)에만 비우도록 처리하는 게 맞을 듯.
+			// 일단 여기서는 '__blank__'를 그대로 넘김.
+			const value = rawName === '__blank__' ? '__blank__' : rawName
+			const targetSlot = buildSlot(targetPart, tRole as RoleKey, tIdx)
+			if (!targetSlot) return
+			if (value !== '__blank__' && value && nameExistsInPart(targetPart, value)) return
+			assignRole(targetPart, tRole as RoleKey, value, parseIndex(tIdx))
+			setSelectedMember(null)
+			return
+		}
+
 		// 테이블 내부에서 드래그(스왑/이동)
 		if (activeId.startsWith('assigned:')) {
-			const [, sPart, sRole, sIdx, nameRaw] = activeId.split(':')
+			const [, sPart, sRole, sIdxRaw, nameRaw] = activeId.split(':')
+			const sIdx = sIdxRaw ?? ''
 			if (sPart !== 'part1' && sPart !== 'part2') return
 			const sourcePart = sPart as 'part1' | 'part2'
 			const name = nameRaw || ''
@@ -251,139 +274,8 @@ export default function AssignmentBoard() {
 				<div className="layout-side" style={{ flex: '1 1 320px', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
 					
 					{/* 경고 위젯 */}
-					{warnings.length > 0 && (() => {
-						const severityRank = (lv: Warning['level']) => lv === 'error' ? 2 : lv === 'warn' ? 1 : 0
-						const levelIcon: Record<Warning['level'], { icon: string; color: string; label: string }> = {
-							error: { icon: 'error', color: 'var(--color-critical)', label: '위험' },
-							warn: { icon: 'warning', color: 'var(--color-warning)', label: '주의' },
-							info: { icon: 'info', color: 'var(--color-accent)', label: '알림' }
-						}
-						const roleOrder: RoleKey[] = ['SW', '고정', '스케치', '사이드', '자막']
-						const roleRank = (r?: RoleKey) => (r ? roleOrder.indexOf(r) : roleOrder.length + 1)
+					<WarningWidget />
 
-						const nameCounts = new Map<string, number>()
-						warnings.forEach((w) => {
-							const n = w.target?.name
-							if (!n) return
-							nameCounts.set(n, (nameCounts.get(n) ?? 0) + 1)
-						})
-						const sortedWarnings = [...warnings].sort((a, b) => {
-							const bySev = severityRank(b.level) - severityRank(a.level)
-							if (bySev) return bySev
-							const byNameLoad = (nameCounts.get(b.target?.name ?? '') ?? 0) - (nameCounts.get(a.target?.name ?? '') ?? 0)
-							if (byNameLoad) return byNameLoad
-							const byRole = roleRank(a.target?.role) - roleRank(b.target?.role)
-							if (byRole) return byRole
-							const partRank = (p?: 'part1' | 'part2') => (p === 'part1' ? 0 : p === 'part2' ? 1 : 2)
-							const byPart = partRank(a.target?.part) - partRank(b.target?.part)
-							if (byPart) return byPart
-							return a.id.localeCompare(b.id)
-						})
-
-						type Key = string
-						const summary = new Map<Key, number>()
-						const keyLabel = (key: Key) => {
-							const [role, part] = key.split('|')
-							return `${role}${part ? `/${part === 'part1' ? '1부' : '2부'}` : ''}`
-						}
-						warnings.forEach((w) => {
-							const k: Key = `${w.target?.role ?? '기타'}|${w.target?.part ?? ''}`
-							summary.set(k, (summary.get(k) ?? 0) + 1)
-						})
-						const sortedSummary = [...summary.entries()].sort((a, b) => b[1] - a[1])
-
-						const Card = ({ w }: { w: Warning }) => {
-							const meta = levelIcon[w.level] ?? levelIcon.warn
-							return (
-								<div key={w.id} className="warning-card" style={{ border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-2)', borderRadius: 8, padding: 10 }}>
-									<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-										<div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: 'var(--color-text-primary)' }}>
-											<span className="material-symbol" style={{ color: meta.color }} aria-label={meta.label} role="img">
-												{meta.icon}
-											</span>
-											<span>{w.message}</span>
-										</div>
-										{(w.target?.role || w.target?.part) && (
-											<div className="muted" style={{ fontSize: 12 }}>
-												{w.target?.part ? (w.target.part === 'part1' ? '1부' : '2부') : ''}
-												{w.target?.role ? ` · ${w.target.role}` : ''}
-											</div>
-										)}
-									</div>
-									{(w.target?.name || w.target?.date) && (
-										<div className="muted" style={{ fontSize: 12 }}>
-											{w.target?.name ? `대상: ${w.target.name}` : ''}
-											{w.target?.date ? `${w.target?.name ? ' · ' : ''}${w.target.date}` : ''}
-										</div>
-									)}
-								</div>
-							)
-						}
-
-						type GroupKey = string
-						const groupMap = new Map<GroupKey, Warning[]>()
-						const groupLabel = (k: GroupKey) => k
-						if (warningGroupBy === 'role') {
-							sortedWarnings.forEach((w) => {
-								const k: GroupKey = w.target?.role ?? '기타'
-								if (!groupMap.has(k)) groupMap.set(k, [])
-								groupMap.get(k)!.push(w)
-							})
-						} else if (warningGroupBy === 'name') {
-							sortedWarnings.forEach((w) => {
-								const k: GroupKey = w.target?.name ?? '(이름 없음)'
-								if (!groupMap.has(k)) groupMap.set(k, [])
-								groupMap.get(k)!.push(w)
-							})
-						}
-
-						const groupedEntries = warningGroupBy === 'none'
-							? [['전체', sortedWarnings] as [GroupKey, Warning[]]]
-							: [...groupMap.entries()].sort((a, b) => b[1].length - a[1].length)
-
-						return (
-							<Panel className="warning-panel" style={{ padding: 16, border: '1px solid var(--color-warning)' }}>
-								<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-									<div style={{ fontWeight: 700 }}>경고 상세</div>
-									<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-										<div className="muted" style={{ fontSize: '0.875rem' }}>그룹:</div>
-										<select 
-											value={warningGroupBy} 
-											onChange={(e) => setWarningGroupBy(e.target.value as any)}
-											style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)' }}
-										>
-											<option value="role">역할</option>
-											<option value="name">이름</option>
-											<option value="none">없음</option>
-										</select>
-									</div>
-								</div>
-								
-								{sortedSummary.length > 0 && (
-									<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-										{sortedSummary.map(([k, c]) => (
-											<Badge key={k} variant="warning" title="역할/부 기준 경고 수">
-												{keyLabel(k)} {c}
-											</Badge>
-										))}
-									</div>
-								)}
-
-								<div className="col" style={{ gap: 10 }}>
-									{groupedEntries.map(([k, arr]) => (
-										<div key={k} className="col" style={{ gap: 8 }}>
-											{warningGroupBy !== 'none' && (
-												<div style={{ fontWeight: 700, marginTop: 4 }}>{groupLabel(k)} <span className="muted" style={{ fontWeight: 400 }}>({arr.length})</span></div>
-											)}
-											<div className="col" style={{ gap: 8 }}>
-												{arr.map((w) => <Card key={w.id} w={w} />)}
-											</div>
-										</div>
-									))}
-								</div>
-							</Panel>
-						)
-					})()}
 
 					{/* 불참자 관리 위젯 */}
 					<Panel ref={absenceSectionRef} style={{ padding: 16 }}>

@@ -6,6 +6,8 @@ import type { ActivityEntry, ActivityType } from '@/shared/types'
 import { useMotionConfig } from '@/shared/utils/motion'
 import Modal from './Modal'
 
+type StatusTone = 'success' | 'warning' | 'info' | 'neutral'
+
 type ActivityFeedProps = {
 	title?: string
 	filter?: ActivityType[]
@@ -13,6 +15,10 @@ type ActivityFeedProps = {
 	emptyMessage?: string
 	collapsible?: boolean
 	defaultCollapsed?: boolean
+}
+
+function StatusDot({ tone }: { tone: StatusTone }) {
+	return <span className="status-dot" data-tone={tone} aria-hidden="true" />
 }
 
 const typeLabels: Record<ActivityType, string> = {
@@ -36,6 +42,7 @@ function getEntryStyle(entry: ActivityEntry) {
 	let icon = typeIcons[entry.type]
 	let styleClass = `activity-feed__icon-wrapper--${entry.type}`
 	let label = typeLabels[entry.type]
+	let tone: StatusTone = 'info'
 
 	// 배정 해제/변경 확인
 	if (entry.type === 'assignment') {
@@ -47,11 +54,15 @@ function getEntryStyle(entry: ActivityEntry) {
 			icon = 'person_remove'
 			styleClass = 'activity-feed__icon-wrapper--assignment-remove'
 			label = '해제'
+			tone = 'warning'
 		}
 		// before가 있고 after도 있으면 변경
 		else if (before && after && before !== after) {
 			icon = 'sync_alt'
 			label = '변경'
+			tone = 'info'
+		} else {
+			tone = 'info'
 		}
 	}
 	
@@ -62,9 +73,13 @@ function getEntryStyle(entry: ActivityEntry) {
 			icon = 'event_available'
 			styleClass = 'activity-feed__icon-wrapper--absence-remove'
 			label = '제거'
+			tone = 'info'
 		} else if (action === 'update') {
 			icon = 'edit_calendar'
 			label = '변경'
+			tone = 'info'
+		} else {
+			tone = 'warning'
 		}
 	}
 	
@@ -75,19 +90,30 @@ function getEntryStyle(entry: ActivityEntry) {
 			icon = 'person_off'
 			styleClass = 'activity-feed__icon-wrapper--member-remove'
 			label = '삭제'
+			tone = 'warning'
 		} else if (action === 'toggle-active') {
 			const active = entry.meta?.active as boolean | undefined
 			if (active === false) {
 				icon = 'visibility_off'
 				label = '비활성'
+				tone = 'info'
 			} else {
 				icon = 'visibility'
 				label = '활성'
+				tone = 'info'
 			}
 		}
 	}
 
-	return { icon, styleClass, label }
+	if (entry.type === 'finalize') {
+		tone = 'success'
+	}
+
+	if (entry.type === 'system') {
+		tone = 'neutral'
+	}
+
+	return { icon, styleClass, label, tone }
 }
 
 function formatTime(timestamp: string): string {
@@ -145,11 +171,9 @@ export default function ActivityFeed({
 	}, [activityLog, filter])
 
 	const displayEntries = useMemo(() => {
-		if (collapsed) {
-			return filteredEntries.slice(0, 1)
-		}
-		return filteredEntries.slice(0, 3) // 메인 뷰에서는 최대 3개만 표시
-	}, [filteredEntries, collapsed])
+		const maxVisible = collapsed ? 1 : maxItems
+		return filteredEntries.slice(0, maxVisible)
+	}, [filteredEntries, collapsed, maxItems])
 
 	const hasMore = filteredEntries.length > displayEntries.length
 	const newCount = Math.max(0, filteredEntries.length - 1)
@@ -202,15 +226,15 @@ export default function ActivityFeed({
 				<AnimatePresence initial={false} mode="wait">
 					{(!collapsed || displayEntries.length > 0) && (
 						<motion.div
-							initial={shouldReduce ? false : { height: 0, opacity: 0 }}
+							initial={shouldReduce ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
 							animate={{ height: 'auto', opacity: 1 }}
-							exit={shouldReduce ? false : { height: 0, opacity: 0 }}
+							exit={shouldReduce ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
 							transition={{ duration: duration.normal, ease: ease.out }}
 							style={{ overflow: 'hidden' }}
 						>
 							<ul className="activity-feed__list" style={{ gap: 8 }}>
 								{displayEntries.map((entry) => {
-									const { icon, styleClass, label } = getEntryStyle(entry)
+									const { icon, styleClass, label, tone } = getEntryStyle(entry)
 									return (
 										<motion.li
 											key={entry.id}
@@ -218,10 +242,15 @@ export default function ActivityFeed({
 											className="activity-feed__item"
 											style={{ padding: '8px 12px', alignItems: 'center', fontSize: 13 }}
 										>
-											<div className={`activity-feed__icon-wrapper ${styleClass}`} style={{ width: 28, height: 28, fontSize: 16, borderRadius: 8 }}>
+											<div
+												className={`activity-feed__icon-wrapper ${styleClass}`}
+												data-tone={tone}
+												style={{ width: 28, height: 28, fontSize: 16, borderRadius: 8 }}
+											>
 												<span className="material-symbol">{icon}</span>
 											</div>
 											<div className="activity-feed__content" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+												<StatusDot tone={tone} />
 												<span style={{ fontWeight: 600 }}>{label}</span>
 												<span className="muted" style={{ fontSize: 12 }}>|</span>
 												<span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -263,15 +292,16 @@ export default function ActivityFeed({
 			>
 				<ul className="activity-feed__list">
 					{filteredEntries.map((entry) => {
-						const { icon, styleClass, label } = getEntryStyle(entry)
+						const { icon, styleClass, label, tone } = getEntryStyle(entry)
 						return (
 							<li key={entry.id} className="activity-feed__item">
-								<div className={`activity-feed__icon-wrapper ${styleClass}`}>
+								<div className={`activity-feed__icon-wrapper ${styleClass}`} data-tone={tone}>
 									<span className="material-symbol">{icon}</span>
 								</div>
 								<div className="activity-feed__content">
 									<div className="activity-feed__content-header">
 										<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+											<StatusDot tone={tone} />
 											<span className="activity-feed__type-label">{label}</span>
 											<time className="activity-feed__time">{formatTime(entry.timestamp)}</time>
 										</div>

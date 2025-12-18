@@ -5,6 +5,8 @@ const PART_LABEL: Record<'part1' | 'part2', string> = {
 	part2: '2부'
 }
 
+const CONTINUOUS_CHECK_WEEKS = 3
+
 function getSlotLabel(part: 'part1' | 'part2', role: RoleKey, index?: 0 | 1) {
 	const base = `${PART_LABEL[part]} ${role}`
 	if (role === '사이드' && typeof index === 'number') {
@@ -83,66 +85,77 @@ function isAssignedThisWeek(draft: { part1: PartAssignment; part2: PartAssignmen
 
 export function computeWarnings(currentDate: string, draft: { part1: PartAssignment; part2: PartAssignment }, app: AppData): Warning[] {
 	const warnings: Warning[] = []
-	const lastWeeks = getLastWeeks(currentDate, app, 2) // 최근 2주까지 체크
+	const lastWeeks = getLastWeeks(currentDate, app, CONTINUOUS_CHECK_WEEKS) // 최근 3주까지 체크
 
-	// 1) 최근 2주 내 동일 직무 연속 배정
+	// 1) 최근 N주 내 동일 직무 연속 배정 (경고 병합)
 	if (lastWeeks.length > 0) {
 		const scalarRoles = ['SW', '자막', '고정', '스케치'] as const
 		type ScalarRole = typeof scalarRoles[number]
 		const p1 = draft.part1 as Omit<PartAssignment, '사이드'>
 		const p2 = draft.part2 as Omit<PartAssignment, '사이드'>
 
-		// 최근 2주 내 모든 주에 대해 체크
+		type ContinuousBucket = {
+			part: 'part1' | 'part2'
+			role: RoleKey
+			name: string
+			weeks: string[]
+		}
+
+		const continuous = new Map<string, ContinuousBucket>()
+		const addContinuous = (part: 'part1' | 'part2', role: RoleKey, name: string, weekLabel: string) => {
+			const key = `${part}-${role}-${normalizeName(name)}`
+			if (!normalizeName(name)) return
+			if (!continuous.has(key)) {
+				continuous.set(key, { part, role, name: normalizeName(name), weeks: [] })
+			}
+			continuous.get(key)!.weeks.push(weekLabel)
+		}
+
+		// 최근 N주 내 모든 주에 대해 체크
 		lastWeeks.forEach((last, index) => {
-			const weekOffset = index + 1 // 1 => 1주 전, 2 => 2주 전
+			const weekOffset = index + 1 // 1 => 1주 전, 2 => 2주 전 ...
 			const weekLabel = `${weekOffset}주 전`
 			const lastP1 = last.data.part1 as Omit<PartAssignment, '사이드'>
 			const lastP2 = last.data.part2 as Omit<PartAssignment, '사이드'>
 
 			(scalarRoles as readonly ScalarRole[]).forEach((role) => {
 				if (sameMember(p1[role], lastP1[role])) {
-					warnings.push({
-						id: `cont-${role}-p1-${last.date}`,
-						level: 'warn',
-						message: `${weekLabel} 1부 ${role}에 동일 인원 연속 배정`,
-						target: { date: currentDate, part: 'part1', role, name: p1[role] }
-					})
+					addContinuous('part1', role, p1[role], weekLabel)
 				}
 				if (sameMember(p2[role], lastP2[role])) {
-					warnings.push({
-						id: `cont-${role}-p2-${last.date}`,
-						level: 'warn',
-						message: `${weekLabel} 2부 ${role}에 동일 인원 연속 배정`,
-						target: { date: currentDate, part: 'part2', role, name: p2[role] }
-					})
+					addContinuous('part2', role, p2[role], weekLabel)
 				}
 			})
-			// 사이드(배열)
+
+			// 사이드(배열) - 슬롯 구분 없이 포함 여부로 체크
 			const lastP1Side = last.data.part1['사이드'] ?? ['', '']
 			const lastP2Side = last.data.part2['사이드'] ?? ['', '']
 			const currentP1Side = draft.part1['사이드'] ?? ['', '']
 			const currentP2Side = draft.part2['사이드'] ?? ['', '']
 
-			// 사이드 1, 2를 구분하지 않고 같은 잡으로 계산
 			currentP1Side.forEach((m) => {
 				if (m && lastP1Side.includes(m)) {
-					warnings.push({
-						id: `cont-side-p1-${last.date}-${m}`,
-						level: 'warn',
-						message: `${weekLabel} 1부 사이드에 동일 인원 연속 배정`,
-						target: { date: currentDate, part: 'part1', role: '사이드', name: m }
-					})
+					addContinuous('part1', '사이드', m, weekLabel)
 				}
 			})
 			currentP2Side.forEach((m) => {
 				if (m && lastP2Side.includes(m)) {
-					warnings.push({
-						id: `cont-side-p2-${last.date}-${m}`,
-						level: 'warn',
-						message: `${weekLabel} 2부 사이드에 동일 인원 연속 배정`,
-						target: { date: currentDate, part: 'part2', role: '사이드', name: m }
-					})
+					addContinuous('part2', '사이드', m, weekLabel)
 				}
+			})
+		})
+
+		// 병합된 연속 경고 생성
+		continuous.forEach(({ part, role, name, weeks }) => {
+			if (weeks.length === 0) return
+			const uniqueWeeks = Array.from(new Set(weeks))
+			const weeksText = uniqueWeeks.join(', ')
+			const countText = uniqueWeeks.length > 1 ? `최근 ${uniqueWeeks.length}주 연속 ` : ''
+			warnings.push({
+				id: `cont-${part}-${role}-${name}`,
+				level: 'warn',
+				message: `${countText}${PART_LABEL[part]} ${role}에 동일 인원 배정 (${weeksText})`,
+				target: { date: currentDate, part, role, name }
 			})
 		})
 	}

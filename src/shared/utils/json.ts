@@ -132,6 +132,46 @@ function normalizeNames(parsed: any): any {
 	return parsed
 }
 
+function isEmptyPart(part: any): boolean {
+	if (!part) return true
+	const isEmpty = (v: any) => !v || (typeof v === 'string' && v.trim() === '')
+	
+	if (!isEmpty(part.SW)) return false
+	if (!isEmpty(part.자막)) return false
+	if (!isEmpty(part.고정)) return false
+	if (!isEmpty(part.스케치)) return false
+	
+	if (Array.isArray(part['사이드'])) {
+		if (part['사이드'].some((v: any) => !isEmpty(v))) return false
+	} else if (!isEmpty(part['사이드'])) {
+		return false
+	}
+	
+	return true
+}
+
+function removeEmptyWeeks(parsed: any): any {
+	if (parsed?.weeks && typeof parsed.weeks === 'object') {
+		const nextWeeks: Record<string, any> = {}
+		for (const [date, week] of Object.entries(parsed.weeks as any)) {
+			const w = week as any
+			if (!w) continue
+
+			const part1Empty = isEmptyPart(w.part1)
+			const part2Empty = isEmptyPart(w.part2)
+			const absencesEmpty = !Array.isArray(w.absences) || w.absences.length === 0
+
+			// 배정도 없고 불참자도 없으면 빈 주차로 간주하여 제거
+			if (part1Empty && part2Empty && absencesEmpty) {
+				continue
+			}
+			nextWeeks[date] = w
+		}
+		parsed.weeks = nextWeeks
+	}
+	return parsed
+}
+
 function parseAppData(jsonText: string): AppData {
 	const parsed = JSON.parse(jsonText)
 	let migrated = normalizeMembers(parsed)
@@ -139,6 +179,9 @@ function parseAppData(jsonText: string): AppData {
 	migrated = migrateEmptyParts(migrated)
 	// 이름 표준화(멤버명과 주차 데이터의 이름을 일치시킴)
 	migrated = normalizeNames(migrated)
+	// 빈 주차 제거 (데이터 최적화)
+	migrated = removeEmptyWeeks(migrated)
+
 	// ensure members array exists
 	if (!migrated.members || !Array.isArray(migrated.members)) {
 		migrated.members = []
@@ -195,8 +238,11 @@ function ensureJsonExtension(name: string): string {
 
 export async function saveJsonFile(data: AppData, suggestedFileName?: string): Promise<boolean> {
 	// 내보내기 포맷: members는 전체 객체로 저장 (active, notes 포함)
+	// 저장 시에도 빈 주차 제거 (데이터 최적화)
+	const optimizedData = removeEmptyWeeks({ ...data, weeks: { ...data.weeks } })
+
 	const toExport = {
-		...data,
+		...optimizedData,
 		members: data.members.map((m) => ({
 			name: m.name,
 			active: m.active !== false, // 기본값 true

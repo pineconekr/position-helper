@@ -11,7 +11,7 @@ const roles: RoleKey[] = ['SW', '자막', '고정', '사이드', '스케치']
 const chartHelpText = {
 	roleAssignments: '전체 탭에서는 각 팀원의 배정 비율을 역할별로 100% 스택 막대로 확인하고, 특정 팀원을 선택하면 역할별 누적 배정 횟수를 보여줍니다.',
 	absenceDistribution: '가로축은 결석 횟수, 세로축은 팀원입니다. 점 위치와 평균선으로 상대적인 결석 분포를 파악할 수 있습니다.',
-	weeklyOperation: '막대는 해당 주에 배정·불참·휴식 인원의 비율(전체 활성 멤버 기준)을 뜻하며, 운영 여유나 과부하 구간을 빠르게 확인할 수 있습니다.',
+	weeklyOperation: '세로축은 팀원, 가로축은 주차입니다. 배정된 역할(색상), 불참(빨강), 휴식(회색) 상태를 한눈에 파악하여, 배정 공백과 특정 인원의 연속 근무 여부를 확인합니다.',
 	monthlyAbsence: 'X축은 YYYY-MM 입니다. 첫 꺾은선은 월별 불참률, 두 번째는 3개월 이동평균으로 추세 변화를 보여줍니다.',
 	memberRoleHeatmap: '행은 팀원, 열은 역할입니다. 색이 진할수록 출석 대비 해당 역할을 자주 맡았음을 의미하며, 호버 시 비율과 횟수를 확인할 수 있습니다.'
 } as const
@@ -382,155 +382,238 @@ const absenceChart = useMemo(() => {
 const formatWeekLabel = (iso: string) => {
 	const date = new Date(`${iso}T00:00:00`)
 	if (Number.isNaN(date.getTime())) return iso
-	return date.toLocaleDateString('ko-KR', {
-		month: 'numeric',
-		day: 'numeric',
-		weekday: 'short'
-	})
+	const m = date.getMonth() + 1
+	const d = date.getDate()
+	return `${m}/${d}`
 }
 
-const weeklyOperation = useMemo(() => {
-	const entries = Object.entries(app.weeks).sort((a, b) => a[0].localeCompare(b[0]))
-	const isoDates: string[] = []
-	const labels: string[] = []
-	const assignedCounts: number[] = []
-	const absenceCounts: number[] = []
-	const restCounts: number[] = []
-	const totals: number[] = []
-
-	const activeSet = new Set(activeMemberNames)
-
-	const collectAssignment = (acc: Set<string>, entry: unknown) => {
-		if (!entry) return
-		if (Array.isArray(entry)) {
-			entry.forEach((value) => collectAssignment(acc, value))
-			return
+	const timelineSummary = useMemo(() => {
+		const dates = Object.keys(app.weeks).sort()
+		const members = activeMemberNames
+		const roleValueMap: Record<string, number> = {
+			'SW': 2, '자막': 3, '고정': 4, '사이드': 5, '스케치': 6
 		}
-		const activeName = getActiveName(entry)
-		if (!activeName) return
-		acc.add(activeName)
-	}
 
-	for (const [date, week] of entries) {
-		const assigned = new Set<string>()
-		collectAssignment(assigned, week.part1?.SW)
-		collectAssignment(assigned, week.part1?.자막)
-		collectAssignment(assigned, week.part1?.고정)
-		collectAssignment(assigned, week.part1?.스케치)
-		collectAssignment(assigned, week.part1?.['사이드'])
-		collectAssignment(assigned, week.part2?.SW)
-		collectAssignment(assigned, week.part2?.자막)
-		collectAssignment(assigned, week.part2?.고정)
-		collectAssignment(assigned, week.part2?.스케치)
-		collectAssignment(assigned, week.part2?.['사이드'])
+		// Z-matrix: rows=members, cols=weeks
+		const z = members.map(() => dates.map(() => 0))
+		const text = members.map(() => dates.map(() => ''))
+		const roleSets = members.map(() => dates.map(() => new Set<RoleKey>()))
+		const highlightCells: { rowIdx: number; colIdx: number; streak: number }[] = []
 
-		const absentees = new Set<string>()
-		week.absences?.forEach((absence) => {
-			const activeName = getActiveName(absence?.name)
-			if (!activeName) return
-			absentees.add(activeName)
+		dates.forEach((date, colIdx) => {
+			const week = app.weeks[date]
+			if (!week) return
+
+			// 1. Mark Absences
+			week.absences?.forEach(abs => {
+				const activeName = getActiveName(abs.name)
+				if (!activeName) return
+				const rowIdx = members.indexOf(activeName)
+				if (rowIdx === -1) return
+				const rowZ = z[rowIdx] ?? (z[rowIdx] = dates.map(() => 0))
+				const rowText = text[rowIdx] ?? (text[rowIdx] = dates.map(() => ''))
+				const rowRoles = roleSets[rowIdx] ?? (roleSets[rowIdx] = dates.map(() => new Set<RoleKey>()))
+				rowZ[colIdx] = 1 // Absent
+				rowText[colIdx] = abs.reason?.trim() || '불참'
+				rowRoles[colIdx] = new Set<RoleKey>() // reset roles for absence
+			})
+
+			// 2. Mark Assignments
+			const processRole = (entry: unknown, roleKey: RoleKey) => {
+				if (!entry) return
+				if (Array.isArray(entry)) {
+					entry.forEach(v => processRole(v, roleKey))
+					return
+				}
+				const activeName = getActiveName(entry)
+				if (!activeName) return
+				const rowIdx = members.indexOf(activeName)
+				if (rowIdx === -1) return
+				const rowZ = z[rowIdx] ?? (z[rowIdx] = dates.map(() => 0))
+				const rowText = text[rowIdx] ?? (text[rowIdx] = dates.map(() => ''))
+				const rowRoles = roleSets[rowIdx] ?? (roleSets[rowIdx] = dates.map(() => new Set<RoleKey>()))
+				const roleSet = rowRoles[colIdx] ?? new Set<RoleKey>()
+				rowRoles[colIdx] = roleSet
+
+				const currentVal = rowZ[colIdx] ?? 0
+				const roleVal = roleValueMap[roleKey] ?? 0
+				roleSet.add(roleKey)
+				
+				if (currentVal === 1 || (currentVal >= 2 && currentVal !== roleVal)) {
+					rowZ[colIdx] = 7 // Mixed
+					rowText[colIdx] += `, ${roleKey}`
+				} else {
+					rowZ[colIdx] = roleVal
+					rowText[colIdx] = roleKey
+				}
+			}
+
+			// Part 1 & 2
+			const scanPart = (p?: WeekData['part1']) => {
+				if (!p) return
+				processRole(p.SW, 'SW')
+				processRole(p.자막, '자막')
+				processRole(p.고정, '고정')
+				processRole(p.스케치, '스케치')
+				processRole(p['사이드'], '사이드')
+			}
+			scanPart(week.part1)
+			scanPart(week.part2)
 		})
 
-		const baseline = activeSet.size > 0
-			? activeSet.size
-			: new Set([...assigned, ...absentees]).size
+		// Post-process: Consecutive roles count
+		members.forEach((_, rowIdx) => {
+			let consecutive = 0
+			let lastRoleVal = -1
+			const rowZ = z[rowIdx] ?? (z[rowIdx] = dates.map(() => 0))
+			const rowText = text[rowIdx] ?? (text[rowIdx] = dates.map(() => ''))
+			const rowRoles = roleSets[rowIdx] ?? (roleSets[rowIdx] = dates.map(() => new Set<RoleKey>()))
+			const streaks: Record<RoleKey, number> = { SW: 0, 자막: 0, 고정: 0, 사이드: 0, 스케치: 0 }
+			
+			dates.forEach((_, colIdx) => {
+				const val = rowZ[colIdx] ?? 0
+				const rolesSet = rowRoles[colIdx]
+				const hasRoles = rolesSet && rolesSet.size > 0
 
-		if (baseline === 0) continue
+				if (!hasRoles || val === 1) {
+					// reset all streaks on absence or no role
+					(Object.keys(streaks) as RoleKey[]).forEach((role) => { streaks[role] = 0 })
+				} else if (rolesSet) {
+					(Object.keys(streaks) as RoleKey[]).forEach((role) => {
+						if (rolesSet.has(role)) {
+							streaks[role] += 1
+						} else {
+							streaks[role] = 0
+						}
+					})
+				}
 
-		const assignedCount = assigned.size
-		const absenceCount = absentees.size
-		const restCount = Math.max(baseline - assignedCount - absenceCount, 0)
+				if (hasRoles && val !== 1) {
+					const maxStreak = Math.max(...Object.values(streaks))
+					if (maxStreak >= 3) {
+						highlightCells.push({ rowIdx, colIdx, streak: maxStreak })
+					}
+				}
 
-		isoDates.push(date)
-		labels.push(formatWeekLabel(date))
-		assignedCounts.push(assignedCount)
-		absenceCounts.push(absenceCount)
-		restCounts.push(restCount)
-		totals.push(baseline)
-	}
+				// Check if it's a valid single role (2..6)
+				if (val >= 2 && val <= 6) {
+					if (val === lastRoleVal) {
+						consecutive++
+						rowText[colIdx] = `${rowText[colIdx]}×${consecutive}`
+					} else {
+						consecutive = 1
+						lastRoleVal = val
+					}
+				} else {
+					consecutive = 0
+					lastRoleVal = -1
+				}
 
-	const fractions = (values: number[], totalsArr: number[]) =>
-		values.map((value, idx) => {
-			const total = totalsArr[idx] ?? 0
-			return total > 0 ? value / total : 0
+				// For multi-role weeks, append streak markers per role in set
+				if (rolesSet && rolesSet.size > 0 && val !== 1) {
+					const orderedRoles = roles.filter((r) => rolesSet.has(r))
+					const label = orderedRoles.map((role) => {
+						const streak = streaks[role]
+						return streak > 1 ? `${role}×${streak}` : role
+					}).join(',<br>')
+					rowText[colIdx] = label
+				}
+			})
 		})
 
-	return {
-		isoDates,
-		labels,
-		assigned: assignedCounts,
-		absence: absenceCounts,
-		rest: restCounts,
-		totals,
-		fractions: {
-			assigned: fractions(assignedCounts, totals),
-			absence: fractions(absenceCounts, totals),
-			rest: fractions(restCounts, totals)
+		return { dates, members, z, text, highlightCells }
+	}, [app.weeks, activeMemberNames, getActiveName])
+
+	const timelineChart = useMemo(() => {
+		const { dates, members, z, text, highlightCells } = timelineSummary
+		if (dates.length === 0 || members.length === 0) return { hasData: false, data: [], layout: {} }
+
+		// Construct discrete colorscale
+		const defaultSeries = ['#93b5f6', '#a5e4f3', '#f6d28f', '#c9b5f6', '#f7b3d4', '#cbd5e1']
+		const softSeries = palette.series?.map((c, idx) => c || defaultSeries[idx]) ?? defaultSeries
+		const getSeriesColor = (idx: number) => softSeries[idx] ?? defaultSeries[idx] ?? '#93b5f6'
+		const colors = [
+			palette.surface2 ?? '#f1f5f9',      // 0: Rest
+			palette.negative ?? '#ef4444',      // 1: Absent (high saturation)
+			getSeriesColor(0),                  // 2: SW (soft)
+			getSeriesColor(1),                  // 3: 자막 (soft)
+			getSeriesColor(2),                  // 4: 고정 (soft)
+			getSeriesColor(3),                  // 5: 사이드 (soft)
+			getSeriesColor(4),                  // 6: 스케치 (soft)
+			getSeriesColor(5),                  // 7: Mixed/Other (soft)
+		]
+
+		const scale: [number, string][] = []
+		const n = 8
+		for (let i = 0; i < n; i++) {
+			const color = colors[i] ?? defaultSeries[i % defaultSeries.length] ?? '#3b82f6'
+			scale.push([i / n, color])
+			scale.push([(i + 1) / n, color])
 		}
-	}
-}, [app.weeks, activeMemberNames, getActiveName])
 
-const weeklyOperationChart = useMemo(() => {
-	const { labels, assigned, absence, rest, totals, fractions } = weeklyOperation
-	const makeCustomData = (values: number[], ratio: number[]) =>
-		values.map((value, idx) => [value, totals[idx] ?? 0, ratio[idx] ?? 0] as [number, number, number])
+		const xLabels = dates.map(d => formatWeekLabel(d))
 
-	return {
-		hasData: labels.length > 0,
-		data: [{
-			type: 'bar' as const,
-			name: '배정됨',
-			x: labels,
-			y: assigned,
-			customdata: makeCustomData(assigned, fractions.assigned),
-			marker: { color: palette.series[3], opacity: 0.95 },
-			hovertemplate: '%{x}<br>배정: %{customdata[0]}명 (%{customdata[2]:.0%})<br>기준: %{customdata[1]}명<extra></extra>'
-		}, {
-			type: 'bar' as const,
-			name: '미배정(휴식)',
-			x: labels,
-			y: rest,
-			customdata: makeCustomData(rest, fractions.rest),
-			marker: { color: palette.neutral, opacity: 0.9 },
-			hovertemplate: '%{x}<br>휴식: %{customdata[0]}명 (%{customdata[2]:.0%})<br>기준: %{customdata[1]}명<extra></extra>'
-		}, {
-			type: 'bar' as const,
-			name: '불참',
-			x: labels,
-			y: absence,
-			customdata: makeCustomData(absence, fractions.absence),
-			marker: { color: palette.negative, opacity: 0.85 },
-			hovertemplate: '%{x}<br>불참: %{customdata[0]}명 (%{customdata[2]:.0%})<br>기준: %{customdata[1]}명<extra></extra>'
-		}],
-		layout: {
-			...baseLayout,
-			margin: { l: 56, r: 56, t: 36, b: 64 },
-			xaxis: {
-				...baseLayout.xaxis,
-				tickangle: -45,
-				title: '주차'
-			},
-			yaxis: {
-				...baseLayout.yaxis,
-				title: '인원 비율',
-				tickformat: '.0%',
-				tickvals: [0, 0.5, 1],
-				ticktext: ['0%', '50%', '100%'],
-				rangemode: 'tozero'
-			},
-			barmode: 'stack' as const,
-			barnorm: 'fraction' as const,
-			legend: {
-				orientation: 'h' as const,
-				yanchor: 'bottom' as const,
-				y: 1.05,
-				xanchor: 'left' as const,
-				x: 0
+		const shapes = highlightCells.map(({ rowIdx, colIdx, streak }) => {
+			const color = streak >= 5 ? (palette.negative ?? '#ef4444') : (palette.warning ?? '#f59e0b')
+			const width = streak >= 5 ? 3 : 2
+			return {
+				type: 'rect',
+				x0: colIdx - 0.45,
+				x1: colIdx + 0.45,
+				y0: rowIdx - 0.45,
+				y1: rowIdx + 0.45,
+				xref: 'x',
+				yref: 'y',
+				line: { color, width },
+				fillcolor: 'transparent'
+			}
+		})
+
+		return {
+			hasData: true,
+			height: Math.max(400, members.length * 32 + 100),
+			data: [{
+				type: 'heatmap' as const,
+				x: dates.map((_, i) => i),
+				y: members.map((_, i) => i),
+				z: z,
+				text: text,
+				texttemplate: '%{text}',
+				textfont: { size: 11 },
+				hoverinfo: 'text' as const,
+				hovertemplate: 
+					'<b>%{y}</b><br>' +
+					'%{x}<br>' +
+					'%{text}<extra></extra>',
+				colorscale: scale,
+				showscale: false, 
+				colorbar: {
+					tickvals: [0.5/8, 1.5/8, 2.5/8, 3.5/8, 4.5/8, 5.5/8, 6.5/8, 7.5/8].map(v => v * 8 * (1/8)), 
+				},
+				zmin: 0,
+				zmax: 8 
+			}],
+			layout: {
+				...baseLayout,
+				shapes,
+				margin: { l: 80, r: 20, t: 40, b: 80 },
+				xaxis: {
+					...baseLayout.xaxis,
+					tickvals: dates.map((_, i) => i),
+					ticktext: xLabels,
+					tickangle: 0,
+					side: 'top' as const
+				},
+				yaxis: {
+					...baseLayout.yaxis,
+					tickvals: members.map((_, i) => i),
+					ticktext: members,
+					autorange: 'reversed' as const,
+					tickfont: { size: 13, weight: 600 }
+				}
 			}
 		}
-	}
-}, [weeklyOperation, palette, baseLayout])
-
+	}, [timelineSummary, palette, baseLayout])
 	const memberRoleHeatmap = useMemo(() => {
 		type MemberStats = { attendance: number; roleWeeks: Record<RoleKey, number> }
 		const statsMap = new Map<string, MemberStats>()
@@ -813,27 +896,51 @@ const weeklyOperationChart = useMemo(() => {
 				</Panel>
 			</div>
 
-			{/* 2) 주차별 운영 현황 */}
+			{/* 2) 주차별 배정 타임라인 (Timeline) */}
 			<Panel style={{ padding: 24, gridColumn: '1 / -1' }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
 					<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-						<span>주차별 운영 현황</span>
+							<span>주차별 배정 타임라인</span>
 						<ChartHelp description={chartHelpText.weeklyOperation} />
+						</div>
+						
+						{/* Legend */}
+						<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.8125rem' }}>
+							{[
+								{ label: '휴식', color: palette.surface2, border: palette.border },
+								{ label: '불참', color: palette.negative },
+								{ label: 'SW', color: palette.series[0] },
+								{ label: '자막', color: palette.series[1] },
+								{ label: '고정', color: palette.series[2] },
+								{ label: '사이드', color: palette.series[3] },
+								{ label: '스케치', color: palette.series[4] },
+							].map(item => (
+								<div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+									<span style={{ 
+										width: 10, height: 10, borderRadius: 2, 
+										backgroundColor: item.color,
+										border: item.border ? `1px solid ${item.border}` : 'none'
+									}} />
+									<span style={{ color: 'var(--color-text-muted)' }}>{item.label}</span>
+								</div>
+							))}
+						</div>
 					</div>
 					<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-						활성 멤버 대비 배정·불참·휴식 비율로 운영 여유와 과부하 구간을 파악합니다.
+						팀원별 주차 활동(배정 역할, 불참, 휴식)을 타임라인 형태로 시각화하여 운영 공백을 관리합니다.
 					</div>
 				</div>
-				{weeklyOperationChart.hasData ? (
+				{timelineChart.hasData ? (
 					<ResponsivePlot
-						height={weeklyChartHeight}
-						data={weeklyOperationChart.data}
-						layout={weeklyOperationChart.layout}
+						height={timelineChart.height}
+						data={timelineChart.data}
+						layout={timelineChart.layout}
 						config={{ displayModeBar: false }}
 					/>
 				) : (
 					<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
-						주차별 운영 데이터가 없습니다.
+						주차별 데이터가 없습니다.
 					</div>
 				)}
 			</Panel>

@@ -74,6 +74,22 @@ const slotsAreEqual = (a: SlotDescriptor, b: SlotDescriptor): boolean => {
 	return a.part === b.part && a.role === b.role && (a.role !== '사이드' || a.index === b.index)
 }
 
+// '__blank__' 값은 화면상 배정으로 취급하지만, 영구 저장 시에는 빈 문자열로 저장한다.
+const normalizeDraftForPersist = (draft: { part1: PartAssignment; part2: PartAssignment }) => {
+	const clone = structuredClone(draft)
+	const clearIfBlank = (value: string) => (value === '__blank__' ? '' : value)
+	;(['part1', 'part2'] as const).forEach((part) => {
+		const p = clone[part]
+		p.SW = clearIfBlank(p.SW)
+		p['자막'] = clearIfBlank(p['자막'])
+		p['고정'] = clearIfBlank(p['고정'])
+		p['스케치'] = clearIfBlank(p['스케치'])
+		p['사이드'][0] = clearIfBlank(p['사이드'][0])
+		p['사이드'][1] = clearIfBlank(p['사이드'][1])
+	})
+	return clone
+}
+
 export type MotionPreference = 'allow' | 'system' | 'reduce'
 
 export type AppState = {
@@ -355,7 +371,8 @@ export const useAppStore = create<AppState>()(
 				const date = s.currentWeekDate
 				if (!date) return baseApp
 				const baseWeek: WeekData = baseApp.weeks[date] ?? { part1: emptyPart(), part2: emptyPart(), absences: [] }
-				const merged: WeekData = { ...baseWeek, ...s.currentDraft } // absences 유지
+				const persistedDraft = normalizeDraftForPersist(s.currentDraft)
+				const merged: WeekData = { ...baseWeek, ...persistedDraft } // absences 유지
 				return { ...baseApp, weeks: { ...baseApp.weeks, [date]: merged } }
 			},
 			recalcWarnings: () =>
@@ -366,7 +383,8 @@ export const useAppStore = create<AppState>()(
 				const date = state.currentWeekDate
 				set((s) => {
 					const base: WeekData = s.app.weeks[date] ?? { part1: emptyPart(), part2: emptyPart(), absences: [] }
-					const nextWeeks = { ...s.app.weeks, [date]: { ...base, ...s.currentDraft } }
+					const persistedDraft = normalizeDraftForPersist(s.currentDraft)
+					const nextWeeks = { ...s.app.weeks, [date]: { ...base, ...persistedDraft } }
 					return { app: { ...s.app, weeks: nextWeeks } }
 				})
 				const totalAssigned = countAssignedRoles(state.currentDraft.part1) + countAssignedRoles(state.currentDraft.part2)

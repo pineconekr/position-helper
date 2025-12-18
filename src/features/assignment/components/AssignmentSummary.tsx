@@ -2,9 +2,81 @@ import { useMemo } from 'react'
 import { useAppStore } from '@/shared/state/store'
 import { analyzeDraft } from '@/shared/utils/assignment'
 import ActivityFeed from '@/shared/components/common/ActivityFeed'
+import { Button } from '@/shared/components/ui/Button'
 
 type Props = {
 	onOpenCalendar: () => void
+}
+
+type StatusCardProps = {
+	icon: string
+	label: string
+	value: number
+	total?: number
+	unit?: string
+	variant: 'success' | 'warning' | 'neutral'
+	emphasis?: 'default' | 'strong'
+}
+
+type ProgressLabelPlacement = 'inline' | 'inside'
+
+type ProgressProps = {
+	value: number
+	label?: string
+	labelPlacement?: ProgressLabelPlacement
+}
+
+function StatusCard({
+	icon,
+	label,
+	value,
+	total,
+	unit,
+	variant,
+	emphasis = 'default'
+}: StatusCardProps) {
+	return (
+		<div
+			className="assignment-summary__stat-card"
+			data-variant={variant}
+			data-emphasis={emphasis}
+		>
+			<div className="stat-icon" data-variant={variant}>
+				<span className="material-symbol">{icon}</span>
+			</div>
+			<div className="stat-content">
+				<span className="stat-label">{label}</span>
+				<span className="stat-value">
+					{value}
+					{typeof total === 'number' && <span className="stat-total">/{total}</span>}
+					{unit && <span className="stat-unit">{unit}</span>}
+				</span>
+			</div>
+		</div>
+	)
+}
+
+function ProgressBar({
+	value,
+	label = '진행률',
+	labelPlacement = 'inline'
+}: ProgressProps) {
+	const clamped = Math.max(0, Math.min(100, Math.round(value)))
+
+	return (
+		<div className="assignment-summary__progress-section" data-label-placement={labelPlacement}>
+			<div className="progress-header">
+				<span className="progress-label">{label}</span>
+				{labelPlacement === 'inline' && <span className="progress-percent">{clamped}%</span>}
+			</div>
+			<div className={`progress-track ${labelPlacement === 'inside' ? 'has-inside-label' : ''}`}>
+				<div className="progress-fill" style={{ width: `${clamped}%` }} />
+				{labelPlacement === 'inside' && (
+					<span className="progress-percent progress-percent--inside">{clamped}%</span>
+				)}
+			</div>
+		</div>
+	)
 }
 
 export default function AssignmentSummary({ onOpenCalendar }: Props) {
@@ -24,58 +96,49 @@ export default function AssignmentSummary({ onOpenCalendar }: Props) {
 
 	const { total, assigned, emptySlots } = useMemo(() => analyzeDraft(draft), [draft])
 	const progressPercent = total === 0 ? 0 : Math.round((assigned / total) * 100)
-	const hasUnassigned = emptySlots.length > 0
 
 	return (
 		<div className="panel assignment-summary">
-			<div className="assignment-summary__header">
-				<div>
-					<div className="assignment-summary__title">이번 주 배정 현황</div>
-					<div className="assignment-summary__meta muted">{dateLabel}</div>
+			<div className="assignment-summary__top">
+				<div className="assignment-summary__heading">
+					<h2 className="assignment-summary__title">이번 주 배정 현황</h2>
+					<span className="assignment-summary__date">{dateLabel}</span>
 				</div>
-				<div className="assignment-summary__metrics">
-					<div className="assignment-summary__metric">
-						<span className="assignment-summary__metric-label">배정 완료</span>
-						<span className="assignment-summary__metric-value">{assigned}/{total}</span>
-					</div>
-					<div className="assignment-summary__metric">
-						<span className="assignment-summary__metric-label">경고</span>
-						<span className={`assignment-summary__metric-value${warnings.length > 0 ? ' danger' : ''}`}>
-							{warnings.length}건
-						</span>
-					</div>
-					<div className="assignment-summary__metric">
-						<span className="assignment-summary__metric-label">미배정</span>
-						<span className={`assignment-summary__metric-value${hasUnassigned ? ' warning' : ''}`}>
-							{emptySlots.length}개
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<div className="assignment-summary__progress">
-				<div className="assignment-summary__progress-bar">
-					<div
-						className="assignment-summary__progress-fill"
-						style={{ width: `${progressPercent}%` }}
-						aria-valuenow={progressPercent}
-						aria-valuemin={0}
-						aria-valuemax={100}
-						role="progressbar"
-					/>
-				</div>
-				<div className="assignment-summary__progress-label muted">
-					{progressPercent}% 완료
-				</div>
-			</div>
-
-			<div className="assignment-summary__actions">
-				<button type="button" className="btn" onClick={onOpenCalendar}>
+				<Button size="sm" variant="outline" onClick={onOpenCalendar}>
 					주차 선택
-				</button>
+				</Button>
 			</div>
 
-			<div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--color-border-subtle)' }}>
+			<div className="assignment-summary__stats-grid">
+				<StatusCard
+					icon="check_circle"
+					label="배정 완료"
+					value={assigned}
+					total={total}
+					variant="success"
+				/>
+
+				<StatusCard
+					icon="warning"
+					label="경고"
+					value={warnings.length}
+					unit="건"
+					variant="warning"
+					emphasis={warnings.length > 0 ? 'strong' : 'default'}
+				/>
+
+				<StatusCard
+					icon="person_off"
+					label="미배정"
+					value={emptySlots.length}
+					unit="개"
+					variant="neutral"
+				/>
+			</div>
+
+			<ProgressBar value={progressPercent} labelPlacement="inline" />
+
+			<div className="assignment-summary__feed">
 				<ActivityFeed
 					title="최근 배정 변경"
 					filter={['assignment', 'absence', 'finalize']}

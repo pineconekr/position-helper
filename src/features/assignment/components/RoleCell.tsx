@@ -22,16 +22,27 @@ export default function RoleCell({ part, role, index, onSlotClick }: Props) {
 		? draft[part]['사이드'][index ?? 0]
 		: (draft[part] as any)[role] as string
 
-	const bg = isOver ? 'var(--color-accent-soft)' : 'var(--color-surface-1)'
+	const hasValue = !!value
+	const bg = isOver && !hasValue ? 'var(--color-accent-soft)' : 'var(--color-surface-1)'
+	const outerStyle = hasValue
+		? { background: 'transparent', border: 'none', padding: 0, minHeight: 0, gap: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }
+		: { background: bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', borderRadius: 'var(--radius-md)', border: '1px dashed var(--color-border-subtle)', minHeight: 48, gap: 8 }
 
 	return (
-		<div ref={setNodeRef} className="role-cell" style={{ background: bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', borderRadius: 'var(--radius-md)', border: '1px dashed var(--color-border-subtle)', minHeight: 48, gap: 8 }}>
+		<div ref={setNodeRef} className="role-cell" style={outerStyle}>
 			<div
 				className="role-slot"
 				onClick={() => onSlotClick?.(part, role, index)}
 				role="button"
 				tabIndex={0}
-				style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+				style={{
+					flex: hasValue ? '0 1 auto' : 1,
+					minWidth: 0,
+					cursor: 'pointer',
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'center'
+				}}
 				onKeyDown={(e) => {
 					if (e.key === 'Enter' || e.key === ' ') {
 						e.preventDefault()
@@ -51,7 +62,7 @@ export default function RoleCell({ part, role, index, onSlotClick }: Props) {
 					title="지우기"
 					aria-label="지우기"
 					icon="close"
-					style={{ padding: 0, width: 28, height: 28 }}
+					style={{ padding: 0, width: 24, height: 24, minWidth: 24 }}
 				/>
 			)}
 		</div>
@@ -64,7 +75,11 @@ function AssignedPill({ part, role, index, name }: { part: 'part1' | 'part2'; ro
 	const warnings = useAppStore((s) => s.warnings)
 	const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 	
+	const isBlank = name === '__blank__'
+	const displayName = isBlank ? '-' : name
+
 	const hasWarning = useMemo(() => {
+		if (isBlank) return false // 공란은 경고 대상 제외
 		return warnings.some((w) => {
 			const t = w.target
 			if (!t?.name || t.name !== name) return false
@@ -72,7 +87,7 @@ function AssignedPill({ part, role, index, name }: { part: 'part1' | 'part2'; ro
 			if (t.part && t.part !== part) return false
 			return true
 		})
-	}, [warnings, name, role, part])
+	}, [warnings, name, role, part, isBlank])
 	
 	return (
 		<div
@@ -81,11 +96,11 @@ function AssignedPill({ part, role, index, name }: { part: 'part1' | 'part2'; ro
 			{...attributes}
 			{...listeners}
 		>
-			<Badge 
+			<Badge
 				variant={hasWarning ? 'critical' : 'accent'}
-				style={{ cursor: 'grab', fontSize: '0.875rem', padding: '4px 10px' }}
+				style={{ cursor: 'grab', fontSize: '0.875rem', padding: '4px 10px', maxWidth: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
 			>
-				{name}
+				{displayName}
 			</Badge>
 		</div>
 	)
