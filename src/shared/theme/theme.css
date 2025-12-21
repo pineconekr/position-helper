@@ -87,12 +87,13 @@
 	/* Chart Colors */
 	--chart-grid: rgba(15, 23, 42, 0.06);
 	--chart-axis: rgba(15, 23, 42, 0.2);
-	--data-series-1: #3b82f6;
-	--data-series-2: #06b6d4;
-	--data-series-3: #f97316;
-	--data-series-4: #8b5cf6;
-	--data-series-5: #ec4899;
-	--data-series-6: #6366f1;
+	/* Tableau Categorical (Muted) - first 6 colors */
+	--data-series-1: #4E79A7;
+	--data-series-2: #F28E2B;
+	--data-series-3: #E15759;
+	--data-series-4: #76B7B2;
+	--data-series-5: #59A14F;
+	--data-series-6: #EDC948;
 	--data-positive: #10b981;
 	--data-negative: #ef4444;
 	--data-neutral: #64748b;
@@ -170,12 +171,13 @@
 	/* Chart Colors */
 	--chart-grid: rgba(148, 163, 184, 0.1);
 	--chart-axis: rgba(148, 163, 184, 0.3);
-	--data-series-1: #60a5fa;
-	--data-series-2: #22d3ee;
-	--data-series-3: #fb923c;
-	--data-series-4: #a78bfa;
-	--data-series-5: #f472b6;
-	--data-series-6: #818cf8;
+	/* Tableau Categorical (Muted) - first 6 colors */
+	--data-series-1: #4E79A7;
+	--data-series-2: #F28E2B;
+	--data-series-3: #E15759;
+	--data-series-4: #76B7B2;
+	--data-series-5: #59A14F;
+	--data-series-6: #EDC948;
 	--data-positive: #34d399;
 	--data-negative: #f87171;
 	--data-neutral: #94a3b8;

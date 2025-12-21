@@ -7,22 +7,6 @@ const PART_LABEL: Record<'part1' | 'part2', string> = {
 
 const CONTINUOUS_CHECK_WEEKS = 3
 
-function getSlotLabel(part: 'part1' | 'part2', role: RoleKey, index?: 0 | 1) {
-	const base = `${PART_LABEL[part]} ${role}`
-	if (role === '사이드' && typeof index === 'number') {
-		return `${base}(${index + 1})`
-	}
-	return base
-}
-
-function getLastWeek(currentDate: string, app: AppData): { date: string; data: WeekData } | null {
-	const dates = Object.keys(app.weeks).sort()
-	const idx = dates.indexOf(currentDate)
-	const lastDate = idx > 0 ? dates[idx - 1] : dates.length > 0 ? dates[dates.length - 1] : null
-	if (!lastDate) return null
-	return { date: lastDate, data: app.weeks[lastDate]! }
-}
-
 const ROTATION_ROLES: RoleKey[] = ['고정', '스케치', '사이드']
 
 function getLastWeeks(currentDate: string, app: AppData, count: number): Array<{ date: string; data: WeekData }> {

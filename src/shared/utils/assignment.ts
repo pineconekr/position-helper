@@ -1,5 +1,7 @@
 import type { PartAssignment } from '../types'
 
+export const BLANK_ROLE_VALUE = '__blank__'
+
 export type SlotDescriptor = {
 	part: 'part1' | 'part2'
 	role: keyof PartAssignment
@@ -36,10 +38,10 @@ export function analyzeDraft(draft: { part1: PartAssignment; part2: PartAssignme
 			slot.role === '사이드'
 				? part['사이드'][slot.index ?? 0]
 				: (part[slot.role] as string)
-		// '__blank__' (공란 pill)은 배정된 상태로 취급
-		const value = rawValue === '__blank__' ? '__blank__' : rawValue?.trim()
+		// BLANK_ROLE_VALUE (공란 pill)은 배정된 상태로 취급
+		const value = rawValue === BLANK_ROLE_VALUE ? BLANK_ROLE_VALUE : rawValue?.trim()
 		
-		// __blank__ (공란 pill)도 배정된 것으로 간주
+		// BLANK_ROLE_VALUE (공란 pill)도 배정된 것으로 간주
 		if (value) {
 			assigned += 1
 		} else {

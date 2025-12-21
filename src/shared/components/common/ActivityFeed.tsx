@@ -175,7 +175,6 @@ export default function ActivityFeed({
 		return filteredEntries.slice(0, maxVisible)
 	}, [filteredEntries, collapsed, maxItems])
 
-	const hasMore = filteredEntries.length > displayEntries.length
 	const newCount = Math.max(0, filteredEntries.length - 1)
 
 	if (filteredEntries.length === 0) {

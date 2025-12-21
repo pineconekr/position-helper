@@ -38,7 +38,7 @@ function normalizeMembers(parsed: any): any {
 
 function migrateEmptyParts(parsed: any): any {
 	if (parsed?.weeks && typeof parsed.weeks === 'object') {
-		for (const [date, weekRaw] of Object.entries(parsed.weeks as any)) {
+		for (const [, weekRaw] of Object.entries(parsed.weeks as any)) {
 			const week = weekRaw as any
 			if (!week || typeof week !== 'object') continue
 			if (!week.part1 || Object.keys(week.part1).length === 0) {
@@ -100,7 +100,7 @@ function normalizeNames(parsed: any): any {
 	}
 
 	if (parsed.weeks && typeof parsed.weeks === 'object') {
-		for (const [date, weekRaw] of Object.entries(parsed.weeks as any)) {
+		for (const [, weekRaw] of Object.entries(parsed.weeks as any)) {
 			const week = weekRaw as any
 			if (!week || typeof week !== 'object') continue
 

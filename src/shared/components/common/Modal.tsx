@@ -50,6 +50,7 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 					exit={shouldReduce ? { opacity: 1 } : { opacity: 0, transition: { duration: duration.fast, ease: ease.in } }}
 					transition={{ duration: duration.normal, ease: ease.out }}
 					role="presentation"
+					onClick={onClose}
 				>
 					<motion.div
 						className="panel modal-panel"
@@ -63,6 +64,7 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 								: { opacity: 0, y: 12, scale: 0.98, transition: { duration: duration.fast, ease: ease.in } }
 						}
 						transition={{ duration: duration.normal, ease: ease.out }}
+						onClick={(e) => e.stopPropagation()}
 					>
 						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
 							<h3 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{title}</h3>

@@ -30,6 +30,7 @@ export function getChartPalette() {
 		axis: getCssVar('--chart-axis') || 'rgba(15, 23, 42, 0.2)',
 		positive: getCssVar('--data-positive') || '#10b981',
 		negative: getCssVar('--data-negative') || '#ef4444',
+		warning: getCssVar('--color-warning') || '#f59e0b',
 		neutral: getCssVar('--data-neutral') || '#64748b',
 		text: getCssVar('--color-text-muted') || '#64748b',
 		surface2: getCssVar('--color-surface-2') || '#f1f5f9',
@@ -37,30 +38,3 @@ export function getChartPalette() {
 		series: [0, 1, 2, 3, 4, 5].map(getDataSeriesColor),
 	};
 }
-
-// 9-step sequential blues (Light -> Dark)
-// Based on common data viz standards for high contrast
-export const HEATMAP_BLUES = [
-	[0, '#f9fbff'],
-	[0.125, '#dae8fb'],
-	[0.25, '#bed6f5'],
-	[0.375, '#9ac0ec'],
-	[0.5, '#77a9e3'],
-	[0.625, '#568fd7'],
-	[0.75, '#3b74c6'],
-	[0.875, '#1f57a6'],
-	[1, '#153a73']
-] as const;
-
-// Dark-mode safe sequential blues (low glare, high contrast)
-export const HEATMAP_BLUES_DARK = [
-	[0, '#0b1220'],
-	[0.125, '#122038'],
-	[0.25, '#16324e'],
-	[0.375, '#184563'],
-	[0.5, '#185a7a'],
-	[0.625, '#1c7194'],
-	[0.75, '#228dae'],
-	[0.875, '#34a9c6'],
-	[1, '#5fc8dd']
-] as const;

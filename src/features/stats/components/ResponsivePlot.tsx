@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Plot from 'react-plotly.js'
-import Plotly from 'plotly.js-dist-min'
-import type { PlotParams } from 'react-plotly.js'
 import type { CSSProperties } from 'react'
 
-type ResponsivePlotProps = Omit<PlotParams, 'useResizeHandler'> & {
+type PlotComponentProps = React.ComponentProps<typeof Plot>
+
+type ResponsivePlotProps = Omit<PlotComponentProps, 'useResizeHandler'> & {
 	height?: number
 	containerStyle?: CSSProperties
 }
@@ -20,39 +20,66 @@ export function ResponsivePlot({
 	...rest
 }: ResponsivePlotProps) {
 	const containerRef = useRef<HTMLDivElement>(null)
-	const plotRef = useRef<Plotly.PlotlyHTMLElement | null>(null)
+	const graphDivRef = useRef<any>(null)
 	const frameRef = useRef<number | null>(null)
 	const [containerWidth, setContainerWidth] = useState(0)
 
+	// Plotly 타입 의존성 없이도 resize를 보장하기 위해, 런타임에서만 동적으로 Plotly를 로드한다.
+	// (plotly.js-dist-min은 설치되어 있으므로 번들에 포함되며, TS 타입 선언이 없어도 any로 처리)
+	const ensurePlotly = useMemo(() => {
+		let cached: any | null = null
+		let inFlight: Promise<any> | null = null
+		return () => {
+			if (cached) return Promise.resolve(cached)
+			if (inFlight) return inFlight
+			inFlight = import('plotly.js-dist-min')
+				.then((mod: any) => {
+					cached = mod?.default ?? mod
+					return cached
+				})
+				.finally(() => {
+					inFlight = null
+				})
+			return inFlight
+		}
+	}, [])
+
 	const scheduleResize = useCallback(() => {
-		if (!plotRef.current) return
+		if (!graphDivRef.current) return
 		if (frameRef.current !== null) {
 			cancelAnimationFrame(frameRef.current)
 		}
 		frameRef.current = requestAnimationFrame(() => {
 			frameRef.current = null
-			if (!plotRef.current) return
-			Plotly.Plots.resize(plotRef.current)
+			const graphDiv = graphDivRef.current
+			if (!graphDiv) return
+			ensurePlotly()
+				.then((Plotly: any) => {
+					Plotly?.Plots?.resize?.(graphDiv)
+				})
+				.catch(() => {
+					// Plotly 로드 실패 시에도 앱이 깨지지 않도록 무시
+				})
 		})
-	}, [])
+	}, [ensurePlotly])
 
-	const handleInitialized = useCallback<NonNullable<PlotParams['onInitialized']>>(
-		(figure, graphDiv) => {
-			plotRef.current = graphDiv
+	const handleInitialized = useCallback(
+		(figure: unknown, graphDiv: unknown) => {
+			graphDivRef.current = graphDiv
 			scheduleResize()
-			if (onInitialized) {
-				return onInitialized(figure, graphDiv)
-			}
-			return graphDiv
+			// react-plotly.js 타입이 프로젝트에 없을 수도 있어서 안전하게 any로 전달
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			return onInitialized?.(figure as any, graphDiv as any)
 		},
 		[onInitialized, scheduleResize]
 	)
 
-	const handleUpdate = useCallback<NonNullable<PlotParams['onUpdate']>>(
-		(figure, graphDiv) => {
-			plotRef.current = graphDiv
+	const handleUpdate = useCallback(
+		(figure: unknown, graphDiv: unknown) => {
+			graphDivRef.current = graphDiv
 			scheduleResize()
-			onUpdate?.(figure, graphDiv)
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			onUpdate?.(figure as any, graphDiv as any)
 		},
 		[onUpdate, scheduleResize]
 	)
@@ -64,6 +91,7 @@ export function ResponsivePlot({
 		const updateSize = () => {
 			const nextWidth = containerRef.current?.clientWidth ?? 0
 			setContainerWidth((prev) => (prev === nextWidth ? prev : nextWidth))
+			// layout.width 변경과 별개로 Plotly resize를 명시적으로 예약
 			scheduleResize()
 		}
 
@@ -110,15 +138,15 @@ export function ResponsivePlot({
 		...style
 	}), [style])
 
-	const mergedContainerStyle = useMemo(() => ({
+	const mergedContainerStyle = useMemo<CSSProperties>(() => ({
 		position: 'relative',
 		width: '100%',
 		height,
 		minHeight: height,
 		overflow: 'hidden',
-		isolation: 'isolate',
+		isolation: 'isolate' as const,
 		display: 'flex',
-		flexDirection: 'column',
+		flexDirection: 'column' as const,
 		...containerStyle
 	}), [height, containerStyle])
 

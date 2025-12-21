@@ -1,7 +1,7 @@
 import { Panel } from '@/shared/components/ui/Panel'
 import { useAppStore } from '@/shared/state/store'
 import { useTheme } from '@/shared/theme/ThemeProvider'
-import type { MotionPreference } from '@/shared/state/store'
+import type { MotionPreference } from '@/shared/types'
 
 const motionOptions: Array<{ value: MotionPreference; title: string; description: string; icon: string }> = [
 	{

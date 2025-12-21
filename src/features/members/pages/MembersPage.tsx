@@ -167,7 +167,6 @@ export default function MembersPage() {
 													variant={m.active ? 'primary' : 'secondary'}
 													size="sm"
 													onClick={() => {
-														const nextActive = !m.active
 														toggleActive(m.name)
 													}}
 													aria-pressed={m.active}

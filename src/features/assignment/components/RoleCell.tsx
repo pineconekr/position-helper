@@ -4,6 +4,8 @@ import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
 import { useAppStore } from '@/shared/state/store'
 import type { RoleKey } from '@/shared/types'
+import { BLANK_ROLE_VALUE } from '@/shared/utils/assignment'
+import { encodeAssignedId, encodeDropId } from '@/shared/utils/dndIds'
 
 type Props = {
 	part: 'part1' | 'part2'
@@ -13,9 +15,8 @@ type Props = {
 }
 
 export default function RoleCell({ part, role, index, onSlotClick }: Props) {
-	const id = `drop:${part}:${role}:${index ?? 'single'}`
+	const id = encodeDropId({ part, role, index })
 	const { isOver, setNodeRef } = useDroppable({ id })
-	const assignRole = useAppStore((s) => s.assignRole)
 	const clearRole = useAppStore((s) => s.clearRole)
 	const draft = useAppStore((s) => s.currentDraft)
 	const value = role === '사이드'
@@ -70,12 +71,12 @@ export default function RoleCell({ part, role, index, onSlotClick }: Props) {
 }
 
 function AssignedPill({ part, role, index, name }: { part: 'part1' | 'part2'; role: RoleKey; index?: 0 | 1; name: string }) {
-	const id = `assigned:${part}:${role}:${index ?? 'single'}:${name}`
+	const id = encodeAssignedId({ part, role, index }, name)
 	const { attributes, listeners, setNodeRef, transform } = useDraggable({ id })
 	const warnings = useAppStore((s) => s.warnings)
 	const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 	
-	const isBlank = name === '__blank__'
+	const isBlank = name === BLANK_ROLE_VALUE
 	const displayName = isBlank ? '-' : name
 
 	const hasWarning = useMemo(() => {

@@ -104,7 +104,7 @@ export default function AssignmentSummary({ onOpenCalendar }: Props) {
 					<h2 className="assignment-summary__title">이번 주 배정 현황</h2>
 					<span className="assignment-summary__date">{dateLabel}</span>
 				</div>
-				<Button size="sm" variant="outline" onClick={onOpenCalendar}>
+				<Button size="sm" onClick={onOpenCalendar}>
 					주차 선택
 				</Button>
 			</div>

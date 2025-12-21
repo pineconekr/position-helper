@@ -1,6 +1,9 @@
 import { useMemo } from 'react'
+import type { CSSProperties } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { useAppStore } from '@/shared/state/store'
+import { BLANK_ROLE_VALUE } from '@/shared/utils/assignment'
+import { encodeMemberId } from '@/shared/utils/dndIds'
 
 type Props = {
 	orientation?: 'vertical' | 'horizontal'
@@ -19,7 +22,7 @@ type MemberItemProps = {
 
 function MemberItem({ label, value, selected, onClick }: MemberItemProps) {
 	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-		id: value === '' ? 'member:__blank__' : `member:${value}`
+		id: encodeMemberId(value === '' ? BLANK_ROLE_VALUE : value)
 	})
 	const style = {
 		cursor: 'grab',
@@ -61,23 +64,23 @@ export default function MemberList({
 			if (aGen !== bGen) return aGen - bGen
 			return a.name.localeCompare(b.name, 'ko')
 		})
-		const mapped = byCohort.map((m) => ({ id: `member:${m.name}`, label: m.name, value: m.name }))
-		const blank = { id: 'member:__blank__', label: '-', value: '' }
+		const mapped = byCohort.map((m) => ({ id: encodeMemberId(m.name), label: m.name, value: m.name }))
+		const blank = { id: encodeMemberId(BLANK_ROLE_VALUE), label: '-', value: '' }
 		return [...mapped, blank]
 	}, [members])
 
 	const isInline = variant === 'inline'
-	const containerStyle = isInline
+	const containerStyle: CSSProperties = isInline
 		? {
-			padding: '8px 10px',
-			border: '1px solid var(--color-border-subtle)',
-			borderRadius: 'var(--radius-md)',
-			background: 'var(--color-surface-1)',
-			overflowX: orientation === 'horizontal' ? 'auto' : undefined,
-			display: 'flex',
-			flexDirection: 'column',
-			gap: 8
-		}
+				padding: '8px 10px',
+				border: '1px solid var(--color-border-subtle)',
+				borderRadius: 'var(--radius-md)',
+				background: 'var(--color-surface-1)',
+				overflowX: orientation === 'horizontal' ? 'auto' : undefined,
+				display: 'flex',
+				flexDirection: 'column',
+				gap: 8
+			}
 		: { padding: 12 }
 
 	return (

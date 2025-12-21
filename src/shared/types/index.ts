@@ -27,6 +27,8 @@ export type ActivityEntry = {
 	meta?: Record<string, unknown>
 }
 
+export type MotionPreference = 'allow' | 'system' | 'reduce'
+
 const NonEmptyString = z.string()
 export const ZPartAssignment = z.object({
 	SW: z.string(),
@@ -67,5 +69,3 @@ export type Warning = {
 	message: string
 	target?: { date?: string; part?: 'part1' | 'part2'; role?: RoleKey; name?: string }
 }
-
-

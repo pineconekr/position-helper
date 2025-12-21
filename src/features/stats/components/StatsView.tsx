@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ResponsivePlot } from './ResponsivePlot'
 import { Panel } from '@/shared/components/ui/Panel'
 import { useAppStore } from '@/shared/state/store'
-import { getChartPalette, HEATMAP_BLUES, HEATMAP_BLUES_DARK } from '@/shared/theme/chartColors'
+import { getChartPalette } from '@/shared/theme/chartColors'
 import { useTheme } from '@/shared/theme/ThemeProvider'
 import { motionDurMs, useMotionConfig } from '@/shared/utils/motion'
 import type { RoleKey, WeekData } from '@/shared/types'
@@ -10,9 +10,9 @@ import type { RoleKey, WeekData } from '@/shared/types'
 const roles: RoleKey[] = ['SW', '자막', '고정', '사이드', '스케치']
 const chartHelpText = {
 	roleAssignments: '전체 탭에서는 각 팀원의 배정 비율을 역할별로 100% 스택 막대로 확인하고, 특정 팀원을 선택하면 역할별 누적 배정 횟수를 보여줍니다.',
-	absenceDistribution: '가로축은 결석 횟수, 세로축은 팀원입니다. 점 위치와 평균선으로 상대적인 결석 분포를 파악할 수 있습니다.',
+	absenceDistribution: '불참률(불참 횟수 / 활동 기간) 순으로 정렬하여, 활동 기간 대비 불참 빈도를 파악합니다. 상위 10%는 빨강, 평균 초과~상위 20%는 주황색으로 표시됩니다.',
 	weeklyOperation: '세로축은 팀원, 가로축은 주차입니다. 배정된 역할(색상), 불참(빨강), 휴식(회색) 상태를 한눈에 파악하여, 배정 공백과 특정 인원의 연속 근무 여부를 확인합니다.',
-	monthlyAbsence: 'X축은 YYYY-MM 입니다. 첫 꺾은선은 월별 불참률, 두 번째는 3개월 이동평균으로 추세 변화를 보여줍니다.',
+	roleShare: '전체 프로젝트(사각형)를 역할별로 나누고, 그 안에서 각 팀원의 기여도만큼 면적을 할당한 트리맵입니다. 역할 내에서 누구의 지분이 가장 큰지 한눈에 비교할 수 있습니다.',
 	memberRoleHeatmap: '행은 팀원, 열은 역할입니다. 색이 진할수록 출석 대비 해당 역할을 자주 맡았음을 의미하며, 호버 시 비율과 횟수를 확인할 수 있습니다.'
 } as const
 
@@ -36,7 +36,7 @@ function ChartHelp({ description }: { description: string }) {
 export default function StatsView() {
 	const app = useAppStore((s) => s.app)
 	const [member, setMember] = useState<string>('')
-	const { theme, effectiveTheme } = useTheme()
+	const { theme } = useTheme()
 	const { shouldReduce } = useMotionConfig()
 	const getBarChartHeight = (itemCount: number) => Math.max(360, itemCount * 34 + 120)
 	const chartTransition = useMemo(
@@ -80,8 +80,8 @@ export default function StatsView() {
 	}), [palette, chartTransition])
 
 	const heatmapColorscale = useMemo(
-		() => (effectiveTheme === 'dark' ? HEATMAP_BLUES_DARK : HEATMAP_BLUES),
-		[effectiveTheme]
+		() => 'Viridis' as any,
+		[]
 	)
 
 	const memberStatusMap = useMemo(() => {
@@ -217,10 +217,25 @@ const roleChart = useMemo(() => {
 		}
 	}
 
+	// 기수 추출 함수: 이름에서 숫자를 추출 (예: "20 박예" -> 20, "박예" -> null)
+	const extractBatchNumber = (name: string): number | null => {
+		const match = name.match(/^(\d+)/)
+		return match ? parseInt(match[1]!, 10) : null
+	}
+
 	const sortedMembers = [...memberOptions].sort((a, b) => {
-		const totalA = Object.values(getRoleRecord(a)).reduce((acc, value) => acc + value, 0)
-		const totalB = Object.values(getRoleRecord(b)).reduce((acc, value) => acc + value, 0)
-		return totalB - totalA || a.localeCompare(b, 'ko')
+		const batchA = extractBatchNumber(a)
+		const batchB = extractBatchNumber(b)
+		
+		// 기수가 있는 경우: 기수 우선 정렬
+		if (batchA !== null && batchB !== null) {
+			return batchA - batchB || a.localeCompare(b, 'ko')
+		}
+		// 한쪽만 기수가 있는 경우: 기수가 있는 쪽이 앞으로
+		if (batchA !== null) return -1
+		if (batchB !== null) return 1
+		// 둘 다 기수가 없는 경우: 가나다 순
+		return a.localeCompare(b, 'ko')
 	})
 	const traces = roles.map((role, roleIdx) => {
 		const counts = sortedMembers.map((name) => getRoleRecord(name)[role])
@@ -278,78 +293,120 @@ const roleChart = useMemo(() => {
 // 불참 데이터 집계
 const absenceSummary = useMemo(() => {
 	const counts = new Map<string, number>()
-	activeMemberNames.forEach((name) => counts.set(name, 0))
+	const firstSeen = new Map<string, number>()
+	const sortedDates = Object.keys(app.weeks).sort()
+	
+	activeMemberNames.forEach((name) => {
+		counts.set(name, 0)
+	})
 
-	Object.values(app.weeks).forEach((week) => {
+	sortedDates.forEach((date, index) => {
+		const week = app.weeks[date]
+		if (!week) return
+		const checkParticipant = (name: string | null | undefined) => {
+			const activeName = getActiveName(name)
+			if (activeName) {
+				if (!firstSeen.has(activeName)) firstSeen.set(activeName, index)
+			}
+		}
+
+		// Check absences
 		week.absences?.forEach((absence) => {
 			const activeName = getActiveName(absence?.name)
 			if (!activeName) return
+			checkParticipant(activeName)
 			const prev = counts.get(activeName) ?? 0
 			counts.set(activeName, prev + 1)
 		})
+
+		// Check assignments (to detect start date)
+		const scanPart = (p?: WeekData['part1']) => {
+			if (!p) return
+			roles.forEach(role => {
+				const val = p[role]
+				if (Array.isArray(val)) val.forEach(v => checkParticipant(v))
+				else checkParticipant(val as string)
+			})
+		}
+		scanPart(week.part1)
+		scanPart(week.part2)
 	})
 
+	const totalWeeks = sortedDates.length
 	const entries = Array.from(counts.entries())
 		.filter(([name]) => !!name)
-		.map(([name, count]) => ({ name, count }))
-		.sort((a, b) => (b.count - a.count) || a.name.localeCompare(b.name, 'ko'))
+		.map(([name, count]) => {
+			const firstIndex = firstSeen.get(name) ?? 0
+			const possibleWeeks = Math.max(1, totalWeeks - firstIndex)
+			const rate = count / possibleWeeks
+			return { name, count, total: possibleWeeks, rate }
+		})
+		.sort((a, b) => (b.rate - a.rate) || (b.count - a.count) || a.name.localeCompare(b.name, 'ko'))
 
-	const total = entries.reduce((acc, entry) => acc + entry.count, 0)
-	const average = entries.length > 0 ? total / entries.length : 0
-	const maxCount = entries.reduce((acc, entry) => Math.max(acc, entry.count), 0)
+	const validEntries = entries.filter(e => e.total > 0)
+	const avgRate = validEntries.length > 0 
+		? validEntries.reduce((acc, cur) => acc + cur.rate, 0) / validEntries.length 
+		: 0
 
 	return {
 		points: entries,
-		average,
-		maxCount
+		average: avgRate
 	}
 }, [app.weeks, activeMemberNames, getActiveName])
 
 const absenceChart = useMemo(() => {
 	const points = absenceSummary.points
 	const names = points.map((entry) => entry.name)
-	const counts = points.map((entry) => entry.count)
-	const average = absenceSummary.average
-	const averageLabel = Number.isFinite(average) ? (Number.isInteger(average) ? `${average}` : average.toFixed(1)) : '0'
+	const rates = points.map((entry) => entry.rate * 100) // Percentage
+	const average = absenceSummary.average * 100
+	const averageLabel = average.toFixed(1)
 	const height = getBarChartHeight(points.length)
-	const markerColors = counts.map((value) => {
+	
+	const markerColors = rates.map((value) => {
+		const sortedRates = [...rates].sort((a, b) => b - a)
+		const p90 = sortedRates[Math.floor(sortedRates.length * 0.1)] ?? 100 // Top 10%
+		const p80 = sortedRates[Math.floor(sortedRates.length * 0.2)] ?? 100 // Top 20%
+		
 		if (value === 0) return palette.neutral
-		if (value > average) return palette.negative
-		return palette.series[2]
+		if (value >= p90 && value > 0) return palette.negative // Top 10%: Red
+		if ((value >= p80 || value > average) && value > 0) return palette.warning // Top 20% or Above Average: Orange
+		return '#94a3b8' // Slate 400 (Neutral/Safe)
 	})
-	const customdata = counts.map((value) => [value] as [number])
 
 	return {
 		hasData: points.length > 0,
 		height,
 		data: [{
-			type: 'scatter' as const,
-			mode: 'markers' as const,
-			x: counts,
+			type: 'bar' as const,
+			orientation: 'h' as const,
+			x: rates,
 			y: names,
-			customdata,
+			text: points.map(p => `${(p.rate * 100).toFixed(0)}%`),
+			textposition: 'auto' as const,
+			customdata: points.map(p => [p.count, p.total]),
 			marker: {
-				size: 14,
 				color: markerColors,
-				line: { color: palette.border, width: 1 }
+				line: { width: 0 }
 			},
-			hovertemplate: '%{y}<br>결석: %{x}회<extra></extra>'
+			hovertemplate: '%{y}<br>불참률: %{x:.1f}%<br>(%{customdata[0]}회 / %{customdata[1]}주)<extra></extra>'
 		}],
 		layout: {
 			...baseLayout,
-			margin: { l: 140, r: 40, t: 28, b: 52 },
+			margin: { l: 100, r: 40, t: 30, b: 50 },
 			xaxis: {
 				...baseLayout.xaxis,
-				title: '결석 횟수',
+				title: '불참률 (%)',
 				rangemode: 'tozero' as const,
-				tickformat: 'd',
-				dtick: 1
+				tickformat: '.0f',
+				showgrid: true,
+				gridwidth: 1,
 			},
 			yaxis: {
 				...baseLayout.yaxis,
 				type: 'category' as const,
 				autorange: 'reversed' as const,
-				automargin: true
+				automargin: true,
+				tickfont: { size: 13, weight: 600 }
 			},
 			shapes: points.length > 0 ? [{
 				type: 'line' as const,
@@ -359,21 +416,20 @@ const absenceChart = useMemo(() => {
 				x1: average,
 				y0: 0,
 				y1: 1,
-				line: { color: palette.series[4], width: 2, dash: 'dash' as const }
+				line: { color: palette.text, width: 2, dash: 'dot' as const }
 			}] : [],
 			annotations: points.length > 0 ? [{
 				x: average,
 				y: 1,
 				xref: 'x' as const,
 				yref: 'paper' as const,
-				text: `평균 ${averageLabel}회`,
+				text: `평균 ${averageLabel}%`,
 				showarrow: false,
 				xanchor: 'left' as const,
 				yanchor: 'bottom' as const,
-				font: { color: palette.series[4], size: 12 },
+				font: { color: palette.text, size: 12, weight: 600 },
 				bgcolor: palette.surface2,
-				bordercolor: palette.series[4],
-				borderwidth: 0
+				borderpad: 4,
 			}] : []
 		}
 	}
@@ -705,63 +761,118 @@ const formatWeekLabel = (iso: string) => {
 	}, [app.members, app.weeks, getActiveName])
 
 	const heatmapHeight = getBarChartHeight(memberRoleHeatmap.y.length)
-	const weeklyChartHeight = 460
-	const monthlyChartHeight = 360
-	const monthlyAbsenceTrend = useMemo(() => {
-		const monthRecords = new Map<number, { absences: number; slots: number }>()
-		let minIndex = Number.POSITIVE_INFINITY
-		let maxIndex = Number.NEGATIVE_INFINITY
-		const countSlots = (part?: WeekData['part1']) => {
-			if (!part) return 0
-			let total = 0
-			roles.forEach((role) => {
-				const value = part[role]
-				if (role === '사이드') {
-					total += Array.isArray(value) ? value.reduce((acc, item) => (typeof item === 'string' && item.trim().length > 0 ? acc + 1 : acc), 0) : 0
-				} else if (typeof value === 'string' && value.trim().length > 0) {
-					total += 1
+	// Sankey 차트는 높이가 좀 더 확보되어야 예쁩니다.
+	const monthlyChartHeight = Math.max(500, activeMemberNames.length * 28)
+
+	// 역할별 기여도 점유율 (Treemap)
+	const roleShareStats = useMemo(() => {
+		const clamp = (v: number) => Math.min(255, Math.max(0, v))
+		const adjustHex = (hex: string, delta: number) => {
+			if (!hex || !hex.startsWith('#') || (hex.length !== 7 && hex.length !== 9)) return hex
+			const r = clamp(parseInt(hex.slice(1, 3), 16) + delta)
+			const g = clamp(parseInt(hex.slice(3, 5), 16) + delta)
+			const b = clamp(parseInt(hex.slice(5, 7), 16) + delta)
+			return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+		}
+		const withAlpha = (hex: string, alpha: string) => {
+			if (!hex || !hex.startsWith('#') || (hex.length !== 7 && hex.length !== 9)) return hex
+			return `${hex.slice(0, 7)}${alpha}`
+		}
+
+		// 1. 데이터 집계
+		const hierarchy: Record<RoleKey, Array<{ name: string; count: number; roleIdx: number }>> = {
+			SW: [], 자막: [], 고정: [], 사이드: [], 스케치: []
+		}
+		let totalAssignments = 0
+
+		activeMemberNames.forEach((memberName) => {
+			const memberRoles = roleCounts.get(memberName)
+			if (!memberRoles) return
+			roles.forEach((role, roleIdx) => {
+				const count = memberRoles[role]
+				if (count > 0) {
+					hierarchy[role].push({ name: memberName, count, roleIdx })
+					totalAssignments += count
 				}
 			})
-			return total
-		}
-		for (const [date, week] of Object.entries(app.weeks)) {
-			const [yearStr, monthStr] = date.split('-')
-			const year = Number(yearStr)
-			const month = Number(monthStr)
-			if (Number.isNaN(year) || Number.isNaN(month)) continue
-			const index = year * 12 + (month - 1)
-			if (!monthRecords.has(index)) monthRecords.set(index, { absences: 0, slots: 0 })
-			const record = monthRecords.get(index)!
-			record.absences += week.absences?.length ?? 0
-			record.slots += countSlots(week.part1) + countSlots(week.part2)
-			minIndex = Math.min(minIndex, index)
-			maxIndex = Math.max(maxIndex, index)
-		}
-		if (!monthRecords.size || !Number.isFinite(minIndex) || !Number.isFinite(maxIndex)) {
-			return { x: [] as string[], rate: [] as number[], ma3: [] as number[] }
-		}
-		const labels: string[] = []
-		const rates: number[] = []
-		for (let idx = minIndex; idx <= maxIndex; idx++) {
-			const year = Math.floor(idx / 12)
-			const month = (idx % 12) + 1
-			const label = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}`
-			const record = monthRecords.get(idx)
-			const absences = record?.absences ?? 0
-			const slots = record?.slots ?? 0
-			const totalCapacity = absences + slots
-			const rate = totalCapacity === 0 ? 0 : absences / totalCapacity
-			labels.push(label)
-			rates.push(rate)
-		}
-		const ma3 = rates.map((_, idx) => {
-			const start = Math.max(0, idx - 2)
-			const slice = rates.slice(start, idx + 1)
-			const sum = slice.reduce((acc, value) => acc + value, 0)
-			return slice.length > 0 ? sum / slice.length : 0
 		})
-		return { x: labels, rate: rates, ma3 }
-	}, [app.weeks])
+
+		// 역할별 총합을 기준으로 정렬 (Finviz 스타일 가독성)
+		const roleTotals = roles
+			.map((role, idx) => ({ role, idx, total: hierarchy[role].reduce((acc, cur) => acc + cur.count, 0) }))
+			.filter((r) => r.total > 0)
+			.sort((a, b) => b.total - a.total)
+
+		// 2. Treemap 데이터 포맷
+		const ids: string[] = []
+		const labels: string[] = []
+		const parents: string[] = []
+		const values: number[] = []
+		const colors: string[] = []
+		const lineColors: string[] = []
+		const lineWidths: number[] = []
+		const textTemplates: string[] = []
+
+		roleTotals.forEach(({ role, idx: origIdx, total: roleTotal }) => {
+			const baseColor = palette.series[origIdx % palette.series.length] ?? '#3b82f6'
+			const roleColor = adjustHex(baseColor, -10) // 진한 톤
+			const roleLine = adjustHex(baseColor, -35)
+			const memberColor = withAlpha(adjustHex(baseColor, 12), 'd0') // 살짝 밝게 + 투명
+			const memberLine = adjustHex(baseColor, -28)
+
+			// Role Node
+			ids.push(role)
+			labels.push(role)
+			parents.push('')
+			values.push(roleTotal)
+			colors.push(roleColor)
+			lineColors.push(roleLine)
+			lineWidths.push(1.5)
+			textTemplates.push('%{label}<br>%{percentRoot:.1%}')
+
+			// Member Nodes
+			hierarchy[role]
+				.sort((a, b) => b.count - a.count)
+				.forEach((m) => {
+					ids.push(`${role}-${m.name}`)
+					labels.push(m.name)
+					parents.push(role)
+					values.push(m.count)
+					colors.push(memberColor) // 동일 계열, 명도만 조정
+					lineColors.push(memberLine)
+					lineWidths.push(1)
+					textTemplates.push('%{label}<br>%{percentParent:.1%}')
+				})
+		})
+
+		return {
+			hasData: totalAssignments > 0,
+			data: {
+				type: 'treemap' as const,
+				ids,
+				labels,
+				parents,
+				values,
+				texttemplate: textTemplates,
+				textinfo: 'none', // 텍스트 템플릿으로만 노출 (절제)
+				marker: { 
+					colors,
+					line: { color: lineColors, width: lineWidths }
+				},
+				textfont: {
+					color: '#f8fafc',
+					size: 13
+				},
+				branchvalues: 'total' as const,
+				pathbar: { visible: false }, // 상단 경로 바 숨김 (깔끔하게)
+				tiling: {
+					packing: 'squarify', // 정사각형에 가깝게 분할
+					pad: 3.5 // 간격 조금 넓혀서 가독성 향상
+				},
+				hovertemplate: '<b>%{label}</b><br>%{value}회<br>점유율: %{percentParent:.1%}<extra></extra>'
+			}
+		}
+	}, [activeMemberNames, roleCounts, palette.series, roles])
 
 	return (
 		<div className="col" style={{ gap: 32, maxWidth: 1800, margin: '0 auto', padding: '0 12px', width: '100%' }}>
@@ -807,11 +918,11 @@ const formatWeekLabel = (iso: string) => {
 				<Panel style={{ padding: 24 }}>
 					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
 						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-							<span>개인 불참 분포</span>
+							<span>개인 불참률 순위</span>
 							<ChartHelp description={chartHelpText.absenceDistribution} />
 						</div>
 						<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-							결석 횟수 분포와 평균선을 함께 확인해 상습 결석 구간을 파악합니다.
+							불참률(불참/참여가능주차)이 높은 순서대로 나열하여 상습 결석 구간을 파악합니다. (빨강: 상위 10%, 주황: 평균~상위 20%)
 						</div>
 					</div>
 					{absenceChart.hasData ? (
@@ -829,68 +940,34 @@ const formatWeekLabel = (iso: string) => {
 					)}
 				</Panel>
 
-				{/* 3) 월별 불참률 추세 */}
+				{/* 3) 역할별 기여도 (Sunburst) */}
 				<Panel style={{ padding: 24 }}>
 					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
 						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-							<span>월별 불참률 추세</span>
-							<ChartHelp description={chartHelpText.monthlyAbsence} />
+							<span>역할별 지분 맵 (Treemap)</span>
+							<ChartHelp description={chartHelpText.roleShare} />
 						</div>
 						<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-							월별 불참률과 3개월 이동평균으로 추세를 확인합니다.
+							역할 박스 크기는 총 배정 횟수이며, 내부 칸들은 팀원들의 기여 지분을 나타냅니다. 테두리로 팀원 구획이 항상 보이도록 처리했습니다.
 						</div>
 					</div>
-					{monthlyAbsenceTrend.x.length > 0 ? (
+					{roleShareStats.hasData ? (
 						<ResponsivePlot
-							height={monthlyChartHeight}
-							data={[
-								{
-									type: 'scatter',
-									mode: 'lines+markers',
-									x: monthlyAbsenceTrend.x,
-									y: monthlyAbsenceTrend.rate,
-									name: '월별 불참률',
-									line: { color: palette.negative, width: 2 },
-									marker: { color: palette.negative, size: 6 },
-									hovertemplate: '%{x}<br>불참률: %{y:.2%}<extra></extra>'
-								},
-								{
-									type: 'scatter',
-									mode: 'lines',
-									x: monthlyAbsenceTrend.x,
-									y: monthlyAbsenceTrend.ma3,
-									name: '3개월 이동평균',
-									line: { color: palette.series[2], width: 3 },
-									hovertemplate: '%{x}<br>3개월 MA: %{y:.2%}<extra></extra>'
-								}
-							]}
+							height={400} // Treemap은 높이가 너무 높지 않아도 잘 보입니다.
+							data={[roleShareStats.data]}
 							layout={{
 								...baseLayout,
-								margin: { l: 68, r: 28, t: 28, b: 64 },
-								yaxis: {
-									...baseLayout.yaxis,
-									title: '불참률',
-									rangemode: 'tozero',
-									tickformat: '.0%'
-								},
-								xaxis: {
-									...baseLayout.xaxis,
-									type: 'category',
-									tickangle: -45
-								},
-								legend: {
-									orientation: 'h',
-									yanchor: 'bottom',
-									y: 1.05,
-									xanchor: 'right',
-									x: 1
-								}
+								margin: { l: 0, r: 0, t: 0, b: 0 }, // 꽉 채우기
+								showlegend: false,
+								font: { size: 13, color: '#fff' }, // 내부 텍스트는 흰색이 잘 보임 (보통)
+								paper_bgcolor: 'transparent',
+								plot_bgcolor: 'transparent'
 							}}
 							config={{ displayModeBar: false }}
 						/>
 					) : (
 						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
-							월별 데이터가 없습니다.
+							배정 데이터가 없습니다.
 						</div>
 					)}
 				</Panel>
