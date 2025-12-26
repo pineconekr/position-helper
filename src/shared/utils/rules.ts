@@ -13,14 +13,14 @@ function getLastWeeks(currentDate: string, app: AppData, count: number): Array<{
 	const dates = Object.keys(app.weeks).sort()
 	const idx = dates.indexOf(currentDate)
 	const result: Array<{ date: string; data: WeekData }> = []
-	
+
 	for (let i = 1; i <= count && idx - i >= 0; i++) {
 		const weekDate = dates[idx - i]
 		if (weekDate && app.weeks[weekDate]) {
 			result.push({ date: weekDate, data: app.weeks[weekDate]! })
 		}
 	}
-	
+
 	return result
 }
 

@@ -38,10 +38,10 @@ export function useTheme() {
 		setTheme(next);
 	};
 
-	return { 
-		theme, 
-		effectiveTheme: getEffectiveTheme(), 
-		setTheme, 
-		toggleTheme 
+	return {
+		theme,
+		effectiveTheme: getEffectiveTheme(),
+		setTheme,
+		toggleTheme
 	};
 }

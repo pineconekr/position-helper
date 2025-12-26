@@ -43,12 +43,12 @@ export const useAppStore = create<AppState>()(
 			version: 4,
 			migrate: (persistedState: any, version) => {
 				if (!persistedState) return persistedState
-				
+
 				// v1 -> v2 migration
 				if (version < 2) {
 					persistedState = { ...persistedState, motionPreference: 'allow' satisfies MotionPreference }
 				}
-				
+
 				// v2 -> v3 migration
 				if (version === 2) {
 					const prev = persistedState as typeof persistedState & { reduceMotion?: boolean }
@@ -62,12 +62,12 @@ export const useAppStore = create<AppState>()(
 					// Default to today if not present
 					const today = formatDateISO(new Date())
 					const currentWeekDate = persistedState.currentWeekDate || today
-					
+
 					// Try to load draft from existing app weeks if possible
 					const app = persistedState.app as AppData
 					const existingWeek = app?.weeks?.[currentWeekDate]
-					
-					const currentDraft = existingWeek 
+
+					const currentDraft = existingWeek
 						? { part1: structuredClone(existingWeek.part1), part2: structuredClone(existingWeek.part2) }
 						: { part1: emptyPart(), part2: emptyPart() }
 

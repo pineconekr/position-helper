@@ -135,18 +135,18 @@ function normalizeNames(parsed: any): any {
 function isEmptyPart(part: any): boolean {
 	if (!part) return true
 	const isEmpty = (v: any) => !v || (typeof v === 'string' && v.trim() === '')
-	
+
 	if (!isEmpty(part.SW)) return false
 	if (!isEmpty(part.자막)) return false
 	if (!isEmpty(part.고정)) return false
 	if (!isEmpty(part.스케치)) return false
-	
+
 	if (Array.isArray(part['사이드'])) {
 		if (part['사이드'].some((v: any) => !isEmpty(v))) return false
 	} else if (!isEmpty(part['사이드'])) {
 		return false
 	}
-	
+
 	return true
 }
 

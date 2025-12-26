@@ -115,9 +115,9 @@ export default function WarningWidget() {
 					<span className="warning-widget__count">{warnings.length}</span>
 				</div>
 				<div className="warning-widget__actions">
-					<select 
+					<select
 						className="warning-widget__select"
-						value={groupBy} 
+						value={groupBy}
 						onChange={(e) => setGroupBy(e.target.value as any)}
 					>
 						<option value="role">역할별</option>

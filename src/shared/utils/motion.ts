@@ -64,9 +64,9 @@ export function useShouldReduceMotion(): boolean {
  */
 export function useMotionConfig() {
 	const shouldReduce = useShouldReduceMotion()
-	
+
 	const getDuration = (sec: number) => shouldReduce ? 0 : sec
-	
+
 	return {
 		duration: {
 			fast: getDuration(motionDur.fast),

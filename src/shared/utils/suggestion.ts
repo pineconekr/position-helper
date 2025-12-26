@@ -36,7 +36,7 @@ const WEIGHTS = {
 	WORKLOAD: 5,        // 전체 배정 횟수 역비례 가산점
 	ROLE_BALANCE: 8,    // 해당 역할 수행 횟수 역비례 가산점
 	REST_BONUS: 20,     // 지난주 휴식자 가산점
-	
+
 	// Penalties (음수)
 	STREAK_PENALTY: -50,       // 3주 연속 근무 시
 	REPETITION_PENALTY: -100,  // 지난주 동일 역할
@@ -58,7 +58,7 @@ function getRecentWeeks(app: AppData, currentWeekDate: string, weeksCount: numbe
 	const dates = Object.keys(app.weeks).sort()
 	const currentIndex = dates.indexOf(currentWeekDate)
 	if (currentIndex === -1) return []
-	
+
 	// 현재 주차 이전의 N개 주차
 	const start = Math.max(0, currentIndex - weeksCount)
 	return dates.slice(start, currentIndex).map(date => ({ date, data: app.weeks[date]! })).reverse()
@@ -68,7 +68,7 @@ function getRecentWeeks(app: AppData, currentWeekDate: string, weeksCount: numbe
 function getMemberStats(app: AppData, memberName: string) {
 	let total = 0
 	const roleCounts: Record<RoleKey, number> = { SW: 0, 자막: 0, 고정: 0, 사이드: 0, 스케치: 0 }
-	
+
 	if (app?.weeks) {
 		Object.values(app.weeks).forEach(week => {
 			const countRole = (p: PartAssignment | undefined) => {
@@ -126,7 +126,7 @@ function calculateScore(
 	// 1. Availability Check
 	if (!member.active) return { score: WEIGHTS.ABSENCE_PENALTY, reasons: [] }
 	if (context.currentAbsences.includes(name)) return { score: WEIGHTS.ABSENCE_PENALTY, reasons: [{ type: 'random', score: WEIGHTS.ABSENCE_PENALTY, message: '부재' }] }
-	
+
 	// 2. Same Week Conflict (이번 주에 이미 다른 역할을 배정받았는지)
 	// Side 역할은 2명이므로, 같은 파트 같은 역할 내에서는 체크하지 않음 (상위 레벨에서 처리)
 	// 하지만 '1부'에 배정된 사람이 '2부'에 배정되는 것은 페널티
@@ -144,7 +144,7 @@ function calculateScore(
 		const p2 = week.data.part2
 		const inP1 = p1 && (slot.role === '사이드' ? p1.사이드.includes(name) : p1[slot.role] === name)
 		const inP2 = p2 && (slot.role === '사이드' ? p2.사이드.includes(name) : p2[slot.role] === name)
-		
+
 		if (inP1 || inP2) {
 			weeksSinceLast = idx + 1 // 1주 전 = 1
 			lastRoleWeekIndex = idx
@@ -202,7 +202,7 @@ function calculateScore(
 		}
 		checkPart(week.data.part1)
 		checkPart(week.data.part2)
-		
+
 		if (worked) consecutiveWeeks++
 		else break
 	}
@@ -230,7 +230,7 @@ export function suggestAssignments(
 	const members = (app?.members || []).filter(m => m.active)
 	const recentWeeks = getRecentWeeks(app, currentDate, 10)
 	const memberStats = new Map<string, { total: number; roleCounts: Record<RoleKey, number> }>()
-	
+
 	let maxTotalLoad = 0
 	const roleTotalLoads: Record<RoleKey, number> = { SW: 0, 자막: 0, 고정: 0, 사이드: 0, 스케치: 0 }
 
@@ -247,11 +247,11 @@ export function suggestAssignments(
 	})
 
 	const currentAbsences = (app?.weeks?.[currentDate]?.absences || []).map(a => normalizeName(a.name))
-	
+
 	// 배정 상태 추적
 	// 1부, 2부 각각 누가 배정되었는지 + 전체 주차에 누가 배정되었는지
-	const assignedSet = new Set<string>() 
-	
+	const assignedSet = new Set<string>()
+
 	// 결과 객체 복사
 	const resultPart1 = JSON.parse(JSON.stringify(currentDraft.part1)) as PartAssignment
 	const resultPart2 = JSON.parse(JSON.stringify(currentDraft.part2)) as PartAssignment
@@ -283,14 +283,14 @@ export function suggestAssignments(
 	// 1. 배정 순서 정의 (중요도 순: SW/자막 -> 고정/스케치 -> 사이드)
 	// 사이드는 인원이 많으므로 마지막에 채우는 것이 충돌 방지에 유리할 수 있음
 	const slotsToAssign: { part: 'part1' | 'part2'; role: RoleKey; index?: number }[] = []
-	
+
 	const rolePriority: RoleKey[] = ['SW', '자막', '고정', '스케치', '사이드']
-	
+
 	rolePriority.forEach(role => {
 		['part1', 'part2'].forEach(partName => {
 			const part = partName === 'part1' ? resultPart1 : resultPart2
 			const p = partName as 'part1' | 'part2'
-			
+
 			if (role === '사이드') {
 				// 사이드는 2명
 				if (option === 'overwriteAll' || !part[role][0]) slotsToAssign.push({ part: p, role, index: 0 })
@@ -338,7 +338,7 @@ export function suggestAssignments(
 		if (bestMember) {
 			const name = normalizeName((bestMember as any).name)
 			assignedSet.add(name)
-			
+
 			// 결과 반영
 			const targetPart = slot.part === 'part1' ? resultPart1 : resultPart2
 			if (slot.role === '사이드' && typeof slot.index === 'number') {

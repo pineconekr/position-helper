@@ -14,16 +14,16 @@ const partLabel = (part: 'part1' | 'part2') => (part === 'part1' ? '1부' : '2�
 
 export function listSlots(): SlotDescriptor[] {
 	const slots: SlotDescriptor[] = []
-	;(['part1', 'part2'] as const).forEach((part) => {
-		SLOT_ROLES.forEach((role) => {
-			if (role === '사이드') {
-				slots.push({ part, role, index: 0 })
-				slots.push({ part, role, index: 1 })
-			} else {
-				slots.push({ part, role })
-			}
+		; (['part1', 'part2'] as const).forEach((part) => {
+			SLOT_ROLES.forEach((role) => {
+				if (role === '사이드') {
+					slots.push({ part, role, index: 0 })
+					slots.push({ part, role, index: 1 })
+				} else {
+					slots.push({ part, role })
+				}
+			})
 		})
-	})
 	return slots
 }
 
@@ -40,7 +40,7 @@ export function analyzeDraft(draft: { part1: PartAssignment; part2: PartAssignme
 				: (part[slot.role] as string)
 		// BLANK_ROLE_VALUE (공란 pill)은 배정된 상태로 취급
 		const value = rawValue === BLANK_ROLE_VALUE ? BLANK_ROLE_VALUE : rawValue?.trim()
-		
+
 		// BLANK_ROLE_VALUE (공란 pill)도 배정된 것으로 간주
 		if (value) {
 			assigned += 1

@@ -16,7 +16,7 @@ const HELP_TEXT = '세로축은 팀원, 가로축은 주차입니다. 배정된 
 
 export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetProps) {
 	const { theme } = useTheme()
-	
+
 	// 테마 변경 시 팔레트 갱신 (상위에서 주입받지 않고 내부에서 처리하되, 의존성 관리)
 	const palette = useMemo(() => getChartPalette(), [theme])
 
@@ -73,7 +73,7 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 				if (!activeName) return
 				const rowIdx = mems.indexOf(activeName)
 				if (rowIdx === -1) return
-				
+
 				z[rowIdx][colIdx] = 1 // Absent
 				text[rowIdx][colIdx] = abs.reason?.trim() || '불참'
 				roleSets[rowIdx][colIdx] = new Set<RoleKey>()
@@ -92,11 +92,11 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 				if (rowIdx === -1) return
 
 				const roleSet = roleSets[rowIdx][colIdx]
-				
+
 				const currentVal = z[rowIdx][colIdx]
 				const roleVal = roleValueMap[roleKey] ?? 0
 				roleSet.add(roleKey)
-				
+
 				if (currentVal === 1 || (currentVal >= 2 && currentVal !== roleVal)) {
 					z[rowIdx][colIdx] = 7 // Mixed
 					text[rowIdx][colIdx] += `, ${roleKey}`
@@ -123,7 +123,7 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 			let consecutive = 0
 			let lastRoleVal = -1
 			const streaks: Record<RoleKey, number> = { SW: 0, 자막: 0, 고정: 0, 사이드: 0, 스케치: 0 }
-			
+
 			dates.forEach((_, colIdx) => {
 				const val = z[rowIdx][colIdx]
 				const rs = roleSets[rowIdx][colIdx]
@@ -157,7 +157,7 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 					consecutive = 0
 					lastRoleVal = -1
 				}
-				
+
 				// Multi-role label
 				if (rs && rs.size > 0 && val !== 1) {
 					const orderedRoles = roles.filter((r) => rs.has(r))
@@ -188,7 +188,7 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 		const defaultSeries = ['#93b5f6', '#a5e4f3', '#f6d28f', '#c9b5f6', '#f7b3d4', '#cbd5e1']
 		const softSeries = palette.series?.map((c, idx) => c || defaultSeries[idx]) ?? defaultSeries
 		const getSeriesColor = (idx: number) => softSeries[idx] ?? defaultSeries[idx] ?? '#93b5f6'
-		
+
 		const colors = [
 			palette.surface2 ?? '#f1f5f9',      // 0: Rest
 			palette.negative ?? '#ef4444',      // 1: Absent
@@ -245,9 +245,9 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 				hoverinfo: 'text' as const,
 				hovertemplate: '<b>%{y}</b><br>%{x}<br>%{text}<extra></extra>',
 				colorscale: scale,
-				showscale: false, 
+				showscale: false,
 				zmin: 0,
-				zmax: 8 
+				zmax: 8
 			}],
 			layout: {
 				...baseLayout,
@@ -285,7 +285,7 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 						<span>주차별 배정 타임라인</span>
 						<ChartHelp description={HELP_TEXT} />
 					</div>
-					
+
 					{/* Legend */}
 					<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.8125rem' }}>
 						{[
@@ -298,8 +298,8 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 							{ label: '스케치', color: palette.series?.[4] ?? '#f7b3d4' },
 						].map(item => (
 							<div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-								<span style={{ 
-									width: 10, height: 10, borderRadius: 2, 
+								<span style={{
+									width: 10, height: 10, borderRadius: 2,
 									backgroundColor: item.color,
 									border: item.border ? `1px solid ${item.border}` : 'none'
 								}} />

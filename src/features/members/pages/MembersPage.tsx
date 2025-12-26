@@ -326,7 +326,7 @@ export default function MembersPage() {
 
 			{/* Main Content */}
 			<div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(300px, 1fr)', gap: 24, alignItems: 'start' }}>
-				
+
 				{/* Left Column: Member List Table */}
 				<Panel style={{ padding: 0, overflow: 'hidden', minHeight: 400 }}>
 					<div style={{ overflowX: 'auto' }}>
@@ -417,7 +417,7 @@ export default function MembersPage() {
 						filter={['member']}
 						emptyMessage="최근 변경 사항이 없습니다."
 					/>
-					
+
 					{/* Summary Card */}
 					<Panel style={{ padding: 20 }}>
 						<h3 style={{ margin: '0 0 16px 0', fontSize: '1rem', fontWeight: 600 }}>현황 요약</h3>

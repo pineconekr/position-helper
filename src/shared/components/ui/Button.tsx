@@ -14,7 +14,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 		const baseClass = 'btn';
 		const variantClass = variant === 'secondary' ? '' : variant;
 		// Size support can be added to CSS later.
-		
+
 		const classes = [baseClass, variantClass, className].filter(Boolean).join(' ');
 
 		return (

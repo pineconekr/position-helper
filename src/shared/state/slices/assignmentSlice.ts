@@ -28,15 +28,15 @@ const countAssignedRoles = (part: PartAssignment): number => {
 const normalizeDraftForPersist = (draft: { part1: PartAssignment; part2: PartAssignment }) => {
 	const clone = structuredClone(draft)
 	const clearIfBlank = (value: string) => (value === BLANK_ROLE_VALUE ? '' : value)
-	;(['part1', 'part2'] as const).forEach((part) => {
-		const p = clone[part]
-		p.SW = clearIfBlank(p.SW)
-		p['자막'] = clearIfBlank(p['자막'])
-		p['고정'] = clearIfBlank(p['고정'])
-		p['스케치'] = clearIfBlank(p['스케치'])
-		p['사이드'][0] = clearIfBlank(p['사이드'][0])
-		p['사이드'][1] = clearIfBlank(p['사이드'][1])
-	})
+		; (['part1', 'part2'] as const).forEach((part) => {
+			const p = clone[part]
+			p.SW = clearIfBlank(p.SW)
+			p['자막'] = clearIfBlank(p['자막'])
+			p['고정'] = clearIfBlank(p['고정'])
+			p['스케치'] = clearIfBlank(p['스케치'])
+			p['사이드'][0] = clearIfBlank(p['사이드'][0])
+			p['사이드'][1] = clearIfBlank(p['사이드'][1])
+		})
 	return clone
 }
 
@@ -72,18 +72,18 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 		if (state.currentWeekDate) {
 			state.finalizeCurrentWeek()
 		}
-		
+
 		const nextState = get()
 		const wk = nextState.app.weeks[date] ?? { part1: emptyPart(), part2: emptyPart(), absences: [] }
-		
-		set({ 
+
+		set({
 			currentWeekDate: date,
-			currentDraft: { 
-				part1: structuredClone(wk.part1), 
-				part2: structuredClone(wk.part2) 
-			} 
+			currentDraft: {
+				part1: structuredClone(wk.part1),
+				part2: structuredClone(wk.part2)
+			}
 		})
-		
+
 		get().recalcWarnings()
 	},
 	setMembers: (members) => {
@@ -277,7 +277,7 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 	},
 	importData: (data) => {
 		// 새로운 객체로 설정하여 참조 변경 보장
-		set({ 
+		set({
 			app: { ...data, members: [...data.members], weeks: { ...data.weeks } },
 			currentDraft: { part1: emptyPart(), part2: emptyPart() },
 			warnings: []
