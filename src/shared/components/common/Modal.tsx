@@ -9,9 +9,10 @@ type Props = {
 	onClose: () => void
 	children: ReactNode
 	footer?: ReactNode
+	width?: string | number
 }
 
-export default function Modal({ title, open, onClose, children, footer }: Props) {
+export default function Modal({ title, open, onClose, children, footer, width }: Props) {
 	const { duration, ease, shouldReduce } = useMotionConfig()
 
 	useEffect(() => {
@@ -56,6 +57,7 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 						className="panel modal-panel"
 						role="dialog"
 						aria-modal="true"
+						style={width ? { width } : undefined}
 						initial={shouldReduce ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 16, scale: 0.98 }}
 						animate={{ opacity: 1, y: 0, scale: 1 }}
 						exit={
@@ -107,5 +109,3 @@ export default function Modal({ title, open, onClose, children, footer }: Props)
 		document.body
 	)
 }
-
-

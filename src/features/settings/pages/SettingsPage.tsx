@@ -1,26 +1,28 @@
 import { Panel } from '@/shared/components/ui/Panel'
+import { Badge } from '@/shared/components/ui/Badge'
+import { Button } from '@/shared/components/ui/Button'
 import { useAppStore } from '@/shared/state/store'
 import { useTheme } from '@/shared/theme/ThemeProvider'
 import type { MotionPreference } from '@/shared/types'
 
 const motionOptions: Array<{ value: MotionPreference; title: string; description: string; icon: string }> = [
 	{
-		value: 'allow',
-		icon: 'auto_awesome',
-		title: '애니메이션 사용',
-		description: '항상 부드러운 전환을 사용합니다. 시스템 설정과 무관하게 애니메이션이 유지됩니다.'
-	},
-	{
 		value: 'system',
 		icon: 'computer',
-		title: '시스템과 동일',
-		description: '운영체제의 접근성 설정(prefers-reduced-motion)을 그대로 따릅니다.'
+		title: '시스템 설정',
+		description: '운영체제의 "동작 줄이기" 설정에 맞춰 자동으로 조절합니다.'
+	},
+	{
+		value: 'allow',
+		icon: 'auto_awesome',
+		title: '애니메이션 켜기 (기본)',
+		description: '모든 부드러운 전환 효과와 모션을 활성화하여 풍부한 경험을 제공합니다.'
 	},
 	{
 		value: 'reduce',
 		icon: 'eco',
-		title: '애니메이션 최소화',
-		description: '전환·차트 모션을 즉시 완료해 움직임을 줄입니다.'
+		title: '애니메이션 끄기',
+		description: '전환 효과를 최소화하여 빠르고 간결한 반응 속도를 우선합니다.'
 	}
 ]
 
@@ -32,99 +34,162 @@ export default function SettingsPage() {
 	const themeOptions = [
 		{
 			value: 'system' as const,
-			icon: 'settings_brightness',
-			title: '시스템 모드',
-			description: `운영체제 설정에 맞춰 자동으로 ${effectiveTheme === 'dark' ? '다크' : '라이트'} 모드가 적용됩니다.`
+			icon: 'computer',
+			title: '시스템 설정',
+			description: `운영체제 테마에 맞춰 자동으로 ${effectiveTheme === 'dark' ? '다크' : '라이트'} 모드로 전환합니다.`
 		},
 		{
 			value: 'light' as const,
 			icon: 'light_mode',
 			title: '라이트 모드',
-			description: '밝고 선명한 화면 구성으로 실내 환경에서 또렷하게 확인하세요.'
+			description: '밝고 깨끗한 화면으로, 밝은 실내 환경에서 사용하기 적합합니다.'
 		},
 		{
 			value: 'dark' as const,
 			icon: 'dark_mode',
 			title: '다크 모드',
-			description: '눈부심을 줄여 야간에도 편안하게 사용할 수 있습니다.'
+			description: '어두운 배경으로 눈의 피로를 줄이고 배터리를 절약합니다.'
 		}
 	]
 
+	const handleResetData = () => {
+		if (window.confirm('정말 모든 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+			localStorage.clear()
+			window.location.reload()
+		}
+	}
+
 	return (
-		<Panel className="col" style={{ gap: 32, padding: 24 }}>
-			<div className="settings-section">
-				<h3 className="settings-section__title" style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: 8 }}>테마</h3>
-				<p className="settings-section__description" style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
-					상단 내비게이션의 아이콘 버튼으로도 빠르게 전환할 수 있습니다.
+		<div className="app-main__page">
+			{/* Page Header */}
+			<div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+				<h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>설정</h1>
+				<p className="muted" style={{ margin: 0, fontSize: '0.9375rem' }}>
+					앱의 테마, 화면 표시 방식, 그리고 데이터를 관리합니다.
 				</p>
-				<div className="settings-choice-grid" role="radiogroup" aria-label="테마 모드">
-					{themeOptions.map((option) => {
-						const isActive = theme === option.value
-						return (
-							<label
-								key={option.value}
-								className={`settings-choice-card${isActive ? ' settings-choice-card--active' : ''}`}
-							>
-								<input
-									type="radio"
-									name="theme-mode"
-									value={option.value}
-									checked={isActive}
-									onChange={() => setTheme(option.value)}
-									className="settings-choice-card__input"
-								/>
-								<span className="settings-choice-card__indicator" aria-hidden="true" />
-								<span className="settings-choice-card__body">
-									<span className="settings-choice-card__icon" aria-hidden="true">
-										<span className="material-symbol">{option.icon}</span>
-									</span>
-									<span className="settings-choice-card__text">
-										<span className="settings-choice-card__title">{option.title}</span>
-										<span className="settings-choice-card__description">{option.description}</span>
-									</span>
-								</span>
-							</label>
-						)
-					})}
-				</div>
 			</div>
 
-			<div className="settings-section">
-				<h3 className="settings-section__title" style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: 8 }}>애니메이션</h3>
-				<p className="settings-section__description" style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
-					데이터 변환과 페이지 전환을 부드럽게 보여주되, 필요할 때는 애니메이션을 최소화하거나 시스템 설정을 따를 수 있습니다.
-				</p>
-				<div className="settings-choice-grid" role="radiogroup" aria-label="애니메이션 선호도">
-					{motionOptions.map((option) => {
-						const isActive = motionPreference === option.value
-						return (
-							<label
-								key={option.value}
-								className={`settings-choice-card${isActive ? ' settings-choice-card--active' : ''}`}
-							>
-								<input
-									type="radio"
-									name="motion-preference"
-									value={option.value}
-									checked={isActive}
-									onChange={() => setMotionPreference(option.value)}
-									className="settings-choice-card__input"
-								/>
-								<span className="settings-choice-card__indicator" aria-hidden="true" />
-								<span className="settings-choice-card__body">
-									<span className="settings-choice-card__icon" aria-hidden="true">
-										<span className="material-symbol">{option.icon}</span>
-									</span>
-									<span className="settings-choice-card__text">
-										<span className="settings-choice-card__title">{option.title}</span>
-										<span className="settings-choice-card__description">{option.description}</span>
-									</span>
+			<div className="col" style={{ gap: 24 }}>
+				{/* Appearance Section */}
+				<Panel style={{ padding: 24 }}>
+					<div className="col" style={{ gap: 20 }}>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+							<span className="material-symbol" style={{ color: 'var(--color-accent)', fontSize: 24 }}>palette</span>
+							<h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>디자인 테마</h2>
+						</div>
+						
+						<div className="settings-choice-grid" role="radiogroup" aria-label="테마 모드">
+							{themeOptions.map((option) => {
+								const isActive = theme === option.value
+								return (
+									<label
+										key={option.value}
+										className={`settings-choice-card${isActive ? ' settings-choice-card--active' : ''}`}
+									>
+										<input
+											type="radio"
+											name="theme-mode"
+											value={option.value}
+											checked={isActive}
+											onChange={() => setTheme(option.value)}
+											className="settings-choice-card__input"
+										/>
+										<div className="settings-choice-card__icon">
+											<span className="material-symbol">{option.icon}</span>
+										</div>
+										<div className="settings-choice-card__text">
+											<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+												<span className="settings-choice-card__title">{option.title}</span>
+												{isActive && <Badge variant="accent">사용 중</Badge>}
+											</div>
+											<span className="settings-choice-card__description">{option.description}</span>
+										</div>
+									</label>
+								)
+							})}
+						</div>
+					</div>
+				</Panel>
+
+				{/* Motion & Interaction Section */}
+				<Panel style={{ padding: 24 }}>
+					<div className="col" style={{ gap: 20 }}>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+							<span className="material-symbol" style={{ color: 'var(--color-accent)', fontSize: 24 }}>motion_mode</span>
+							<h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>화면 효과</h2>
+						</div>
+						
+						<div className="settings-choice-grid" role="radiogroup" aria-label="애니메이션 선호도">
+							{motionOptions.map((option) => {
+								const isActive = motionPreference === option.value
+								return (
+									<label
+										key={option.value}
+										className={`settings-choice-card${isActive ? ' settings-choice-card--active' : ''}`}
+									>
+										<input
+											type="radio"
+											name="motion-preference"
+											value={option.value}
+											checked={isActive}
+											onChange={() => setMotionPreference(option.value)}
+											className="settings-choice-card__input"
+										/>
+										<div className="settings-choice-card__icon">
+											<span className="material-symbol">{option.icon}</span>
+										</div>
+										<div className="settings-choice-card__text">
+											<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+												<span className="settings-choice-card__title">{option.title}</span>
+												{isActive && <Badge variant="accent">사용 중</Badge>}
+											</div>
+											<span className="settings-choice-card__description">{option.description}</span>
+										</div>
+									</label>
+								)
+							})}
+						</div>
+					</div>
+				</Panel>
+
+				{/* Data Management Section */}
+				<Panel style={{ padding: 24, borderColor: 'var(--color-critical-soft)' }}>
+					<div className="col" style={{ gap: 16 }}>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+							<span className="material-symbol" style={{ color: 'var(--color-critical)', fontSize: 24 }}>database</span>
+							<h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>데이터 관리</h2>
+						</div>
+						
+						<div style={{ 
+							display: 'flex', 
+							alignItems: 'center', 
+							justifyContent: 'space-between', 
+							flexWrap: 'wrap', 
+							gap: 16,
+							padding: 16, 
+							background: 'var(--color-surface-2)', 
+							borderRadius: 'var(--radius-md)' 
+						}}>
+							<div className="col" style={{ gap: 4 }}>
+								<strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>데이터 초기화</strong>
+								<span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+									저장된 모든 설정, 팀원 목록, 활동 기록을 영구적으로 삭제합니다.
 								</span>
-							</label>
-						)
-					})}
+							</div>
+							<Button variant="ghost" onClick={handleResetData} style={{ color: 'var(--color-critical)', borderColor: 'var(--color-critical-soft)', background: 'var(--color-surface-1)' }}>
+								모든 데이터 삭제
+							</Button>
+						</div>
+					</div>
+				</Panel>
+
+				{/* App Info Footer */}
+				<div style={{ textAlign: 'center', marginTop: 16, opacity: 0.6 }}>
+					<span style={{ fontSize: '0.75rem', color: 'var(--color-text-subtle)' }}>
+						Position Helper v1.0.0 &bull; Developed by Pinecone
+					</span>
 				</div>
 			</div>
-		</Panel>
+		</div>
 	)
 }

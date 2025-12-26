@@ -27,7 +27,7 @@ function ChartHelp({ description }: { description: string }) {
 			style={{ width: 26, height: 26, padding: 0, marginLeft: 8 }}
 		>
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-				<path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2Zm0 15.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm.08-9.906c1.697 0 2.945 1.09 2.945 2.703 0 1.05-.46 1.794-1.387 2.343l-.56.33c-.45.265-.62.48-.62.987v.38h-1.92v-.46c0-1.006.305-1.595 1.07-2.054l.604-.36c.46-.27.676-.55.676-.965 0-.56-.4-.93-1.003-.93-.64 0-1.102.335-1.3.91l-1.78-.74c.39-1.12 1.47-2.144 3.275-2.144Z" fill="currentColor"/>
+				<path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2Zm0 15.75a1.25 1.25 0 1 1 0 2.5 1.25 1.25 1.25 0 0 1 0-2.5Zm.08-9.906c1.697 0 2.945 1.09 2.945 2.703 0 1.05-.46 1.794-1.387 2.343l-.56.33c-.45.265-.62.48-.62.987v.38h-1.92v-.46c0-1.006.305-1.595 1.07-2.054l.604-.36c.46-.27.676-.55.676-.965 0-.56-.4-.93-1.003-.93-.64 0-1.102.335-1.3.91l-1.78-.74c.39-1.12 1.47-2.144 3.275-2.144Z" fill="currentColor"/>
 			</svg>
 		</span>
 	)
@@ -877,104 +877,8 @@ const formatWeekLabel = (iso: string) => {
 	return (
 		<div className="col" style={{ gap: 32, maxWidth: 1800, margin: '0 auto', padding: '0 12px', width: '100%' }}>
 			
+			{/* 1. 주차별 배정 타임라인 (Timeline) - 최상단 중요도 (Operations) */}
 			<Panel style={{ padding: 24 }}>
-				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-							<span>직무 배정 통계</span>
-							<ChartHelp description={chartHelpText.roleAssignments} />
-						</div>
-						<div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--color-surface-1)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: '6px 14px' }}>
-							<span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>팀원 필터</span>
-							<select 
-								style={{ border: 'none', background: 'transparent', padding: '4px 0', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)', minWidth: 120, outline: 'none', cursor: 'pointer' }}
-								value={member} 
-								onChange={(e) => setMember(e.target.value)}
-							>
-								<option value="">전체</option>
-								{memberOptions.map((name) => {
-									const isActive = memberStatusMap.get(name)
-									const label = isActive === false ? `${name} (비활성)` : name
-									return <option key={name} value={name}>{label}</option>
-								})}
-							</select>
-						</div>
-					</div>
-					<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-						전체 보기에서는 역할별 비율(100%)을, 특정 팀원을 선택하면 누적 배정 횟수를 확인합니다.
-					</div>
-				</div>
-				<ResponsivePlot
-					key={member ? `role-member-${member}` : 'role-overview'}
-					height={roleChart.height}
-					data={roleChart.data}
-					layout={roleChart.layout}
-					config={{ displayModeBar: false }}
-				/>
-			</Panel>
-
-			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 560px), 1fr))', gap: 28 }}>
-				{/* 1) 개인 불참 분포 */}
-				<Panel style={{ padding: 24 }}>
-					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-							<span>개인 불참률 순위</span>
-							<ChartHelp description={chartHelpText.absenceDistribution} />
-						</div>
-						<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-							불참률(불참/참여가능주차)이 높은 순서대로 나열하여 상습 결석 구간을 파악합니다. (빨강: 상위 10%, 주황: 평균~상위 20%)
-						</div>
-					</div>
-					{absenceChart.hasData ? (
-						<ResponsivePlot
-							height={absenceChart.height}
-							key="absence-distribution-chart"
-							data={absenceChart.data}
-							layout={absenceChart.layout}
-							config={{ displayModeBar: false }}
-						/>
-					) : (
-						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
-							불참 데이터가 없습니다.
-						</div>
-					)}
-				</Panel>
-
-				{/* 3) 역할별 기여도 (Sunburst) */}
-				<Panel style={{ padding: 24 }}>
-					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-							<span>역할별 지분 맵 (Treemap)</span>
-							<ChartHelp description={chartHelpText.roleShare} />
-						</div>
-						<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-							역할 박스 크기는 총 배정 횟수이며, 내부 칸들은 팀원들의 기여 지분을 나타냅니다. 테두리로 팀원 구획이 항상 보이도록 처리했습니다.
-						</div>
-					</div>
-					{roleShareStats.hasData ? (
-						<ResponsivePlot
-							height={400} // Treemap은 높이가 너무 높지 않아도 잘 보입니다.
-							data={[roleShareStats.data]}
-							layout={{
-								...baseLayout,
-								margin: { l: 0, r: 0, t: 0, b: 0 }, // 꽉 채우기
-								showlegend: false,
-								font: { size: 13, color: '#fff' }, // 내부 텍스트는 흰색이 잘 보임 (보통)
-								paper_bgcolor: 'transparent',
-								plot_bgcolor: 'transparent'
-							}}
-							config={{ displayModeBar: false }}
-						/>
-					) : (
-						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
-							배정 데이터가 없습니다.
-						</div>
-					)}
-				</Panel>
-			</div>
-
-			{/* 2) 주차별 배정 타임라인 (Timeline) */}
-			<Panel style={{ padding: 24, gridColumn: '1 / -1' }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
 					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
 					<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1022,72 +926,170 @@ const formatWeekLabel = (iso: string) => {
 				)}
 			</Panel>
 
-			{/* 4) 팀원 × 역할 출석 보정 히트맵 */}
-			<Panel style={{ padding: 24, gridColumn: '1 / -1' }}>
+			{/* 2. 직무 배정 통계 (Role Assignments) - 핵심 성과 (Results) */}
+			<Panel style={{ padding: 24 }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-					<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-						<span>팀원/역할 배정 히트맵</span>
-						<ChartHelp description={chartHelpText.memberRoleHeatmap} />
+					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+							<span>직무 배정 통계</span>
+							<ChartHelp description={chartHelpText.roleAssignments} />
+						</div>
+						<div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--color-surface-1)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: '6px 14px' }}>
+							<span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>팀원 필터</span>
+							<select 
+								style={{ border: 'none', background: 'transparent', padding: '4px 0', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-primary)', minWidth: 120, outline: 'none', cursor: 'pointer' }}
+								value={member} 
+								onChange={(e) => setMember(e.target.value)}
+							>
+								<option value="">전체</option>
+								{memberOptions.map((name) => {
+									const isActive = memberStatusMap.get(name)
+									const label = isActive === false ? `${name} (비활성)` : name
+									return <option key={name} value={name}>{label}</option>
+								})}
+							</select>
+						</div>
 					</div>
 					<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-						출석 횟수 대비 특정 역할을 얼마나 자주 맡았는지(비율) 시각화합니다.
+						전체 보기에서는 역할별 비율(100%)을, 특정 팀원을 선택하면 누적 배정 횟수를 확인합니다.
 					</div>
 				</div>
-				{memberRoleHeatmap.hasData ? (
+				<ResponsivePlot
+					key={member ? `role-member-${member}` : 'role-overview'}
+					height={roleChart.height}
+					data={roleChart.data}
+					layout={roleChart.layout}
+					config={{ displayModeBar: false }}
+				/>
+			</Panel>
+
+			{/* 3. Grid: 불참률 (Risk) & 히트맵 (Detail) */}
+			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 600px), 1fr))', gap: 28 }}>
+				{/* 3-1. 개인 불참 분포 */}
+				<Panel style={{ padding: 24 }}>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+							<span>개인 불참률 순위</span>
+							<ChartHelp description={chartHelpText.absenceDistribution} />
+						</div>
+						<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+							불참률(불참/참여가능주차)이 높은 순서대로 나열하여 상습 결석 구간을 파악합니다. (빨강: 상위 10%, 주황: 평균~상위 20%)
+						</div>
+					</div>
+					{absenceChart.hasData ? (
+						<ResponsivePlot
+							height={absenceChart.height}
+							key="absence-distribution-chart"
+							data={absenceChart.data}
+							layout={absenceChart.layout}
+							config={{ displayModeBar: false }}
+						/>
+					) : (
+						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
+							불참 데이터가 없습니다.
+						</div>
+					)}
+				</Panel>
+
+				{/* 3-2. 팀원 × 역할 출석 보정 히트맵 */}
+				<Panel style={{ padding: 24 }}>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+						<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+							<span>팀원/역할 배정 히트맵</span>
+							<ChartHelp description={chartHelpText.memberRoleHeatmap} />
+						</div>
+						<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+							출석 횟수 대비 특정 역할을 얼마나 자주 맡았는지(비율) 시각화합니다.
+						</div>
+					</div>
+					{memberRoleHeatmap.hasData ? (
+						<ResponsivePlot
+							height={heatmapHeight}
+							data={[{
+								type: 'heatmap',
+								x: memberRoleHeatmap.x,
+								y: memberRoleHeatmap.y,
+								z: memberRoleHeatmap.z,
+								customdata: memberRoleHeatmap.customData,
+								colorscale: heatmapColorscale as any,
+								zmin: 0,
+								zmax: 1,
+								xgap: 2,
+								ygap: 2,
+								colorbar: {
+									title: { text: '배정 비율', font: { size: 13 } },
+									tickvals: [0, 0.5, 1],
+									ticktext: ['0%', '50%', '100%'],
+									tickfont: { size: 12 },
+									thickness: 16,
+									len: 0.8
+								},
+								hovertemplate:
+									'<b>%{y}</b> · %{x}<br>' +
+									'비율: <b>%{z:.1%}</b><br>' +
+									'배정: %{customdata[0]}회<br>' +
+									'출석: %{customdata[1]}주' +
+									'<extra></extra>'
+							}]}
+							layout={{
+								...baseLayout,
+								margin: { l: 140, r: 48, t: 28, b: 56 },
+								yaxis: {
+									...baseLayout.yaxis,
+									type: 'category',
+									automargin: true,
+									tickfont: { size: 14, color: palette.text, weight: 600 }
+								},
+								xaxis: {
+									...baseLayout.xaxis,
+									title: '',
+									type: 'category',
+									tickfont: { size: 14, color: palette.text },
+									side: 'top'
+								},
+								hoverlabel: {
+									...baseLayout.hoverlabel,
+									font: { size: 13, color: palette.text, family: 'inherit' }
+								}
+							}}
+							config={{ displayModeBar: false }}
+						/>
+					) : (
+						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
+							분석할 데이터가 없습니다.
+						</div>
+					)}
+				</Panel>
+			</div>
+
+			{/* 4. 역할별 기여도 (Sunburst -> Treemap) - 시각적 요약 (Visual Summary) */}
+			<Panel style={{ padding: 24 }}>
+				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+					<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+						<span>역할별 지분 맵 (Treemap)</span>
+						<ChartHelp description={chartHelpText.roleShare} />
+					</div>
+					<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+						역할 박스 크기는 총 배정 횟수이며, 내부 칸들은 팀원들의 기여 지분을 나타냅니다. 테두리로 팀원 구획이 항상 보이도록 처리했습니다.
+					</div>
+				</div>
+				{roleShareStats.hasData ? (
 					<ResponsivePlot
-						height={heatmapHeight}
-						data={[{
-							type: 'heatmap',
-							x: memberRoleHeatmap.x,
-							y: memberRoleHeatmap.y,
-							z: memberRoleHeatmap.z,
-							customdata: memberRoleHeatmap.customData,
-							colorscale: heatmapColorscale as any,
-							zmin: 0,
-							zmax: 1,
-							xgap: 2,
-							ygap: 2,
-							colorbar: {
-								title: { text: '배정 비율', font: { size: 13 } },
-								tickvals: [0, 0.5, 1],
-								ticktext: ['0%', '50%', '100%'],
-								tickfont: { size: 12 },
-								thickness: 16,
-								len: 0.8
-							},
-							hovertemplate:
-								'<b>%{y}</b> · %{x}<br>' +
-								'비율: <b>%{z:.1%}</b><br>' +
-								'배정: %{customdata[0]}회<br>' +
-								'출석: %{customdata[1]}주' +
-								'<extra></extra>'
-						}]}
+						height={400} // Treemap은 높이가 너무 높지 않아도 잘 보입니다.
+						data={[roleShareStats.data]}
 						layout={{
 							...baseLayout,
-							margin: { l: 140, r: 48, t: 28, b: 56 },
-							yaxis: {
-								...baseLayout.yaxis,
-								type: 'category',
-								automargin: true,
-								tickfont: { size: 14, color: palette.text, weight: 600 }
-							},
-							xaxis: {
-								...baseLayout.xaxis,
-								title: '',
-								type: 'category',
-								tickfont: { size: 14, color: palette.text },
-								side: 'top'
-							},
-							hoverlabel: {
-								...baseLayout.hoverlabel,
-								font: { size: 13, color: palette.text, family: 'inherit' }
-							}
+							margin: { l: 0, r: 0, t: 0, b: 0 }, // 꽉 채우기
+							showlegend: false,
+							font: { size: 13, color: '#fff' }, // 내부 텍스트는 흰색이 잘 보임 (보통)
+							paper_bgcolor: 'transparent',
+							plot_bgcolor: 'transparent'
 						}}
 						config={{ displayModeBar: false }}
 					/>
 				) : (
 					<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
-						분석할 데이터가 없습니다.
+						배정 데이터가 없습니다.
 					</div>
 				)}
 			</Panel>

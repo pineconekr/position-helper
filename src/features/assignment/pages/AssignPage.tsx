@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import AssignmentBoard from '@/features/assignment/components/AssignmentBoard'
+import SuggestionModal from '@/features/assignment/components/SuggestionModal'
 import { useAppStore } from '@/shared/state/store'
 import { saveJsonFile, openJsonFile } from '@/shared/utils/json'
 import { useToast } from '@/shared/hooks/useToast'
@@ -8,12 +10,15 @@ import { Panel } from '@/shared/components/ui/Panel'
 
 export default function AssignPage() {
 	const finalize = useAppStore((s) => s.finalizeCurrentWeek)
+	const setDraft = useAppStore((s) => s.setDraft)
 	const exportData = useAppStore((s) => s.exportData)
 	const importData = useAppStore((s) => s.importData)
 	const currentWeekDate = useAppStore((s) => s.currentWeekDate)
 	const draft = useAppStore((s) => s.currentDraft)
 	const warnings = useAppStore((s) => s.warnings)
 	const toast = useToast()
+
+	const [isSuggestionOpen, setIsSuggestionOpen] = useState(false)
 
 	function buildFileName(dateISO?: string): string | undefined {
 		if (!dateISO) return undefined
@@ -28,6 +33,15 @@ export default function AssignPage() {
 			<Panel style={{ padding: 16, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
 				<div className="muted" style={{ fontSize: '0.9375rem' }}>드래그 앤 드롭으로 배정하세요. 저장은 JSON 내보내기/불러오기를 사용합니다.</div>
 				<div style={{ display: 'flex', gap: 8 }}>
+					<Button
+						variant="ghost"
+						icon="auto_fix"
+						onClick={() => setIsSuggestionOpen(true)}
+						style={{ color: 'var(--color-accent)' }}
+					>
+						AI 제안
+					</Button>
+					<div style={{ width: 1, height: 24, background: 'var(--color-border)', margin: '0 4px' }} />
 					<Button
 						variant="secondary"
 						icon="upload"
@@ -125,6 +139,19 @@ export default function AssignPage() {
 				</div>
 			</Panel>
 			<AssignmentBoard />
+			
+			<SuggestionModal
+				isOpen={isSuggestionOpen}
+				onClose={() => setIsSuggestionOpen(false)}
+				onApply={(part1, part2) => {
+					setDraft({ part1, part2 })
+					toast({
+						kind: 'success',
+						title: '제안을 적용했습니다',
+						description: '결과를 확인하고 필요한 경우 수정해주세요.'
+					})
+				}}
+			/>
 		</div>
 	)
 }

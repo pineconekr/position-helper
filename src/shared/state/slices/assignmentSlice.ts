@@ -56,6 +56,7 @@ export type AssignmentSlice = {
 	importData: (data: AppData) => void
 	exportData: () => AppData
 	recalcWarnings: () => void
+	setDraft: (draft: { part1: PartAssignment; part2: PartAssignment }) => void
 	finalizeCurrentWeek: () => void
 }
 
@@ -296,6 +297,16 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 		const persistedDraft = normalizeDraftForPersist(s.currentDraft)
 		const merged: WeekData = { ...baseWeek, ...persistedDraft } // absences 유지
 		return { ...baseApp, weeks: { ...baseApp.weeks, [date]: merged } }
+	},
+	setDraft: (draft) => {
+		set({ currentDraft: draft })
+		get().addActivity({
+			type: 'assignment',
+			title: 'AI 제안 적용',
+			description: '자동 배정 제안을 적용했습니다',
+			meta: { action: 'ai-suggestion' }
+		})
+		get().recalcWarnings()
 	},
 	recalcWarnings: () =>
 		set((s) => ({ warnings: s.currentWeekDate ? computeWarnings(s.currentWeekDate, s.currentDraft, s.app) : [] })),
