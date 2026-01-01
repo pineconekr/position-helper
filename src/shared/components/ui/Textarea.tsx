@@ -1,45 +1,26 @@
-import React from 'react';
+import React from 'react'
+import { clsx } from 'clsx'
 
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-}
+interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> { }
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-	({ className, style, ...props }, ref) => {
-		const defaultStyle: React.CSSProperties = {
-			padding: '10px 12px',
-			borderRadius: 'var(--radius-md)',
-			border: '1px solid var(--color-border-subtle)',
-			background: 'var(--color-surface-1)',
-			color: 'var(--color-text-primary)',
-			fontSize: '0.9375rem',
-			width: '100%',
-			outline: 'none',
-			resize: 'vertical',
-			minHeight: '100px',
-			fontFamily: 'inherit',
-			transition: 'border-color var(--motion-duration-fast) var(--motion-ease-default), box-shadow var(--motion-duration-fast) var(--motion-ease-default)',
-		};
-
+	({ className, ...props }, ref) => {
 		return (
-			<textarea 
-				ref={ref} 
-				style={{ ...defaultStyle, ...style }} 
-				className={className} 
-				onFocus={(e) => {
-					e.target.style.borderColor = 'var(--color-accent)';
-					e.target.style.boxShadow = 'var(--focus-ring)';
-					props.onFocus?.(e);
-				}}
-				onBlur={(e) => {
-					e.target.style.borderColor = 'var(--color-border-subtle)';
-					e.target.style.boxShadow = 'none';
-					props.onBlur?.(e);
-				}}
-				{...props} 
+			<textarea
+				ref={ref}
+				className={clsx(
+					'w-full px-3 py-2.5 text-[0.9375rem] font-inherit min-h-[100px] resize-y',
+					'bg-[var(--color-surface-1)] text-[var(--color-text-primary)]',
+					'border border-[var(--color-border-subtle)] rounded-xl',
+					'outline-none transition-all duration-150',
+					'focus:border-[var(--color-accent)] focus:ring-2 focus:ring-blue-500/40',
+					'placeholder:text-[var(--color-text-subtle)]',
+					className
+				)}
+				{...props}
 			/>
-		);
+		)
 	}
-);
+)
 
-Textarea.displayName = 'Textarea';
-
+Textarea.displayName = 'Textarea'

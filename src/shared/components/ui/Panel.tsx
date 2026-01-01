@@ -1,18 +1,25 @@
-import React from 'react';
+import React from 'react'
+import { clsx } from 'clsx'
 
-interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
-}
+interface PanelProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
 	({ className, children, ...props }, ref) => {
-		const classes = ['panel', className].filter(Boolean).join(' ');
 		return (
-			<div ref={ref} className={classes} {...props}>
+			<div
+				ref={ref}
+				className={clsx(
+					'bg-[var(--color-surface-1)] border border-[var(--color-border-subtle)]',
+					'rounded-2xl shadow-sm backdrop-blur-xl',
+					'transition-all duration-200',
+					className
+				)}
+				{...props}
+			>
 				{children}
 			</div>
-		);
+		)
 	}
-);
+)
 
-Panel.displayName = 'Panel';
-
+Panel.displayName = 'Panel'

@@ -29,15 +29,16 @@ export default function ThemeToggle() {
 
 	return (
 		<button
-			className="btn theme-toggle"
+			className="inline-flex items-center justify-center px-2.5 ml-auto cursor-pointer
+				text-[var(--color-text-primary)] bg-transparent border-none
+				hover:opacity-80 transition-opacity duration-150"
 			onClick={cycleTheme}
 			aria-label={`현재 ${labelMap[currentTheme]}. ${nextLabel}`}
 			title={`${labelMap[currentTheme]} · ${nextLabel}`}
 		>
-			<span className="material-symbol theme-toggle__icon" aria-hidden="true">
+			<span className="material-symbol text-xl" aria-hidden="true">
 				{iconMap[currentTheme]}
 			</span>
 		</button>
 	)
 }
-

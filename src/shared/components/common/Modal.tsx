@@ -37,15 +37,7 @@ export default function Modal({ title, open, onClose, children, footer, width }:
 			{open && (
 				<motion.div
 					key="modal-overlay"
-					style={{
-						position: 'fixed',
-						inset: 0,
-						background: 'var(--color-overlay)',
-						backdropFilter: 'blur(6px)',
-						display: 'grid',
-						placeItems: 'center',
-						zIndex: 1000
-					}}
+					className="fixed inset-0 bg-black/40 backdrop-blur-sm grid place-items-center z-[1000]"
 					initial={shouldReduce ? { opacity: 1 } : { opacity: 0 }}
 					animate={{ opacity: 1 }}
 					exit={shouldReduce ? { opacity: 1 } : { opacity: 0, transition: { duration: duration.fast, ease: ease.in } }}
@@ -54,7 +46,7 @@ export default function Modal({ title, open, onClose, children, footer, width }:
 					onClick={onClose}
 				>
 					<motion.div
-						className="panel modal-panel"
+						className="w-[680px] max-w-[95vw] max-h-[90vh] flex flex-col p-6 rounded-2xl shadow-lg bg-[var(--color-surface-1)]"
 						role="dialog"
 						aria-modal="true"
 						style={width ? { width } : undefined}
@@ -68,40 +60,34 @@ export default function Modal({ title, open, onClose, children, footer, width }:
 						transition={{ duration: duration.normal, ease: ease.out }}
 						onClick={(e) => e.stopPropagation()}
 					>
-						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-							<h3 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{title}</h3>
+						{/* Header */}
+						<div className="flex items-center justify-between mb-5">
+							<h3 className="m-0 text-xl font-bold">{title}</h3>
 							<button
 								onClick={onClose}
 								title="닫기"
-								style={{
-									background: 'var(--color-surface-2)',
-									border: '1px solid var(--color-border-subtle)',
-									cursor: 'pointer',
-									width: 32,
-									height: 32,
-									borderRadius: '50%',
-									display: 'grid',
-									placeItems: 'center',
-									color: 'var(--color-text-muted)',
-									transition: 'all var(--motion-duration-fast) var(--motion-ease-default)'
-								}}
-								onMouseOver={(e) => {
-									e.currentTarget.style.background = 'var(--color-surface-1)'
-									e.currentTarget.style.color = 'var(--color-text-primary)'
-									e.currentTarget.style.borderColor = 'var(--color-border-strong)'
-								}}
-								onMouseOut={(e) => {
-									e.currentTarget.style.background = 'var(--color-surface-2)'
-									e.currentTarget.style.color = 'var(--color-text-muted)'
-									e.currentTarget.style.borderColor = 'var(--color-border-subtle)'
-								}}
+								className="w-8 h-8 grid place-items-center rounded-full cursor-pointer
+									bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)]
+									text-[var(--color-text-muted)] transition-all duration-150
+									hover:bg-[var(--color-surface-1)] hover:text-[var(--color-text-primary)]
+									hover:border-[var(--color-border-strong)]"
 								aria-label="닫기"
 							>
-								<span className="material-symbol" style={{ fontSize: 20, lineHeight: 1 }}>close</span>
+								<span className="material-symbol text-xl leading-none">close</span>
 							</button>
 						</div>
-						<div style={{ flex: 1, overflow: 'auto', overflowX: 'hidden', minHeight: 0, marginBottom: footer ? 20 : 0 }}>{children}</div>
-						{footer && <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 20, borderTop: '1px solid var(--color-border-subtle)' }}>{footer}</div>}
+
+						{/* Content */}
+						<div className={`flex-1 overflow-auto overflow-x-hidden min-h-0 ${footer ? 'mb-5' : ''}`}>
+							{children}
+						</div>
+
+						{/* Footer */}
+						{footer && (
+							<div className="flex justify-end gap-2.5 pt-5 border-t border-[var(--color-border-subtle)]">
+								{footer}
+							</div>
+						)}
 					</motion.div>
 				</motion.div>
 			)}

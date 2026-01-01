@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Plot from 'react-plotly.js'
+import dynamic from 'next/dynamic'
 import type { CSSProperties } from 'react'
+
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false })
 
 type PlotComponentProps = React.ComponentProps<typeof Plot>
 

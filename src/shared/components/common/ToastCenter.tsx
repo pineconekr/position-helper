@@ -10,6 +10,13 @@ const kindIcon: Record<string, string> = {
 	error: 'block'
 }
 
+const kindColors: Record<string, string> = {
+	success: 'text-emerald-500',
+	info: 'text-blue-500',
+	warning: 'text-amber-500',
+	error: 'text-red-500'
+}
+
 export default function ToastCenter() {
 	const toasts = useFeedbackStore((s) => s.toasts)
 	const dismiss = useFeedbackStore((s) => s.dismiss)
@@ -25,12 +32,16 @@ export default function ToastCenter() {
 	if (toasts.length === 0) return null
 
 	return (
-		<div className="toast-center" aria-live="polite" role="status">
+		<div
+			className="fixed top-4 right-4 flex flex-col gap-2.5 z-[999] max-w-80 w-[calc(100%-2rem)]"
+			aria-live="polite"
+			role="status"
+		>
 			<AnimatePresence initial={false}>
 				{toasts.map((toast) => (
 					<motion.div
 						key={toast.id}
-						className={`toast toast--${toast.kind}`}
+						className="flex items-start gap-2.5 px-3.5 py-3 bg-[var(--color-surface-1)] border border-[var(--color-border-subtle)] rounded-xl shadow-md"
 						role={toast.kind === 'error' ? 'alert' : 'status'}
 						layout
 						initial={shouldReduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -42,20 +53,22 @@ export default function ToastCenter() {
 						}
 						transition={{ duration: duration.normal, ease: ease.out }}
 					>
-						<div className="toast__icon" aria-hidden="true">
+						<div className={`text-lg leading-none ${kindColors[toast.kind] || 'text-blue-500'}`} aria-hidden="true">
 							<span className="material-symbol">{kindIcon[toast.kind] ?? 'info'}</span>
 						</div>
-						<div className="toast__body">
-							<div className="toast__title">{toast.title}</div>
-							{toast.description && <div className="toast__description">{toast.description}</div>}
+						<div className="flex-1 min-w-0">
+							<div className="font-medium text-[var(--color-text-primary)]">{toast.title}</div>
+							{toast.description && (
+								<div className="text-sm text-[var(--color-text-muted)] mt-0.5">{toast.description}</div>
+							)}
 						</div>
 						<button
 							type="button"
-							className="toast__close"
+							className="p-0 bg-transparent border-none text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text-primary)] transition-colors"
 							onClick={() => handleDismiss(toast.id)}
 							aria-label="알림 닫기"
 						>
-							<span className="material-symbol">close</span>
+							<span className="material-symbol text-lg">close</span>
 						</button>
 					</motion.div>
 				))}
@@ -63,5 +76,3 @@ export default function ToastCenter() {
 		</div>
 	)
 }
-
-

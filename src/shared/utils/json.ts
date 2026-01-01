@@ -1,9 +1,5 @@
 import { ZAppData, ZCurrentWeekTemplate, type AppData, type CurrentWeekTemplate } from '../types'
-import { dialog, fs } from '@tauri-apps/api'
 
-function isTauri(): boolean {
-	return typeof window !== 'undefined' && !!(window as any).__TAURI__
-}
 
 const emptyPart = () => ({ SW: '', 자막: '', 고정: '', 사이드: ['', ''], 스케치: '' })
 
@@ -197,20 +193,6 @@ function parseAppData(jsonText: string): AppData {
 }
 
 export async function openJsonFile(): Promise<AppData | null> {
-	// Tauri 경로
-	if (isTauri()) {
-		try {
-			const filePath = await dialog.open({ filters: [{ name: 'JSON', extensions: ['json'] }] })
-			if (!filePath || Array.isArray(filePath)) return null
-			const content = await fs.readTextFile(filePath)
-			return parseAppData(content)
-		} catch (e) {
-			console.error(e)
-			// Tauri 환경에서도 실패할 경우 웹 폴백 시도
-		}
-	}
-
-	// 웹 폴백: 파일 입력
 	try {
 		const input = document.createElement('input')
 		input.type = 'file'
@@ -252,20 +234,6 @@ export async function saveJsonFile(data: AppData, suggestedFileName?: string): P
 	const defaultFileName = 'position-helper-data.json'
 	const normalized = suggestedFileName?.trim()
 	const fileName = sanitizeFileName(ensureJsonExtension(normalized && normalized.length > 0 ? normalized : defaultFileName))
-	// Tauri 경로
-	if (isTauri()) {
-		try {
-			const filePath = await dialog.save({ filters: [{ name: 'JSON', extensions: ['json'] }], defaultPath: fileName })
-			if (!filePath) return false
-			await fs.writeFile(filePath, JSON.stringify(toExport, null, 2))
-			return true
-		} catch (e) {
-			console.error(e)
-			// Tauri 환경에서도 실패할 경우 웹 폴백 시도
-		}
-	}
-
-	// 웹 폴백: 다운로드
 	try {
 		const blob = new Blob([JSON.stringify(toExport, null, 2)], { type: 'application/json' })
 		const url = URL.createObjectURL(blob)
