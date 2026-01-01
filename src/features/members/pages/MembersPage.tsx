@@ -6,6 +6,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Panel } from '@/shared/components/ui/Panel'
 import { Textarea } from '@/shared/components/ui/Textarea'
+import Icon from '@/shared/components/ui/Icon'
 import { useAppStore } from '@/shared/state/store'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -214,7 +215,7 @@ function DeleteConfirmModal({
 					alignItems: 'start',
 					gap: 12
 				}}>
-					<span className="material-symbol" style={{ fontSize: 24 }}>warning</span>
+					<Icon name="warning" size={24} />
 					<div className="col" style={{ gap: 4 }}>
 						<strong style={{ fontSize: '0.9375rem' }}>정말 삭제하시겠습니까?</strong>
 						<span style={{ fontSize: '0.875rem', opacity: 0.9 }}>
@@ -303,14 +304,13 @@ export default function MembersPage() {
 				</div>
 				<div className="row" style={{ gap: 12 }}>
 					<div style={{ position: 'relative', width: 240 }}>
-						<span className="material-symbol" style={{
+						<Icon name="search" size={20} style={{
 							position: 'absolute',
 							left: 10,
 							top: '50%',
 							transform: 'translateY(-50%)',
-							color: 'var(--color-text-muted)',
-							fontSize: 20
-						}}>search</span>
+							color: 'var(--color-text-muted)'
+						}} />
 						<Input
 							placeholder="이름 또는 메모 검색..."
 							value={searchTerm}

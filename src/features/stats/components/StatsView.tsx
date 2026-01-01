@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ResponsivePlot } from './ResponsivePlot'
+import { ResponsiveChart } from './ResponsiveChart'
+import type { EChartsOption } from './ResponsiveChart'
 import { Panel } from '@/shared/components/ui/Panel'
 import { useAppStore } from '@/shared/state/store'
 import { getChartPalette } from '@/shared/theme/chartColors'
@@ -39,50 +40,16 @@ export default function StatsView() {
 	const { theme } = useTheme()
 	const { shouldReduce } = useMotionConfig()
 	const getBarChartHeight = (itemCount: number) => Math.max(360, itemCount * 34 + 120)
-	const chartTransition = useMemo(
-		() => (shouldReduce ? { duration: 0 } : { duration: motionDurMs.normal, easing: 'cubic-in-out' as const }),
-		[shouldReduce]
-	)
+	const animationDuration = shouldReduce ? 0 : motionDurMs.normal
 
 	const [palette, setPalette] = useState(getChartPalette())
 
 	useEffect(() => {
-		// Allow CSS variables to update
 		const timer = setTimeout(() => {
 			setPalette(getChartPalette())
 		}, 50)
 		return () => clearTimeout(timer)
 	}, [theme])
-
-	const baseLayout = useMemo(() => ({
-		paper_bgcolor: 'transparent',
-		plot_bgcolor: 'transparent',
-		font: { color: palette.text, family: 'inherit' },
-		margin: { l: 40, r: 20, t: 20, b: 40 },
-		hoverlabel: {
-			bgcolor: palette.surface2,
-			bordercolor: palette.border,
-			font: { color: palette.text, family: 'inherit' }
-		},
-		xaxis: {
-			gridcolor: palette.grid,
-			zerolinecolor: palette.grid,
-			linecolor: palette.axis,
-			tickfont: { size: 12 }
-		},
-		yaxis: {
-			gridcolor: palette.grid,
-			zerolinecolor: palette.grid,
-			linecolor: palette.axis,
-			tickfont: { size: 12 }
-		},
-		transition: chartTransition
-	}), [palette, chartTransition])
-
-	const heatmapColorscale = useMemo(
-		() => 'Viridis' as any,
-		[]
-	)
 
 	const memberStatusMap = useMemo(() => {
 		const map = new Map<string, boolean>()
@@ -177,47 +144,57 @@ export default function StatsView() {
 		if (status === false) setMember('')
 	}, [member, memberStatusMap])
 
-	const roleChart = useMemo(() => {
+	// Role Assignment Chart (Bar)
+	const roleChartOption = useMemo((): { height: number; option: EChartsOption } => {
 		if (member) {
 			const record = getRoleRecord(member)
 			const values = roles.map((role) => record[role])
 			const colors = roles.map((_, idx) => palette.series[idx % palette.series.length])
-			const total = values.reduce((acc, value) => acc + value, 0)
-			const text = values.map((count) => `${count}회`)
 			return {
 				height: 420,
-				layout: {
-					...baseLayout,
-					margin: { l: 56, r: 32, t: 32, b: 64 },
-					xaxis: {
-						...baseLayout.xaxis,
-						title: '',
-						type: 'category'
+				option: {
+					animation: true,
+					animationDuration,
+					tooltip: {
+						trigger: 'axis',
+						axisPointer: { type: 'shadow' },
+						formatter: (params: any) => {
+							const p = Array.isArray(params) ? params[0] : params
+							return `<b>${p.name}</b><br/>${p.value}회 배정`
+						}
 					},
-					yaxis: {
-						...baseLayout.yaxis,
-						title: '배정 횟수',
-						rangemode: 'tozero',
-						tickformat: 'd'
-					}
-				},
-				data: [{
-					type: 'bar' as const,
-					x: roles,
-					y: values,
-					text,
-					textposition: 'outside' as const,
-					insidetextanchor: 'middle' as const,
-					marker: { color: colors },
-					hovertemplate: '%{x}<br>%{y}회 배정<extra></extra>',
-					name: member,
-					showlegend: false
-				}],
-				total
+					grid: { left: 56, right: 32, top: 32, bottom: 64 },
+					xAxis: {
+						type: 'category',
+						data: roles,
+						axisLine: { lineStyle: { color: palette.axis } },
+						axisLabel: { color: palette.text, fontSize: 13 },
+					},
+					yAxis: {
+						type: 'value',
+						name: '배정 횟수',
+						nameTextStyle: { color: palette.text, fontSize: 14 },
+						axisLine: { lineStyle: { color: palette.axis } },
+						axisLabel: { color: palette.text, fontSize: 13 },
+						splitLine: { lineStyle: { color: palette.grid } },
+					},
+					series: [{
+						type: 'bar',
+						data: values.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })),
+						label: {
+							show: true,
+							position: 'top',
+							formatter: '{c}회',
+							color: palette.text,
+							fontSize: 12,
+						},
+						barMaxWidth: 60,
+					}],
+				}
 			}
 		}
 
-		// 기수 추출 함수: 이름에서 숫자를 추출 (예: "20 박예" -> 20, "박예" -> null)
+		// Overview: Stacked bar chart (100%)
 		const extractBatchNumber = (name: string): number | null => {
 			const match = name.match(/^(\d+)/)
 			return match ? parseInt(match[1]!, 10) : null
@@ -226,71 +203,71 @@ export default function StatsView() {
 		const sortedMembers = [...memberOptions].sort((a, b) => {
 			const batchA = extractBatchNumber(a)
 			const batchB = extractBatchNumber(b)
-
-			// 기수가 있는 경우: 기수 우선 정렬
 			if (batchA !== null && batchB !== null) {
 				return batchA - batchB || a.localeCompare(b, 'ko')
 			}
-			// 한쪽만 기수가 있는 경우: 기수가 있는 쪽이 앞으로
 			if (batchA !== null) return -1
 			if (batchB !== null) return 1
-			// 둘 다 기수가 없는 경우: 가나다 순
 			return a.localeCompare(b, 'ko')
 		})
-		const traces = roles.map((role, roleIdx) => {
-			const counts = sortedMembers.map((name) => getRoleRecord(name)[role])
-			const totals = sortedMembers.map((name) =>
-				Object.values(getRoleRecord(name)).reduce((acc, value) => acc + value, 0)
-			)
-			const fractions = counts.map((value, idx) => {
-				const total = totals[idx] ?? 0
-				return total > 0 ? value / total : 0
+
+		const series = roles.map((role, roleIdx) => {
+			const data = sortedMembers.map((name) => {
+				const record = getRoleRecord(name)
+				const total = Object.values(record).reduce((acc, v) => acc + v, 0)
+				return total > 0 ? (record[role] / total) * 100 : 0
 			})
-			const customdata = counts.map((value, idx) => [value, fractions[idx]] as [number, number])
 			return {
-				type: 'bar' as const,
 				name: role,
-				x: sortedMembers,
-				y: counts,
-				customdata,
-				hovertemplate: `<b>${role}</b><br>%{x}<br>` +
-					`배정: %{customdata[0]}회<br>` +
-					`비율: %{customdata[1]:.1%}<extra></extra>`,
-				marker: { color: palette.series[roleIdx % palette.series.length] }
+				type: 'bar' as const,
+				stack: 'total',
+				emphasis: { focus: 'series' as const },
+				itemStyle: { color: palette.series[roleIdx % palette.series.length] },
+				data,
 			}
 		})
+
 		return {
 			height: getBarChartHeight(sortedMembers.length),
-			layout: {
-				...baseLayout,
-				margin: { l: 64, r: 32, t: 32, b: 96 },
-				xaxis: {
-					...baseLayout.xaxis,
-					tickangle: -45,
-					automargin: true,
-					showticklabels: true
+			option: {
+				animation: true,
+				animationDuration,
+				tooltip: {
+					trigger: 'axis',
+					axisPointer: { type: 'shadow' },
+					formatter: (params: any) => {
+						if (!Array.isArray(params) || params.length === 0) return ''
+						const memberName = params[0].axisValue
+						const lines = params.map((p: any) => `${p.marker} ${p.seriesName}: ${p.value.toFixed(1)}%`)
+						return `<b>${memberName}</b><br/>${lines.join('<br/>')}`
+					}
 				},
-				yaxis: {
-					...baseLayout.yaxis,
-					title: '배정 비율',
-					tickformat: '.0%',
-					rangemode: 'tozero'
-				},
-				barmode: 'stack' as const,
-				barnorm: 'fraction' as const,
 				legend: {
-					orientation: 'h' as const,
-					yanchor: 'bottom' as const,
-					y: 1.02,
-					xanchor: 'right' as const,
-					x: 1
-				}
-			},
-			data: traces
+					top: 0,
+					right: 0,
+					textStyle: { color: palette.text, fontSize: 13 },
+				},
+				grid: { left: 64, right: 32, top: 40, bottom: 96 },
+				xAxis: {
+					type: 'category',
+					data: sortedMembers,
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, rotate: 45, interval: 0, fontSize: 13 },
+				},
+				yAxis: {
+					type: 'value',
+					name: '배정 비율',
+					max: 100,
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, formatter: '{value}%', fontSize: 13 },
+					splitLine: { lineStyle: { color: palette.grid } },
+				},
+				series,
+			}
 		}
-	}, [member, memberOptions, getRoleRecord, palette.series, baseLayout])
+	}, [member, memberOptions, getRoleRecord, palette, animationDuration])
 
-	// 불참 데이터 집계
+	// Absence Summary
 	const absenceSummary = useMemo(() => {
 		const counts = new Map<string, number>()
 		const firstSeen = new Map<string, number>()
@@ -310,7 +287,6 @@ export default function StatsView() {
 				}
 			}
 
-			// Check absences
 			week.absences?.forEach((absence) => {
 				const activeName = getActiveName(absence?.name)
 				if (!activeName) return
@@ -319,7 +295,6 @@ export default function StatsView() {
 				counts.set(activeName, prev + 1)
 			})
 
-			// Check assignments (to detect start date)
 			const scanPart = (p?: WeekData['part1']) => {
 				if (!p) return
 				roles.forEach(role => {
@@ -348,93 +323,90 @@ export default function StatsView() {
 			? validEntries.reduce((acc, cur) => acc + cur.rate, 0) / validEntries.length
 			: 0
 
-		return {
-			points: entries,
-			average: avgRate
-		}
+		return { points: entries, average: avgRate }
 	}, [app.weeks, activeMemberNames, getActiveName])
 
-	const absenceChart = useMemo(() => {
+	// Absence Chart (Horizontal Bar)
+	const absenceChartOption = useMemo((): { hasData: boolean; height: number; option: EChartsOption } => {
 		const points = absenceSummary.points
 		const names = points.map((entry) => entry.name)
-		const rates = points.map((entry) => entry.rate * 100) // Percentage
+		const rates = points.map((entry) => entry.rate * 100)
 		const average = absenceSummary.average * 100
-		const averageLabel = average.toFixed(1)
 		const height = getBarChartHeight(points.length)
 
-		const markerColors = rates.map((value) => {
-			const sortedRates = [...rates].sort((a, b) => b - a)
-			const p90 = sortedRates[Math.floor(sortedRates.length * 0.1)] ?? 100 // Top 10%
-			const p80 = sortedRates[Math.floor(sortedRates.length * 0.2)] ?? 100 // Top 20%
+		const sortedRates = [...rates].sort((a, b) => b - a)
+		const p90 = sortedRates[Math.floor(sortedRates.length * 0.1)] ?? 100
+		const p80 = sortedRates[Math.floor(sortedRates.length * 0.2)] ?? 100
 
+		const colors = rates.map((value) => {
 			if (value === 0) return palette.neutral
-			if (value >= p90 && value > 0) return palette.negative // Top 10%: Red
-			if ((value >= p80 || value > average) && value > 0) return palette.warning // Top 20% or Above Average: Orange
-			return '#94a3b8' // Slate 400 (Neutral/Safe)
+			if (value >= p90 && value > 0) return palette.negative
+			if ((value >= p80 || value > average) && value > 0) return palette.warning
+			return '#94a3b8'
 		})
 
 		return {
 			hasData: points.length > 0,
 			height,
-			data: [{
-				type: 'bar' as const,
-				orientation: 'h' as const,
-				x: rates,
-				y: names,
-				text: points.map(p => `${(p.rate * 100).toFixed(0)}%`),
-				textposition: 'auto' as const,
-				customdata: points.map(p => [p.count, p.total]),
-				marker: {
-					color: markerColors,
-					line: { width: 0 }
+			option: {
+				animation: true,
+				animationDuration,
+				tooltip: {
+					trigger: 'axis',
+					axisPointer: { type: 'shadow' },
+					formatter: (params: any) => {
+						const p = Array.isArray(params) ? params[0] : params
+						const idx = p.dataIndex
+						const point = points[idx]
+						return `<b>${point.name}</b><br/>불참률: ${(point.rate * 100).toFixed(1)}%<br/>(${point.count}회 / ${point.total}주)`
+					}
 				},
-				hovertemplate: '%{y}<br>불참률: %{x:.1f}%<br>(%{customdata[0]}회 / %{customdata[1]}주)<extra></extra>'
-			}],
-			layout: {
-				...baseLayout,
-				margin: { l: 100, r: 40, t: 30, b: 50 },
-				xaxis: {
-					...baseLayout.xaxis,
-					title: '불참률 (%)',
-					rangemode: 'tozero' as const,
-					tickformat: '.0f',
-					showgrid: true,
-					gridwidth: 1,
+				grid: { left: 100, right: 40, top: 30, bottom: 50 },
+				xAxis: {
+					type: 'value',
+					name: '불참률 (%)',
+					nameTextStyle: { color: palette.text, fontSize: 13 },
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, formatter: '{value}%', fontSize: 13 },
+					splitLine: { lineStyle: { color: palette.grid } },
 				},
-				yaxis: {
-					...baseLayout.yaxis,
-					type: 'category' as const,
-					autorange: 'reversed' as const,
-					automargin: true,
-					tickfont: { size: 13, weight: 600 }
+				yAxis: {
+					type: 'category',
+					data: names,
+					inverse: true,
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, fontWeight: 600, fontSize: 14 },
 				},
-				shapes: points.length > 0 ? [{
-					type: 'line' as const,
-					xref: 'x' as const,
-					yref: 'paper' as const,
-					x0: average,
-					x1: average,
-					y0: 0,
-					y1: 1,
-					line: { color: palette.text, width: 2, dash: 'dot' as const }
-				}] : [],
-				annotations: points.length > 0 ? [{
-					x: average,
-					y: 1,
-					xref: 'x' as const,
-					yref: 'paper' as const,
-					text: `평균 ${averageLabel}%`,
-					showarrow: false,
-					xanchor: 'left' as const,
-					yanchor: 'bottom' as const,
-					font: { color: palette.text, size: 12, weight: 600 },
-					bgcolor: palette.surface2,
-					borderpad: 4,
-				}] : []
+				series: [{
+					type: 'bar',
+					data: rates.map((v, i) => ({ value: v, itemStyle: { color: colors[i] } })),
+					label: {
+						show: true,
+						position: 'right',
+						formatter: (p: any) => `${p.value.toFixed(0)}%`,
+						color: palette.text,
+						fontSize: 12,
+					},
+					barMaxWidth: 24,
+					markLine: points.length > 0 ? {
+						silent: true,
+						symbol: 'none',
+						lineStyle: { color: palette.text, type: 'dashed', width: 2 },
+						label: {
+							formatter: `평균 ${average.toFixed(1)}%`,
+							color: palette.text,
+							backgroundColor: palette.surface2,
+							padding: [4, 8],
+							fontSize: 13,
+						},
+						data: [{ xAxis: average }],
+					} : undefined,
+				}],
 			}
 		}
-	}, [absenceSummary, palette, baseLayout])
+	}, [absenceSummary, palette, animationDuration])
 
+	// Timeline Heatmap
 	const formatWeekLabel = (iso: string) => {
 		const date = new Date(`${iso}T00:00:00`)
 		if (Number.isNaN(date.getTime())) return iso
@@ -450,7 +422,6 @@ export default function StatsView() {
 			'SW': 2, '자막': 3, '고정': 4, '사이드': 5, '스케치': 6
 		}
 
-		// Z-matrix: rows=members, cols=weeks
 		const z = members.map(() => dates.map(() => 0))
 		const text = members.map(() => dates.map(() => ''))
 		const roleSets = members.map(() => dates.map(() => new Set<RoleKey>()))
@@ -460,21 +431,16 @@ export default function StatsView() {
 			const week = app.weeks[date]
 			if (!week) return
 
-			// 1. Mark Absences
 			week.absences?.forEach(abs => {
 				const activeName = getActiveName(abs.name)
 				if (!activeName) return
 				const rowIdx = members.indexOf(activeName)
 				if (rowIdx === -1) return
-				const rowZ = z[rowIdx] ?? (z[rowIdx] = dates.map(() => 0))
-				const rowText = text[rowIdx] ?? (text[rowIdx] = dates.map(() => ''))
-				const rowRoles = roleSets[rowIdx] ?? (roleSets[rowIdx] = dates.map(() => new Set<RoleKey>()))
-				rowZ[colIdx] = 1 // Absent
-				rowText[colIdx] = abs.reason?.trim() || '불참'
-				rowRoles[colIdx] = new Set<RoleKey>() // reset roles for absence
+				z[rowIdx][colIdx] = 1
+				text[rowIdx][colIdx] = abs.reason?.trim() || '불참'
+				roleSets[rowIdx][colIdx] = new Set<RoleKey>()
 			})
 
-			// 2. Mark Assignments
 			const processRole = (entry: unknown, roleKey: RoleKey) => {
 				if (!entry) return
 				if (Array.isArray(entry)) {
@@ -485,26 +451,21 @@ export default function StatsView() {
 				if (!activeName) return
 				const rowIdx = members.indexOf(activeName)
 				if (rowIdx === -1) return
-				const rowZ = z[rowIdx] ?? (z[rowIdx] = dates.map(() => 0))
-				const rowText = text[rowIdx] ?? (text[rowIdx] = dates.map(() => ''))
-				const rowRoles = roleSets[rowIdx] ?? (roleSets[rowIdx] = dates.map(() => new Set<RoleKey>()))
-				const roleSet = rowRoles[colIdx] ?? new Set<RoleKey>()
-				rowRoles[colIdx] = roleSet
 
-				const currentVal = rowZ[colIdx] ?? 0
+				const roleSet = roleSets[rowIdx][colIdx]
+				const currentVal = z[rowIdx][colIdx]
 				const roleVal = roleValueMap[roleKey] ?? 0
 				roleSet.add(roleKey)
 
 				if (currentVal === 1 || (currentVal >= 2 && currentVal !== roleVal)) {
-					rowZ[colIdx] = 7 // Mixed
-					rowText[colIdx] += `, ${roleKey}`
+					z[rowIdx][colIdx] = 7
+					text[rowIdx][colIdx] += `, ${roleKey}`
 				} else {
-					rowZ[colIdx] = roleVal
-					rowText[colIdx] = roleKey
+					z[rowIdx][colIdx] = roleVal
+					text[rowIdx][colIdx] = roleKey
 				}
 			}
 
-			// Part 1 & 2
 			const scanPart = (p?: WeekData['part1']) => {
 				if (!p) return
 				processRole(p.SW, 'SW')
@@ -517,30 +478,22 @@ export default function StatsView() {
 			scanPart(week.part2)
 		})
 
-		// Post-process: Consecutive roles count
 		members.forEach((_, rowIdx) => {
 			let consecutive = 0
 			let lastRoleVal = -1
-			const rowZ = z[rowIdx] ?? (z[rowIdx] = dates.map(() => 0))
-			const rowText = text[rowIdx] ?? (text[rowIdx] = dates.map(() => ''))
-			const rowRoles = roleSets[rowIdx] ?? (roleSets[rowIdx] = dates.map(() => new Set<RoleKey>()))
 			const streaks: Record<RoleKey, number> = { SW: 0, 자막: 0, 고정: 0, 사이드: 0, 스케치: 0 }
 
 			dates.forEach((_, colIdx) => {
-				const val = rowZ[colIdx] ?? 0
-				const rolesSet = rowRoles[colIdx]
+				const val = z[rowIdx][colIdx]
+				const rolesSet = roleSets[rowIdx][colIdx]
 				const hasRoles = rolesSet && rolesSet.size > 0
 
 				if (!hasRoles || val === 1) {
-					// reset all streaks on absence or no role
 					(Object.keys(streaks) as RoleKey[]).forEach((role) => { streaks[role] = 0 })
 				} else if (rolesSet) {
 					(Object.keys(streaks) as RoleKey[]).forEach((role) => {
-						if (rolesSet.has(role)) {
-							streaks[role] += 1
-						} else {
-							streaks[role] = 0
-						}
+						if (rolesSet.has(role)) streaks[role] += 1
+						else streaks[role] = 0
 					})
 				}
 
@@ -551,11 +504,10 @@ export default function StatsView() {
 					}
 				}
 
-				// Check if it's a valid single role (2..6)
 				if (val >= 2 && val <= 6) {
 					if (val === lastRoleVal) {
 						consecutive++
-						rowText[colIdx] = `${rowText[colIdx]}×${consecutive}`
+						text[rowIdx][colIdx] = `${text[rowIdx][colIdx]}×${consecutive}`
 					} else {
 						consecutive = 1
 						lastRoleVal = val
@@ -565,14 +517,13 @@ export default function StatsView() {
 					lastRoleVal = -1
 				}
 
-				// For multi-role weeks, append streak markers per role in set
 				if (rolesSet && rolesSet.size > 0 && val !== 1) {
 					const orderedRoles = roles.filter((r) => rolesSet.has(r))
 					const label = orderedRoles.map((role) => {
 						const streak = streaks[role]
 						return streak > 1 ? `${role}×${streak}` : role
-					}).join(',<br>')
-					rowText[colIdx] = label
+					}).join('\n')
+					text[rowIdx][colIdx] = label
 				}
 			})
 		})
@@ -580,96 +531,133 @@ export default function StatsView() {
 		return { dates, members, z, text, highlightCells }
 	}, [app.weeks, activeMemberNames, getActiveName])
 
-	const timelineChart = useMemo(() => {
+	const timelineChartOption = useMemo((): { hasData: boolean; height: number; option: EChartsOption } => {
 		const { dates, members, z, text, highlightCells } = timelineSummary
-		if (dates.length === 0 || members.length === 0) return { hasData: false, data: [], layout: {} }
+		if (dates.length === 0 || members.length === 0) return { hasData: false, height: 400, option: {} }
 
-		// Construct discrete colorscale
 		const defaultSeries = ['#93b5f6', '#a5e4f3', '#f6d28f', '#c9b5f6', '#f7b3d4', '#cbd5e1']
 		const softSeries = palette.series?.map((c, idx) => c || defaultSeries[idx]) ?? defaultSeries
 		const getSeriesColor = (idx: number) => softSeries[idx] ?? defaultSeries[idx] ?? '#93b5f6'
+
 		const colors = [
 			palette.surface2 ?? '#f1f5f9',      // 0: Rest
-			palette.negative ?? '#ef4444',      // 1: Absent (high saturation)
-			getSeriesColor(0),                  // 2: SW (soft)
-			getSeriesColor(1),                  // 3: 자막 (soft)
-			getSeriesColor(2),                  // 4: 고정 (soft)
-			getSeriesColor(3),                  // 5: 사이드 (soft)
-			getSeriesColor(4),                  // 6: 스케치 (soft)
-			getSeriesColor(5),                  // 7: Mixed/Other (soft)
+			palette.negative ?? '#ef4444',      // 1: Absent
+			getSeriesColor(0),                  // 2: SW
+			getSeriesColor(1),                  // 3: 자막
+			getSeriesColor(2),                  // 4: 고정
+			getSeriesColor(3),                  // 5: 사이드
+			getSeriesColor(4),                  // 6: 스케치
+			getSeriesColor(5),                  // 7: Mixed
 		]
 
-		const scale: [number, string][] = []
-		const n = 8
-		for (let i = 0; i < n; i++) {
-			const color = colors[i] ?? defaultSeries[i % defaultSeries.length] ?? '#3b82f6'
-			scale.push([i / n, color])
-			scale.push([(i + 1) / n, color])
-		}
+		// Build heatmap data: [x, y, value, text]
+		const heatmapData: [number, number, number, string][] = []
+		members.forEach((_, rowIdx) => {
+			dates.forEach((_, colIdx) => {
+				heatmapData.push([colIdx, rowIdx, z[rowIdx][colIdx], text[rowIdx][colIdx]])
+			})
+		})
 
 		const xLabels = dates.map(d => formatWeekLabel(d))
 
-		const shapes = highlightCells.map(({ rowIdx, colIdx, streak }) => {
+		// Highlight markings as graphic elements
+		const graphicElements = highlightCells.map(({ rowIdx, colIdx, streak }) => {
 			const color = streak >= 5 ? (palette.negative ?? '#ef4444') : (palette.warning ?? '#f59e0b')
 			const width = streak >= 5 ? 3 : 2
 			return {
-				type: 'rect',
-				x0: colIdx - 0.45,
-				x1: colIdx + 0.45,
-				y0: rowIdx - 0.45,
-				y1: rowIdx + 0.45,
-				xref: 'x',
-				yref: 'y',
-				line: { color, width },
-				fillcolor: 'transparent'
+				type: 'rect' as const,
+				shape: {
+					x: 0,
+					y: 0,
+					width: 1,
+					height: 1,
+				},
+				style: {
+					stroke: color,
+					lineWidth: width,
+					fill: 'transparent',
+				},
+				z2: 10,
+				// Position via custom attribute for later calculation
+				_custom: { colIdx, rowIdx },
 			}
 		})
 
 		return {
 			hasData: true,
 			height: Math.max(400, members.length * 32 + 100),
-			data: [{
-				type: 'heatmap' as const,
-				x: dates.map((_, i) => i),
-				y: members.map((_, i) => i),
-				z: z,
-				text: text,
-				texttemplate: '%{text}',
-				textfont: { size: 11 },
-				hoverinfo: 'text' as const,
-				hovertemplate:
-					'<b>%{y}</b><br>' +
-					'%{x}<br>' +
-					'%{text}<extra></extra>',
-				colorscale: scale,
-				showscale: false,
-				colorbar: {
-					tickvals: [0.5 / 8, 1.5 / 8, 2.5 / 8, 3.5 / 8, 4.5 / 8, 5.5 / 8, 6.5 / 8, 7.5 / 8].map(v => v * 8 * (1 / 8)),
+			option: {
+				animation: true,
+				animationDuration,
+				tooltip: {
+					trigger: 'item',
+					formatter: (params: any) => {
+						const [colIdx, rowIdx, , label] = params.data
+						const memberName = members[rowIdx]
+						const dateLabel = xLabels[colIdx]
+						return `<b>${memberName}</b><br/>${dateLabel}<br/>${label || '휴식'}`
+					}
 				},
-				zmin: 0,
-				zmax: 8
-			}],
-			layout: {
-				...baseLayout,
-				shapes,
-				margin: { l: 80, r: 20, t: 40, b: 80 },
-				xaxis: {
-					...baseLayout.xaxis,
-					tickvals: dates.map((_, i) => i),
-					ticktext: xLabels,
-					tickangle: 0,
-					side: 'top' as const
+				grid: { left: 80, right: 20, top: 50, bottom: 60 },
+				xAxis: {
+					type: 'category',
+					data: xLabels,
+					position: 'top',
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, fontSize: 14 },
+					splitLine: { show: false },
 				},
-				yaxis: {
-					...baseLayout.yaxis,
-					tickvals: members.map((_, i) => i),
-					ticktext: members,
-					autorange: 'reversed' as const,
-					tickfont: { size: 13, weight: 600 }
-				}
+				yAxis: {
+					type: 'category',
+					data: members,
+					inverse: true,
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, fontWeight: 600, fontSize: 15 },
+					splitLine: { show: false },
+				},
+				visualMap: {
+					show: false,
+					type: 'piecewise',
+					categories: [0, 1, 2, 3, 4, 5, 6, 7],
+					inRange: {
+						color: colors,
+					},
+					outOfRange: {
+						color: palette.surface2,
+					},
+				},
+				series: [{
+					type: 'heatmap',
+					data: heatmapData,
+					label: {
+						show: true,
+						formatter: (params: any) => params.data[3] || '',
+						fontSize: 12,
+						fontWeight: 500,
+						color: palette.text,
+						textBorderColor: palette.surface2,
+						textBorderWidth: 2,
+					},
+					emphasis: {
+						itemStyle: {
+							shadowBlur: 8,
+							shadowColor: 'rgba(0, 0, 0, 0.25)',
+							borderColor: '#000',
+							borderWidth: 2,
+						}
+					},
+					itemStyle: {
+						borderColor: palette.surface2,
+						borderWidth: 2,
+						borderRadius: 4,
+					},
+				}],
+				graphic: graphicElements.length > 0 ? graphicElements : undefined,
 			}
 		}
-	}, [timelineSummary, palette, baseLayout])
+	}, [timelineSummary, palette, animationDuration])
+
+	// Member Role Heatmap
 	const memberRoleHeatmap = useMemo(() => {
 		type MemberStats = { attendance: number; roleWeeks: Record<RoleKey, number> }
 		const statsMap = new Map<string, MemberStats>()
@@ -737,12 +725,11 @@ export default function StatsView() {
 		const rows = Array.from(statsMap.entries())
 			.map(([name, stats]) => {
 				const ratios = roles.map((role) => {
-					if (stats.attendance === 0) return null
+					if (stats.attendance === 0) return 0
 					const ratio = stats.roleWeeks[role] / stats.attendance
-					return Number.isFinite(ratio) ? ratio : null
+					return Number.isFinite(ratio) ? ratio : 0
 				})
 				const custom = roles.map((role) => {
-					// customdata는 항상 유효한 배열로 설정 (null이면 [0, 0])
 					return [stats.roleWeeks[role] || 0, stats.attendance || 0] as [number, number]
 				})
 				return { name, stats, ratios, custom }
@@ -751,36 +738,105 @@ export default function StatsView() {
 
 		rows.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 
+		// ECharts heatmap data: [x, y, value]
+		const heatmapData: [number, number, number][] = []
+		const customData: Record<string, [number, number]> = {}
+
+		rows.forEach((row, rowIdx) => {
+			row.ratios.forEach((ratio, colIdx) => {
+				heatmapData.push([colIdx, rowIdx, ratio])
+				customData[`${colIdx}-${rowIdx}`] = row.custom[colIdx]
+			})
+		})
+
 		return {
 			x: roles,
 			y: rows.map((row) => row.name),
-			z: rows.map((row) => row.ratios),
-			customData: rows.map((row) => row.custom),
+			data: heatmapData,
+			customData,
 			hasData: rows.length > 0
 		}
 	}, [app.members, app.weeks, getActiveName])
 
-	const heatmapHeight = getBarChartHeight(memberRoleHeatmap.y.length)
-	// Sankey 차트는 높이가 좀 더 확보되어야 예쁩니다.
-	const monthlyChartHeight = Math.max(500, activeMemberNames.length * 28)
+	const heatmapChartOption = useMemo((): { hasData: boolean; height: number; option: EChartsOption } => {
+		if (!memberRoleHeatmap.hasData) return { hasData: false, height: 400, option: {} }
 
-	// 역할별 기여도 점유율 (Treemap)
+		const height = getBarChartHeight(memberRoleHeatmap.y.length)
+
+		return {
+			hasData: true,
+			height,
+			option: {
+				animation: true,
+				animationDuration,
+				tooltip: {
+					trigger: 'item',
+					formatter: (params: any) => {
+						const [colIdx, rowIdx, ratio] = params.data
+						const custom = memberRoleHeatmap.customData[`${colIdx}-${rowIdx}`] || [0, 0]
+						const memberName = memberRoleHeatmap.y[rowIdx]
+						const roleName = memberRoleHeatmap.x[colIdx]
+						return `<b>${memberName}</b> · ${roleName}<br/>비율: <b>${(ratio * 100).toFixed(1)}%</b><br/>배정: ${custom[0]}회<br/>출석: ${custom[1]}주`
+					}
+				},
+				grid: { left: 140, right: 80, top: 40, bottom: 56 },
+				xAxis: {
+					type: 'category',
+					data: memberRoleHeatmap.x,
+					position: 'top',
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, fontSize: 14 },
+					splitLine: { show: false },
+				},
+				yAxis: {
+					type: 'category',
+					data: memberRoleHeatmap.y,
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, fontWeight: 600, fontSize: 14 },
+					splitLine: { show: false },
+				},
+				visualMap: {
+					min: 0,
+					max: 1,
+					calculable: true,
+					orient: 'vertical',
+					right: 10,
+					top: 'center',
+					text: ['100%', '0%'],
+					textStyle: { color: palette.text, fontSize: 13 },
+					inRange: {
+						color: ['#440154', '#3b528b', '#21918c', '#5ec962', '#fde725'],
+					},
+				},
+				series: [{
+					type: 'heatmap',
+					data: memberRoleHeatmap.data,
+					label: { show: false },
+					emphasis: {
+						itemStyle: {
+							shadowBlur: 10,
+							shadowColor: 'rgba(0, 0, 0, 0.3)',
+						}
+					},
+					itemStyle: {
+						borderColor: palette.border,
+						borderWidth: 2,
+					},
+				}],
+			}
+		}
+	}, [memberRoleHeatmap, palette, animationDuration])
+
+	// Role Share Treemap
 	const roleShareStats = useMemo(() => {
-		const clamp = (v: number) => Math.min(255, Math.max(0, v))
-		const adjustHex = (hex: string, delta: number) => {
-			if (!hex || !hex.startsWith('#') || (hex.length !== 7 && hex.length !== 9)) return hex
-			const r = clamp(parseInt(hex.slice(1, 3), 16) + delta)
-			const g = clamp(parseInt(hex.slice(3, 5), 16) + delta)
-			const b = clamp(parseInt(hex.slice(5, 7), 16) + delta)
-			return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
-		}
-		const withAlpha = (hex: string, alpha: string) => {
-			if (!hex || !hex.startsWith('#') || (hex.length !== 7 && hex.length !== 9)) return hex
-			return `${hex.slice(0, 7)}${alpha}`
+		interface TreemapNode {
+			name: string
+			value: number
+			itemStyle?: { color: string }
+			children?: TreemapNode[]
 		}
 
-		// 1. 데이터 집계
-		const hierarchy: Record<RoleKey, Array<{ name: string; count: number; roleIdx: number }>> = {
+		const hierarchy: Record<RoleKey, Array<{ name: string; count: number }>> = {
 			SW: [], 자막: [], 고정: [], 사이드: [], 스케치: []
 		}
 		let totalAssignments = 0
@@ -788,96 +844,114 @@ export default function StatsView() {
 		activeMemberNames.forEach((memberName) => {
 			const memberRoles = roleCounts.get(memberName)
 			if (!memberRoles) return
-			roles.forEach((role, roleIdx) => {
+			roles.forEach((role) => {
 				const count = memberRoles[role]
 				if (count > 0) {
-					hierarchy[role].push({ name: memberName, count, roleIdx })
+					hierarchy[role].push({ name: memberName, count })
 					totalAssignments += count
 				}
 			})
 		})
 
-		// 역할별 총합을 기준으로 정렬 (Finviz 스타일 가독성)
-		const roleTotals = roles
-			.map((role, idx) => ({ role, idx, total: hierarchy[role].reduce((acc, cur) => acc + cur.count, 0) }))
-			.filter((r) => r.total > 0)
-			.sort((a, b) => b.total - a.total)
+		const treeData: TreemapNode[] = roles
+			.map((role, idx) => {
+				const total = hierarchy[role].reduce((acc, cur) => acc + cur.count, 0)
+				if (total === 0) return null
+				return {
+					name: role,
+					value: total,
+					itemStyle: { color: palette.series[idx % palette.series.length] },
+					children: hierarchy[role]
+						.sort((a, b) => b.count - a.count)
+						.map((m) => ({
+							name: m.name,
+							value: m.count,
+						}))
+				}
+			})
+			.filter(Boolean) as TreemapNode[]
 
-		// 2. Treemap 데이터 포맷
-		const ids: string[] = []
-		const labels: string[] = []
-		const parents: string[] = []
-		const values: number[] = []
-		const colors: string[] = []
-		const lineColors: string[] = []
-		const lineWidths: number[] = []
-		const textTemplates: string[] = []
+		return { hasData: totalAssignments > 0, treeData }
+	}, [activeMemberNames, roleCounts, palette.series])
 
-		roleTotals.forEach(({ role, idx: origIdx, total: roleTotal }) => {
-			const baseColor = palette.series[origIdx % palette.series.length] ?? '#3b82f6'
-			const roleColor = adjustHex(baseColor, -10) // 진한 톤
-			const roleLine = adjustHex(baseColor, -35)
-			const memberColor = withAlpha(adjustHex(baseColor, 12), 'd0') // 살짝 밝게 + 투명
-			const memberLine = adjustHex(baseColor, -28)
-
-			// Role Node
-			ids.push(role)
-			labels.push(role)
-			parents.push('')
-			values.push(roleTotal)
-			colors.push(roleColor)
-			lineColors.push(roleLine)
-			lineWidths.push(1.5)
-			textTemplates.push('%{label}<br>%{percentRoot:.1%}')
-
-			// Member Nodes
-			hierarchy[role]
-				.sort((a, b) => b.count - a.count)
-				.forEach((m) => {
-					ids.push(`${role}-${m.name}`)
-					labels.push(m.name)
-					parents.push(role)
-					values.push(m.count)
-					colors.push(memberColor) // 동일 계열, 명도만 조정
-					lineColors.push(memberLine)
-					lineWidths.push(1)
-					textTemplates.push('%{label}<br>%{percentParent:.1%}')
-				})
-		})
+	const treemapChartOption = useMemo((): { hasData: boolean; option: EChartsOption } => {
+		if (!roleShareStats.hasData) return { hasData: false, option: {} }
 
 		return {
-			hasData: totalAssignments > 0,
-			data: {
-				type: 'treemap' as const,
-				ids,
-				labels,
-				parents,
-				values,
-				texttemplate: textTemplates,
-				textinfo: 'none', // 텍스트 템플릿으로만 노출 (절제)
-				marker: {
-					colors,
-					line: { color: lineColors, width: lineWidths }
+			hasData: true,
+			option: {
+				animation: true,
+				animationDuration,
+				tooltip: {
+					trigger: 'item',
+					formatter: (params: any) => {
+						const { name, value, treePathInfo } = params
+						const parentName = treePathInfo?.length > 1 ? treePathInfo[treePathInfo.length - 2]?.name : null
+						if (parentName) {
+							return `<b>${name}</b><br/>${parentName}에서 ${value}회 배정`
+						}
+						return `<b>${name}</b><br/>${value}회 배정`
+					}
 				},
-				textfont: {
-					color: '#f8fafc',
-					size: 13
-				},
-				branchvalues: 'total' as const,
-				pathbar: { visible: false }, // 상단 경로 바 숨김 (깔끔하게)
-				tiling: {
-					packing: 'squarify', // 정사각형에 가깝게 분할
-					pad: 3.5 // 간격 조금 넓혀서 가독성 향상
-				},
-				hovertemplate: '<b>%{label}</b><br>%{value}회<br>점유율: %{percentParent:.1%}<extra></extra>'
+				series: [{
+					type: 'treemap',
+					data: roleShareStats.treeData,
+					roam: false,
+					nodeClick: false,
+					breadcrumb: { show: false },
+					label: {
+						show: true,
+						formatter: '{b}',
+						fontSize: 14,
+						color: '#ffffff',
+						textBorderColor: 'rgba(0, 0, 0, 0.6)',
+						textBorderWidth: 2,
+					},
+					upperLabel: {
+						show: true,
+						height: 30,
+						formatter: (params: any) => {
+							const { name, value } = params
+							return `${name} (${value})`
+						},
+						color: '#ffffff',
+						textBorderColor: 'rgba(0, 0, 0, 0.6)',
+						textBorderWidth: 2,
+						fontWeight: 'bold',
+						fontSize: 14,
+					},
+					itemStyle: {
+						borderColor: palette.surface2,
+						borderWidth: 1,
+						gapWidth: 1,
+					},
+					levels: [
+						{
+							itemStyle: {
+								borderColor: palette.surface2,
+								borderWidth: 1,
+								gapWidth: 2,
+							},
+							upperLabel: { show: true },
+						},
+						{
+							colorSaturation: [0.6, 0.95],
+							itemStyle: {
+								borderColorSaturation: 0.7,
+								borderWidth: 1,
+								gapWidth: 1,
+							},
+						}
+					],
+				}],
 			}
 		}
-	}, [activeMemberNames, roleCounts, palette.series, roles])
+	}, [roleShareStats, palette, animationDuration])
 
 	return (
 		<div className="col" style={{ gap: 32, maxWidth: 1800, margin: '0 auto', padding: '0 12px', width: '100%' }}>
 
-			{/* 1. 주차별 배정 타임라인 (Timeline) - 최상단 중요도 (Operations) */}
+			{/* 1. 주차별 배정 타임라인 (Timeline) */}
 			<Panel style={{ padding: 24 }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
 					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -889,17 +963,17 @@ export default function StatsView() {
 						{/* Legend */}
 						<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.8125rem' }}>
 							{[
-								{ label: '휴식', color: palette.surface2, border: palette.border },
-								{ label: '불참', color: palette.negative },
-								{ label: 'SW', color: palette.series[0] },
-								{ label: '자막', color: palette.series[1] },
-								{ label: '고정', color: palette.series[2] },
-								{ label: '사이드', color: palette.series[3] },
-								{ label: '스케치', color: palette.series[4] },
+								{ label: '휴식', color: 'var(--color-surface-2)', border: 'var(--color-border-subtle)' },
+								{ label: '불참', color: 'var(--data-negative)' },
+								{ label: 'SW', color: 'var(--data-series-1)' },
+								{ label: '자막', color: 'var(--data-series-2)' },
+								{ label: '고정', color: 'var(--data-series-3)' },
+								{ label: '사이드', color: 'var(--data-series-4)' },
+								{ label: '스케치', color: 'var(--data-series-5)' },
 							].map(item => (
 								<div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
 									<span style={{
-										width: 10, height: 10, borderRadius: 2,
+										width: '10px', height: '10px', borderRadius: '2px',
 										backgroundColor: item.color,
 										border: item.border ? `1px solid ${item.border}` : 'none'
 									}} />
@@ -912,12 +986,10 @@ export default function StatsView() {
 						팀원별 주차 활동(배정 역할, 불참, 휴식)을 타임라인 형태로 시각화하여 운영 공백을 관리합니다.
 					</div>
 				</div>
-				{timelineChart.hasData ? (
-					<ResponsivePlot
-						height={timelineChart.height}
-						data={timelineChart.data}
-						layout={timelineChart.layout}
-						config={{ displayModeBar: false }}
+				{timelineChartOption.hasData ? (
+					<ResponsiveChart
+						height={timelineChartOption.height}
+						option={timelineChartOption.option}
 					/>
 				) : (
 					<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
@@ -926,7 +998,7 @@ export default function StatsView() {
 				)}
 			</Panel>
 
-			{/* 2. 직무 배정 통계 (Role Assignments) - 핵심 성과 (Results) */}
+			{/* 2. 직무 배정 통계 (Role Assignments) */}
 			<Panel style={{ padding: 24 }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
 					<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -954,12 +1026,10 @@ export default function StatsView() {
 						전체 보기에서는 역할별 비율(100%)을, 특정 팀원을 선택하면 누적 배정 횟수를 확인합니다.
 					</div>
 				</div>
-				<ResponsivePlot
+				<ResponsiveChart
 					key={member ? `role-member-${member}` : 'role-overview'}
-					height={roleChart.height}
-					data={roleChart.data}
-					layout={roleChart.layout}
-					config={{ displayModeBar: false }}
+					height={roleChartOption.height}
+					option={roleChartOption.option}
 				/>
 			</Panel>
 
@@ -976,13 +1046,10 @@ export default function StatsView() {
 							불참률(불참/참여가능주차)이 높은 순서대로 나열하여 상습 결석 구간을 파악합니다. (빨강: 상위 10%, 주황: 평균~상위 20%)
 						</div>
 					</div>
-					{absenceChart.hasData ? (
-						<ResponsivePlot
-							height={absenceChart.height}
-							key="absence-distribution-chart"
-							data={absenceChart.data}
-							layout={absenceChart.layout}
-							config={{ displayModeBar: false }}
+					{absenceChartOption.hasData ? (
+						<ResponsiveChart
+							height={absenceChartOption.height}
+							option={absenceChartOption.option}
 						/>
 					) : (
 						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
@@ -1002,57 +1069,10 @@ export default function StatsView() {
 							출석 횟수 대비 특정 역할을 얼마나 자주 맡았는지(비율) 시각화합니다.
 						</div>
 					</div>
-					{memberRoleHeatmap.hasData ? (
-						<ResponsivePlot
-							height={heatmapHeight}
-							data={[{
-								type: 'heatmap',
-								x: memberRoleHeatmap.x,
-								y: memberRoleHeatmap.y,
-								z: memberRoleHeatmap.z,
-								customdata: memberRoleHeatmap.customData,
-								colorscale: heatmapColorscale as any,
-								zmin: 0,
-								zmax: 1,
-								xgap: 2,
-								ygap: 2,
-								colorbar: {
-									title: { text: '배정 비율', font: { size: 13 } },
-									tickvals: [0, 0.5, 1],
-									ticktext: ['0%', '50%', '100%'],
-									tickfont: { size: 12 },
-									thickness: 16,
-									len: 0.8
-								},
-								hovertemplate:
-									'<b>%{y}</b> · %{x}<br>' +
-									'비율: <b>%{z:.1%}</b><br>' +
-									'배정: %{customdata[0]}회<br>' +
-									'출석: %{customdata[1]}주' +
-									'<extra></extra>'
-							}]}
-							layout={{
-								...baseLayout,
-								margin: { l: 140, r: 48, t: 28, b: 56 },
-								yaxis: {
-									...baseLayout.yaxis,
-									type: 'category',
-									automargin: true,
-									tickfont: { size: 14, color: palette.text, weight: 600 }
-								},
-								xaxis: {
-									...baseLayout.xaxis,
-									title: '',
-									type: 'category',
-									tickfont: { size: 14, color: palette.text },
-									side: 'top'
-								},
-								hoverlabel: {
-									...baseLayout.hoverlabel,
-									font: { size: 13, color: palette.text, family: 'inherit' }
-								}
-							}}
-							config={{ displayModeBar: false }}
+					{heatmapChartOption.hasData ? (
+						<ResponsiveChart
+							height={heatmapChartOption.height}
+							option={heatmapChartOption.option}
 						/>
 					) : (
 						<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>
@@ -1062,7 +1082,7 @@ export default function StatsView() {
 				</Panel>
 			</div>
 
-			{/* 4. 역할별 기여도 (Sunburst -> Treemap) - 시각적 요약 (Visual Summary) */}
+			{/* 4. 역할별 기여도 (Treemap) */}
 			<Panel style={{ padding: 24 }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
 					<div style={{ fontSize: '1.125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1070,22 +1090,13 @@ export default function StatsView() {
 						<ChartHelp description={chartHelpText.roleShare} />
 					</div>
 					<div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-						역할 박스 크기는 총 배정 횟수이며, 내부 칸들은 팀원들의 기여 지분을 나타냅니다. 테두리로 팀원 구획이 항상 보이도록 처리했습니다.
+						역할 박스 크기는 총 배정 횟수이며, 내부 칸들은 팀원들의 기여 지분을 나타냅니다.
 					</div>
 				</div>
-				{roleShareStats.hasData ? (
-					<ResponsivePlot
-						height={400} // Treemap은 높이가 너무 높지 않아도 잘 보입니다.
-						data={[roleShareStats.data]}
-						layout={{
-							...baseLayout,
-							margin: { l: 0, r: 0, t: 0, b: 0 }, // 꽉 채우기
-							showlegend: false,
-							font: { size: 13, color: '#fff' }, // 내부 텍스트는 흰색이 잘 보임 (보통)
-							paper_bgcolor: 'transparent',
-							plot_bgcolor: 'transparent'
-						}}
-						config={{ displayModeBar: false }}
+				{treemapChartOption.hasData ? (
+					<ResponsiveChart
+						height={400}
+						option={treemapChartOption.option}
 					/>
 				) : (
 					<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-surface-1)', borderRadius: 12, fontSize: '0.875rem' }}>

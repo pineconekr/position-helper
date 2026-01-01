@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { ReactNode } from 'react'
 import { clsx } from 'clsx'
+import Icon, { IconName } from './Icon'
 
 type ButtonVariant = 'primary' | 'secondary' | 'critical' | 'ghost'
 type ButtonSize = 'sm' | 'md'
@@ -7,7 +8,8 @@ type ButtonSize = 'sm' | 'md'
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	variant?: ButtonVariant
 	size?: ButtonSize
-	icon?: string // Material symbol name
+	icon?: IconName
+	children?: ReactNode
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
@@ -38,9 +40,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				{...props}
 			>
 				{icon && (
-					<span className="material-symbol" style={{ marginRight: children ? 4 : 0 }}>
-						{icon}
-					</span>
+					<Icon name={icon} size={size === 'sm' ? 16 : 18} style={{ marginRight: children ? 4 : 0 }} />
 				)}
 				{children}
 			</button>

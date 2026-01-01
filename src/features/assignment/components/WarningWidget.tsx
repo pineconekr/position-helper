@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Panel } from '@/shared/components/ui/Panel'
+import Icon from '@/shared/components/ui/Icon'
 import { useAppStore } from '@/shared/state/store'
 import type { Warning, RoleKey } from '@/shared/types'
 
@@ -82,7 +83,7 @@ export default function WarningWidget() {
 		return (
 			<div className="warning-item">
 				<div className="warning-item__icon">
-					<span className="material-symbol" style={{ color: meta.color }}>{meta.icon}</span>
+					<Icon name={meta.icon} size={18} style={{ color: meta.color }} />
 				</div>
 				<div className="warning-item__content">
 					<div className="warning-item__message">{w.message}</div>
@@ -155,4 +156,3 @@ export default function WarningWidget() {
 		</Panel>
 	)
 }
-

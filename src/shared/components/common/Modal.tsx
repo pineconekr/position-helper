@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ReactNode, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useMotionConfig } from '@/shared/utils/motion'
+import Icon from '@/shared/components/ui/Icon'
 
 type Props = {
 	title: string
@@ -73,7 +74,7 @@ export default function Modal({ title, open, onClose, children, footer, width }:
 									hover:border-[var(--color-border-strong)]"
 								aria-label="닫기"
 							>
-								<span className="material-symbol text-xl leading-none">close</span>
+								<Icon name="close" size={20} />
 							</button>
 						</div>
 

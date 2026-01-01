@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useMemo, useState } from 'react'
 import { Button } from '@/shared/components/ui/Button'
+import Icon from '@/shared/components/ui/Icon'
 import { useAppStore } from '@/shared/state/store'
 import type { ActivityEntry, ActivityType } from '@/shared/types'
 import { useMotionConfig } from '@/shared/utils/motion'
@@ -48,7 +49,7 @@ function getEntryStyle(entry: ActivityEntry) {
 	if (entry.type === 'assignment') {
 		const before = entry.meta?.before as string | undefined
 		const after = entry.meta?.after as string | undefined
-		
+
 		// after가 비어있으면 해제
 		if (before && !after) {
 			icon = 'person_remove'
@@ -65,7 +66,7 @@ function getEntryStyle(entry: ActivityEntry) {
 			tone = 'info'
 		}
 	}
-	
+
 	// 불참 제거 확인
 	if (entry.type === 'absence') {
 		const action = entry.meta?.action as string | undefined
@@ -82,7 +83,7 @@ function getEntryStyle(entry: ActivityEntry) {
 			tone = 'warning'
 		}
 	}
-	
+
 	// 팀원 삭제/비활성화 확인
 	if (entry.type === 'member') {
 		const action = entry.meta?.action as string | undefined
@@ -121,17 +122,17 @@ function formatTime(timestamp: string): string {
 		const date = new Date(timestamp)
 		// 오늘 날짜인지 확인
 		const now = new Date()
-		const isToday = date.getDate() === now.getDate() && 
-						date.getMonth() === now.getMonth() && 
-						date.getFullYear() === now.getFullYear()
-		
+		const isToday = date.getDate() === now.getDate() &&
+			date.getMonth() === now.getMonth() &&
+			date.getFullYear() === now.getFullYear()
+
 		if (isToday) {
 			return date.toLocaleString('ko-KR', {
 				hour: '2-digit',
 				minute: '2-digit'
 			})
 		}
-		
+
 		return date.toLocaleString('ko-KR', {
 			month: 'numeric',
 			day: 'numeric',
@@ -191,10 +192,10 @@ export default function ActivityFeed({
 	return (
 		<>
 			<div className="panel activity-feed" style={{ padding: 12 }}>
-				<div 
-					className="activity-feed__header" 
-					style={{ 
-						marginBottom: collapsed ? 0 : 12, 
+				<div
+					className="activity-feed__header"
+					style={{
+						marginBottom: collapsed ? 0 : 12,
 						cursor: collapsible ? 'pointer' : 'default',
 						userSelect: 'none'
 					}}
@@ -209,16 +210,15 @@ export default function ActivityFeed({
 						)}
 					</div>
 					{collapsible && (
-						<span 
-							className="material-symbol muted" 
-							style={{ 
-								fontSize: 20, 
+						<Icon
+							name="expand_more"
+							size={20}
+							className="muted"
+							style={{
 								transition: 'transform 0.2s',
 								transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)'
 							}}
-						>
-							expand_more
-						</span>
+						/>
 					)}
 				</div>
 
@@ -246,7 +246,7 @@ export default function ActivityFeed({
 												data-tone={tone}
 												style={{ width: 28, height: 28, fontSize: 16, borderRadius: 8 }}
 											>
-												<span className="material-symbol">{icon}</span>
+												<Icon name={icon} size={16} />
 											</div>
 											<div className="activity-feed__content" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 												<StatusDot tone={tone} />
@@ -263,12 +263,12 @@ export default function ActivityFeed({
 									)
 								})}
 							</ul>
-							
+
 							{!collapsed && (
 								<div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-									<Button 
-										size="sm" 
-										variant="ghost" 
+									<Button
+										size="sm"
+										variant="ghost"
 										onClick={(e) => {
 											e.stopPropagation()
 											setShowModal(true)
@@ -295,7 +295,7 @@ export default function ActivityFeed({
 						return (
 							<li key={entry.id} className="activity-feed__item">
 								<div className={`activity-feed__icon-wrapper ${styleClass}`} data-tone={tone}>
-									<span className="material-symbol">{icon}</span>
+									<Icon name={icon} size={18} />
 								</div>
 								<div className="activity-feed__content">
 									<div className="activity-feed__content-header">
@@ -310,7 +310,7 @@ export default function ActivityFeed({
 											onClick={() => handleRemove(entry.id)}
 											title="삭제"
 										>
-											<span className="material-symbol">close</span>
+											<Icon name="close" size={16} />
 										</button>
 									</div>
 									<div className="activity-feed__item-title">{entry.title}</div>

@@ -3,6 +3,7 @@ import { useAppStore } from '@/shared/state/store'
 import { analyzeDraft } from '@/shared/utils/assignment'
 import ActivityFeed from '@/shared/components/common/ActivityFeed'
 import { Button } from '@/shared/components/ui/Button'
+import Icon from '@/shared/components/ui/Icon'
 
 type Props = {
 	onOpenCalendar: () => void
@@ -42,7 +43,7 @@ function StatusCard({
 			data-emphasis={emphasis}
 		>
 			<div className="stat-icon" data-variant={variant}>
-				<span className="material-symbol">{icon}</span>
+				<Icon name={icon} size={20} />
 			</div>
 			<div className="stat-content">
 				<span className="stat-label">{label}</span>

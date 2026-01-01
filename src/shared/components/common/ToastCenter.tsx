@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback } from 'react'
 import { useFeedbackStore } from '@/shared/state/feedback'
 import { useMotionConfig } from '@/shared/utils/motion'
+import Icon from '@/shared/components/ui/Icon'
 
 const kindIcon: Record<string, string> = {
 	success: 'check_circle',
@@ -54,7 +55,7 @@ export default function ToastCenter() {
 						transition={{ duration: duration.normal, ease: ease.out }}
 					>
 						<div className={`text-lg leading-none ${kindColors[toast.kind] || 'text-blue-500'}`} aria-hidden="true">
-							<span className="material-symbol">{kindIcon[toast.kind] ?? 'info'}</span>
+							<Icon name={kindIcon[toast.kind] ?? 'info'} size={20} />
 						</div>
 						<div className="flex-1 min-w-0">
 							<div className="font-medium text-[var(--color-text-primary)]">{toast.title}</div>
@@ -68,7 +69,7 @@ export default function ToastCenter() {
 							onClick={() => handleDismiss(toast.id)}
 							aria-label="알림 닫기"
 						>
-							<span className="material-symbol text-lg">close</span>
+							<Icon name="close" size={18} />
 						</button>
 					</motion.div>
 				))}

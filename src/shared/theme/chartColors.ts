@@ -2,7 +2,7 @@ import { ChartColorToken } from './tokens';
 
 /**
  * Gets the computed CSS variable value from the document root.
- * Useful for passing CSS variable colors to libraries that require hex strings (like Plotly).
+ * Useful for passing CSS variable colors to libraries that require hex strings (like ECharts).
  */
 export function getCssVar(token: string): string {
 	if (typeof document === 'undefined') return '';

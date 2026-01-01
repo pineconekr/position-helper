@@ -1,14 +1,15 @@
 import { useMemo } from 'react'
-import { ResponsivePlot } from '../ResponsivePlot'
+import { ResponsiveChart } from '../ResponsiveChart'
+import type { EChartsOption } from '../ResponsiveChart'
 import { ChartHelp } from './ChartHelp'
 import { Panel } from '@/shared/components/ui/Panel'
 import { getChartPalette } from '@/shared/theme/chartColors'
-import type { AppState, RoleKey, WeekData } from '@/shared/types'
+import type { RoleKey, WeekData, MembersEntry } from '@/shared/types'
 import { useTheme } from '@/shared/theme/ThemeProvider'
 
 interface WeeklyTimelineWidgetProps {
-	weeks: AppState['weeks']
-	members: AppState['members']
+	weeks: Record<string, WeekData>
+	members: MembersEntry[]
 }
 
 const roles: RoleKey[] = ['SW', '자막', '고정', '사이드', '스케치']
@@ -17,7 +18,6 @@ const HELP_TEXT = '세로축은 팀원, 가로축은 주차입니다. 배정된 
 export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetProps) {
 	const { theme } = useTheme()
 
-	// 테마 변경 시 팔레트 갱신 (상위에서 주입받지 않고 내부에서 처리하되, 의존성 관리)
 	const palette = useMemo(() => getChartPalette(), [theme])
 
 	const activeMemberNames = useMemo(() => {
@@ -55,11 +55,9 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 		const roleSets = mems.map(() => dates.map(() => new Set<RoleKey>()))
 		const highlightCells: { rowIdx: number; colIdx: number; streak: number }[] = []
 
-		// Helper to normalize name
 		const getActiveName = (val: unknown): string | null => {
 			if (typeof val !== 'string') return null
 			const t = val.trim()
-			// 간단히 처리: members 리스트에 있는 이름이면 유효
 			return activeMemberNames.includes(t) ? t : null
 		}
 
@@ -164,7 +162,7 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 					const label = orderedRoles.map((role) => {
 						const s = streaks[role]
 						return s > 1 ? `${role}×${s}` : role
-					}).join(',<br>')
+					}).join('\n')
 					text[rowIdx][colIdx] = label
 				}
 			})
@@ -181,9 +179,9 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 		return `${m}/${d}`
 	}
 
-	const chartData = useMemo(() => {
+	const chartOption = useMemo((): { hasData: boolean; height: number; option: EChartsOption } => {
 		const { dates, members: mems, z, text, highlightCells } = timelineSummary
-		if (dates.length === 0 || mems.length === 0) return null
+		if (dates.length === 0 || mems.length === 0) return { hasData: false, height: 400, option: {} }
 
 		const defaultSeries = ['#93b5f6', '#a5e4f3', '#f6d28f', '#c9b5f6', '#f7b3d4', '#cbd5e1']
 		const softSeries = palette.series?.map((c, idx) => c || defaultSeries[idx]) ?? defaultSeries
@@ -200,76 +198,90 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 			getSeriesColor(5),                  // 7: Mixed
 		]
 
-		const scale: [number, string][] = []
-		const n = 8
-		for (let i = 0; i < n; i++) {
-			const color = colors[i] ?? '#3b82f6'
-			scale.push([i / n, color])
-			scale.push([(i + 1) / n, color])
-		}
-
 		const xLabels = dates.map(d => formatWeekLabel(d))
-		const shapes = highlightCells.map(({ rowIdx, colIdx, streak }) => {
-			const color = streak >= 5 ? (palette.negative ?? '#ef4444') : (palette.warning ?? '#f59e0b')
-			const width = streak >= 5 ? 3 : 2
-			return {
-				type: 'rect' as const,
-				x0: colIdx - 0.45,
-				x1: colIdx + 0.45,
-				y0: rowIdx - 0.45,
-				y1: rowIdx + 0.45,
-				xref: 'x' as const,
-				yref: 'y' as const,
-				line: { color, width },
-				fillcolor: 'transparent'
-			}
+
+		// Build heatmap data: [x, y, value, text]
+		const heatmapData: [number, number, number, string][] = []
+		mems.forEach((_, rowIdx) => {
+			dates.forEach((_, colIdx) => {
+				heatmapData.push([colIdx, rowIdx, z[rowIdx][colIdx], text[rowIdx][colIdx]])
+			})
 		})
 
-		const baseLayout = {
-			paper_bgcolor: 'transparent',
-			plot_bgcolor: 'transparent',
-			font: { color: palette.text, family: 'inherit' },
-			margin: { l: 80, r: 20, t: 40, b: 80 },
-		}
-
 		return {
+			hasData: true,
 			height: Math.max(400, mems.length * 32 + 100),
-			data: [{
-				type: 'heatmap' as const,
-				x: dates.map((_, i) => i),
-				y: mems.map((_, i) => i),
-				z: z,
-				text: text,
-				texttemplate: '%{text}',
-				textfont: { size: 11 },
-				hoverinfo: 'text' as const,
-				hovertemplate: '<b>%{y}</b><br>%{x}<br>%{text}<extra></extra>',
-				colorscale: scale,
-				showscale: false,
-				zmin: 0,
-				zmax: 8
-			}],
-			layout: {
-				...baseLayout,
-				shapes,
-				xaxis: {
-					tickvals: dates.map((_, i) => i),
-					ticktext: xLabels,
-					tickangle: 0,
-					side: 'top' as const,
-					tickfont: { size: 12, color: palette.text }
+			option: {
+				animation: true,
+				animationDuration: 300,
+				tooltip: {
+					trigger: 'item',
+					formatter: (params: any) => {
+						const [colIdx, rowIdx, , label] = params.data
+						const memberName = mems[rowIdx]
+						const dateLabel = xLabels[colIdx]
+						return `<b>${memberName}</b><br/>${dateLabel}<br/>${label || '휴식'}`
+					}
 				},
-				yaxis: {
-					tickvals: mems.map((_, i) => i),
-					ticktext: mems,
-					autorange: 'reversed' as const,
-					tickfont: { size: 13, weight: 600, color: palette.text }
-				}
+				grid: { left: 80, right: 20, top: 50, bottom: 60 },
+				xAxis: {
+					type: 'category',
+					data: xLabels,
+					position: 'top',
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, fontSize: 13 },
+					splitLine: { show: false },
+				},
+				yAxis: {
+					type: 'category',
+					data: mems,
+					inverse: true,
+					axisLine: { lineStyle: { color: palette.axis } },
+					axisLabel: { color: palette.text, fontWeight: 600, fontSize: 14 },
+					splitLine: { show: false },
+				},
+				visualMap: {
+					show: false,
+					type: 'piecewise',
+					categories: [0, 1, 2, 3, 4, 5, 6, 7],
+					inRange: {
+						color: colors,
+					},
+					outOfRange: {
+						color: palette.surface2,
+					},
+				},
+				series: [{
+					type: 'heatmap',
+					data: heatmapData,
+					label: {
+						show: true,
+						formatter: (params: any) => params.data[3] || '',
+						fontSize: 12,
+						fontWeight: 500,
+						color: palette.text,
+						textBorderColor: palette.surface2,
+						textBorderWidth: 2,
+					},
+					emphasis: {
+						itemStyle: {
+							shadowBlur: 8,
+							shadowColor: 'rgba(0, 0, 0, 0.25)',
+							borderColor: '#000',
+							borderWidth: 2,
+						}
+					},
+					itemStyle: {
+						borderColor: palette.surface2,
+						borderWidth: 2,
+						borderRadius: 4,
+					},
+				}],
 			}
 		}
 	}, [timelineSummary, palette])
 
-	if (!chartData) {
+	if (!chartOption.hasData) {
 		return (
 			<div className="p-4 text-center text-muted text-sm bg-surface-1 rounded">
 				데이터가 없습니다.
@@ -289,17 +301,17 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 					{/* Legend */}
 					<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.8125rem' }}>
 						{[
-							{ label: '휴식', color: palette.surface2, border: palette.border },
-							{ label: '불참', color: palette.negative },
-							{ label: 'SW', color: palette.series?.[0] ?? '#93b5f6' },
-							{ label: '자막', color: palette.series?.[1] ?? '#a5e4f3' },
-							{ label: '고정', color: palette.series?.[2] ?? '#f6d28f' },
-							{ label: '사이드', color: palette.series?.[3] ?? '#c9b5f6' },
-							{ label: '스케치', color: palette.series?.[4] ?? '#f7b3d4' },
+							{ label: '휴식', color: 'var(--color-surface-2)', border: 'var(--color-border-subtle)' },
+							{ label: '불참', color: 'var(--data-negative)' },
+							{ label: 'SW', color: 'var(--data-series-1)' },
+							{ label: '자막', color: 'var(--data-series-2)' },
+							{ label: '고정', color: 'var(--data-series-3)' },
+							{ label: '사이드', color: 'var(--data-series-4)' },
+							{ label: '스케치', color: 'var(--data-series-5)' },
 						].map(item => (
 							<div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
 								<span style={{
-									width: 10, height: 10, borderRadius: 2,
+									width: '10px', height: '10px', borderRadius: '2px',
 									backgroundColor: item.color,
 									border: item.border ? `1px solid ${item.border}` : 'none'
 								}} />
@@ -309,11 +321,9 @@ export function WeeklyTimelineWidget({ weeks, members }: WeeklyTimelineWidgetPro
 					</div>
 				</div>
 			</div>
-			<ResponsivePlot
-				height={chartData.height}
-				data={chartData.data}
-				layout={chartData.layout as any}
-				config={{ displayModeBar: false }}
+			<ResponsiveChart
+				height={chartOption.height}
+				option={chartOption.option}
 			/>
 		</Panel>
 	)

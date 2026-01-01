@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Enable React Strict Mode
     reactStrictMode: true,
-
-    // Transpile specific packages that need it
-    transpilePackages: ['plotly.js-dist-min', 'react-plotly.js'],
+    allowedDevOrigins: ['10.5.0.2'],
 }
 
 module.exports = nextConfig

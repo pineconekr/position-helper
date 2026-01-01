@@ -1,4 +1,5 @@
 import { useAppStore } from '@/shared/state/store'
+import Icon from '@/shared/components/ui/Icon'
 
 export default function ThemeToggle() {
 	const theme = useAppStore((s) => s.theme)
@@ -36,9 +37,7 @@ export default function ThemeToggle() {
 			aria-label={`현재 ${labelMap[currentTheme]}. ${nextLabel}`}
 			title={`${labelMap[currentTheme]} · ${nextLabel}`}
 		>
-			<span className="material-symbol text-xl" aria-hidden="true">
-				{iconMap[currentTheme]}
-			</span>
+			<Icon name={iconMap[currentTheme]} size={20} aria-hidden />
 		</button>
 	)
 }

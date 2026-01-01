@@ -1,6 +1,7 @@
 import { Panel } from '@/shared/components/ui/Panel'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
+import Icon from '@/shared/components/ui/Icon'
 import { useAppStore } from '@/shared/state/store'
 import { useTheme } from '@/shared/theme/ThemeProvider'
 import type { MotionPreference } from '@/shared/types'
@@ -74,10 +75,10 @@ export default function SettingsPage() {
 				<Panel style={{ padding: 24 }}>
 					<div className="col" style={{ gap: 20 }}>
 						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-							<span className="material-symbol" style={{ color: 'var(--color-accent)', fontSize: 24 }}>palette</span>
+							<Icon name="palette" size={24} style={{ color: 'var(--color-accent)' }} />
 							<h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>디자인 테마</h2>
 						</div>
-						
+
 						<div className="settings-choice-grid" role="radiogroup" aria-label="테마 모드">
 							{themeOptions.map((option) => {
 								const isActive = theme === option.value
@@ -95,7 +96,7 @@ export default function SettingsPage() {
 											className="settings-choice-card__input"
 										/>
 										<div className="settings-choice-card__icon">
-											<span className="material-symbol">{option.icon}</span>
+											<Icon name={option.icon} size={20} />
 										</div>
 										<div className="settings-choice-card__text">
 											<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -115,10 +116,10 @@ export default function SettingsPage() {
 				<Panel style={{ padding: 24 }}>
 					<div className="col" style={{ gap: 20 }}>
 						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-							<span className="material-symbol" style={{ color: 'var(--color-accent)', fontSize: 24 }}>motion_mode</span>
+							<Icon name="motion_mode" size={24} style={{ color: 'var(--color-accent)' }} />
 							<h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>화면 효과</h2>
 						</div>
-						
+
 						<div className="settings-choice-grid" role="radiogroup" aria-label="애니메이션 선호도">
 							{motionOptions.map((option) => {
 								const isActive = motionPreference === option.value
@@ -136,7 +137,7 @@ export default function SettingsPage() {
 											className="settings-choice-card__input"
 										/>
 										<div className="settings-choice-card__icon">
-											<span className="material-symbol">{option.icon}</span>
+											<Icon name={option.icon} size={20} />
 										</div>
 										<div className="settings-choice-card__text">
 											<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -156,19 +157,19 @@ export default function SettingsPage() {
 				<Panel style={{ padding: 24, borderColor: 'var(--color-critical-soft)' }}>
 					<div className="col" style={{ gap: 16 }}>
 						<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-							<span className="material-symbol" style={{ color: 'var(--color-critical)', fontSize: 24 }}>database</span>
+							<Icon name="database" size={24} style={{ color: 'var(--color-critical)' }} />
 							<h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>데이터 관리</h2>
 						</div>
-						
-						<div style={{ 
-							display: 'flex', 
-							alignItems: 'center', 
-							justifyContent: 'space-between', 
-							flexWrap: 'wrap', 
+
+						<div style={{
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'space-between',
+							flexWrap: 'wrap',
 							gap: 16,
-							padding: 16, 
-							background: 'var(--color-surface-2)', 
-							borderRadius: 'var(--radius-md)' 
+							padding: 16,
+							background: 'var(--color-surface-2)',
+							borderRadius: 'var(--radius-md)'
 						}}>
 							<div className="col" style={{ gap: 4 }}>
 								<strong style={{ fontSize: '0.9375rem', color: 'var(--color-text-primary)' }}>데이터 초기화</strong>

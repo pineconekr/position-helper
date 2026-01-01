@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import ThemeToggle from '@/shared/components/common/ThemeToggle'
 import ToastCenter from '@/shared/components/common/ToastCenter'
 import { ThemeProvider } from '@/shared/theme/ThemeProvider'
+import Icon from '@/shared/components/ui/Icon'
 import './globals.css'
 
 export default function RootLayout({
@@ -14,12 +15,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="ko" suppressHydrationWarning>
-            <head>
-                <link
-                    rel="stylesheet"
-                    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
-                />
-            </head>
+            <head />
             <body>
                 <ThemeProvider>
                     <AppShell>{children}</AppShell>
@@ -51,7 +47,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <header className="flex items-center gap-4 px-5 min-h-14 flex-wrap bg-[var(--color-surface-2)] border-b border-[var(--color-border-subtle)] backdrop-blur-xl">
                 {/* Brand */}
                 <div className="flex items-center gap-2 font-bold tracking-tight text-lg shrink-0">
-                    <span className="material-symbol text-xl" aria-hidden="true">photo_camera</span>
+                    <Icon name="photo_camera" size={20} aria-hidden />
                     <span>Position Helper</span>
                 </div>
 

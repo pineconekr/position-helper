@@ -9,6 +9,7 @@ import { Badge } from '@/shared/components/ui/Badge'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Panel } from '@/shared/components/ui/Panel'
+import Icon from '@/shared/components/ui/Icon'
 import { useAppStore } from '@/shared/state/store'
 import { useToast } from '@/shared/hooks/useToast'
 import type { RoleKey } from '@/shared/types'
@@ -63,6 +64,7 @@ export default function AssignmentBoard() {
 				if (current === selectedMember) {
 					setSelectedMember(null)
 					toast({
+						kind: 'info',
 						title: '알림',
 						description: '이미 해당 슬롯에 배정되어 있습니다.',
 					})
@@ -73,6 +75,7 @@ export default function AssignmentBoard() {
 				if (current === selectedMember) {
 					setSelectedMember(null)
 					toast({
+						kind: 'info',
 						title: '알림',
 						description: '이미 해당 슬롯에 배정되어 있습니다.',
 					})
@@ -81,9 +84,9 @@ export default function AssignmentBoard() {
 			}
 			// 다른 위치에 있다면 무시
 			toast({
+				kind: 'error',
 				title: '배정 불가',
 				description: `${part === 'part1' ? '1부' : '2부'}에 이미 배정된 인원입니다.`,
-				variant: 'destructive',
 			})
 			return
 		}
@@ -104,16 +107,16 @@ export default function AssignmentBoard() {
 		if (activeId.startsWith('member:')) {
 			const rawName = decodeMemberId(activeId)
 			if (rawName === null) return
-			
+
 			// 공란 pill 드래그 시 실제 값은 BLANK_ROLE_VALUE로 처리하여 '배정'으로 인식되도록 함.
 			// 화면상 '-'로 보이지만 내부 값은 식별자를 써야 '미배정 경고'를 우회 가능.
 			// 저장 시에는 normalizeDraftForPersist에서 빈 문자열로 변환됨.
 			const value = rawName === BLANK_ROLE_VALUE ? BLANK_ROLE_VALUE : rawName
 			if (value !== BLANK_ROLE_VALUE && value && nameExistsInPart(targetPart, value)) {
 				toast({
+					kind: 'error',
 					title: '배정 불가',
 					description: `${targetPart === 'part1' ? '1부' : '2부'}에 이미 배정된 인원입니다.`,
-					variant: 'destructive',
 				})
 				return
 			}
@@ -141,11 +144,11 @@ export default function AssignmentBoard() {
 	return (
 		<DndContext onDragEnd={handleDragEnd}>
 			<div className="assignment-board-layout" style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'start' }}>
-				
+
 				{/* 메인 컬럼 (배정판) */}
 				<div className="layout-main" style={{ flex: '1 1 500px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 					<AssignmentSummary onOpenCalendar={() => setCalendarOpen(true)} />
-					
+
 					<Panel style={{ padding: 20 }}>
 						<div className="toolbar" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
 							<div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -192,10 +195,10 @@ export default function AssignmentBoard() {
 				<div className="layout-side" style={{ flex: '1 1 320px', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
 					<WarningWidget />
 					<AbsenceWidget />
-					
+
 					<div className="muted assignment-board__hint" style={{ fontSize: '0.85rem', lineHeight: 1.5, padding: '0 4px' }}>
 						<div style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center' }}>
-							<span className="material-symbol" style={{ fontSize: 18 }} aria-hidden="true">info</span>
+							<Icon name="info" size={18} aria-hidden />
 							<span style={{ fontWeight: 600 }}>도움말</span>
 						</div>
 						<ul style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -209,7 +212,7 @@ export default function AssignmentBoard() {
 			<WeekCalendarModal
 				open={calendarOpen}
 				onClose={() => setCalendarOpen(false)}
-				onDateSelect={() => {}}
+				onDateSelect={() => { }}
 			/>
 		</DndContext>
 	)
