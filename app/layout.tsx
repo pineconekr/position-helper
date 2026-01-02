@@ -2,10 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
 import ThemeToggle from '@/shared/components/common/ThemeToggle'
 import ToastCenter from '@/shared/components/common/ToastCenter'
 import { ThemeProvider } from '@/shared/theme/ThemeProvider'
 import Icon from '@/shared/components/ui/Icon'
+import { useAppStore } from '@/shared/state/store'
+import { useShouldReduceMotion } from '@/shared/utils/motion'
 import './globals.css'
 
 export default function RootLayout({
@@ -14,16 +17,31 @@ export default function RootLayout({
     children: React.ReactNode
 }) {
     return (
-        <html lang="ko" suppressHydrationWarning>
+        <html lang="ko" suppressHydrationWarning data-scroll-behavior="smooth">
             <head />
             <body>
                 <ThemeProvider>
+                    <MotionSettingsSync />
                     <AppShell>{children}</AppShell>
                     <ToastCenter />
                 </ThemeProvider>
             </body>
         </html>
     )
+}
+
+/**
+ * 앱의 모션 설정을 HTML 요소에 동기화하는 컴포넌트
+ * CSS에서 data-reduce-motion 속성을 읽어 애니메이션을 제어
+ */
+function MotionSettingsSync() {
+    const shouldReduce = useShouldReduceMotion()
+
+    useEffect(() => {
+        document.documentElement.setAttribute('data-reduce-motion', shouldReduce ? 'true' : 'false')
+    }, [shouldReduce])
+
+    return null
 }
 
 function AppShell({ children }: { children: React.ReactNode }) {

@@ -35,6 +35,7 @@ const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
     event_busy: HeroIconsOutline.CalendarDaysIcon,
     event_available: HeroIconsSolid.CalendarDaysIcon,
     edit_calendar: HeroIconsOutline.CalendarIcon,
+    calendar_month: HeroIconsOutline.CalendarDaysIcon,
     sunny: HeroIconsOutline.SunIcon,
     nightlight: HeroIconsOutline.MoonIcon,
     history: HeroIconsOutline.ClockIcon,
@@ -44,6 +45,7 @@ const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
     person_remove: HeroIconsOutline.UserMinusIcon,
     person_off: HeroIconsOutline.UserMinusIcon,
     assignment_ind: HeroIconsOutline.ClipboardDocumentCheckIcon,
+    group: HeroIconsOutline.UserGroupIcon,
     visibility: HeroIconsOutline.EyeIcon,
     visibility_off: HeroIconsOutline.EyeSlashIcon,
 
@@ -67,6 +69,10 @@ const iconMap: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
     balance: HeroIconsOutline.ScaleIcon,
     school: HeroIconsOutline.AcademicCapIcon,
     spa: HeroIconsOutline.HeartIcon,
+    avg_pace: HeroIconsOutline.ChartBarIcon,
+    insert_chart: HeroIconsOutline.ChartBarSquareIcon,
+    chart_bar: HeroIconsOutline.ChartBarIcon,
+    chart_pie: HeroIconsOutline.ChartPieIcon,
 
     // File Actions
     upload: HeroIconsOutline.ArrowUpTrayIcon,

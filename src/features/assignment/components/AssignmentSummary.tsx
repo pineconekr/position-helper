@@ -2,12 +2,9 @@ import { useMemo } from 'react'
 import { useAppStore } from '@/shared/state/store'
 import { analyzeDraft } from '@/shared/utils/assignment'
 import ActivityFeed from '@/shared/components/common/ActivityFeed'
-import { Button } from '@/shared/components/ui/Button'
 import Icon from '@/shared/components/ui/Icon'
 
-type Props = {
-	onOpenCalendar: () => void
-}
+type Props = {}
 
 type StatusCardProps = {
 	icon: string
@@ -80,7 +77,7 @@ function ProgressBar({
 	)
 }
 
-export default function AssignmentSummary({ onOpenCalendar }: Props) {
+export default function AssignmentSummary({}: Props) {
 	const currentWeekDate = useAppStore((s) => s.currentWeekDate)
 	const draft = useAppStore((s) => s.currentDraft)
 	const warnings = useAppStore((s) => s.warnings)
@@ -105,9 +102,6 @@ export default function AssignmentSummary({ onOpenCalendar }: Props) {
 					<h2 className="assignment-summary__title">이번 주 배정 현황</h2>
 					<span className="assignment-summary__date">{dateLabel}</span>
 				</div>
-				<Button size="sm" onClick={onOpenCalendar}>
-					주차 선택
-				</Button>
 			</div>
 
 			<div className="assignment-summary__stats-grid">

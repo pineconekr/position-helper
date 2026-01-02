@@ -1,10 +1,10 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m, LazyMotion, domAnimation } from 'framer-motion'
 import { useCallback, useMemo, useState } from 'react'
 import { Button } from '@/shared/components/ui/Button'
 import Icon from '@/shared/components/ui/Icon'
 import { useAppStore } from '@/shared/state/store'
 import type { ActivityEntry, ActivityType } from '@/shared/types'
-import { useMotionConfig } from '@/shared/utils/motion'
+import { useShouldReduceMotion } from '@/shared/utils/motion'
 import Modal from './Modal'
 
 type StatusTone = 'success' | 'warning' | 'info' | 'neutral'
@@ -154,7 +154,7 @@ export default function ActivityFeed({
 }: ActivityFeedProps) {
 	const activityLog = useAppStore((s) => s.activityLog)
 	const removeActivity = useAppStore((s) => s.removeActivity)
-	const { duration, ease, shouldReduce } = useMotionConfig()
+	const shouldReduce = useShouldReduceMotion()
 	const [collapsed, setCollapsed] = useState(collapsible && defaultCollapsed)
 	const [showModal, setShowModal] = useState(false)
 
@@ -222,22 +222,16 @@ export default function ActivityFeed({
 					)}
 				</div>
 
-				<AnimatePresence initial={false} mode="wait">
-					{(!collapsed || displayEntries.length > 0) && (
-						<motion.div
-							initial={shouldReduce ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
-							animate={{ height: 'auto', opacity: 1 }}
-							exit={shouldReduce ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
-							transition={{ duration: duration.normal, ease: ease.out }}
-							style={{ overflow: 'hidden' }}
-						>
+				{/* 애니메이션 비활성화 시 정적 렌더링 */}
+				{shouldReduce ? (
+					!collapsed && (
+						<div style={{ overflow: 'hidden' }}>
 							<ul className="activity-feed__list" style={{ gap: 8 }}>
 								{displayEntries.map((entry) => {
 									const { icon, styleClass, label, tone } = getEntryStyle(entry)
 									return (
-										<motion.li
+										<li
 											key={entry.id}
-											layout
 											className="activity-feed__item"
 											style={{ padding: '8px 12px', alignItems: 'center', fontSize: 13 }}
 										>
@@ -259,29 +253,87 @@ export default function ActivityFeed({
 													{formatTime(entry.timestamp)}
 												</time>
 											</div>
-										</motion.li>
+										</li>
 									)
 								})}
 							</ul>
-
+							<div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+								<Button
+									size="sm"
+									variant="ghost"
+									onClick={(e) => {
+										e.stopPropagation()
+										setShowModal(true)
+									}}
+									style={{ fontSize: 13 }}
+								>
+									전체 기록 보기
+								</Button>
+							</div>
+						</div>
+					)
+				) : (
+					<LazyMotion features={domAnimation} strict>
+						<AnimatePresence initial={false} mode="wait">
 							{!collapsed && (
-								<div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-									<Button
-										size="sm"
-										variant="ghost"
-										onClick={(e) => {
-											e.stopPropagation()
-											setShowModal(true)
-										}}
-										style={{ fontSize: 13 }}
-									>
-										전체 기록 보기
-									</Button>
-								</div>
+								<m.div
+									key="activity-content"
+									initial={{ height: 0, opacity: 0 }}
+									animate={{ height: 'auto', opacity: 1 }}
+									exit={{ height: 0, opacity: 0 }}
+									transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+									style={{ overflow: 'hidden' }}
+								>
+									<ul className="activity-feed__list" style={{ gap: 8 }}>
+										{displayEntries.map((entry) => {
+											const { icon, styleClass, label, tone } = getEntryStyle(entry)
+											return (
+												<m.li
+													key={entry.id}
+													layout
+													className="activity-feed__item"
+													style={{ padding: '8px 12px', alignItems: 'center', fontSize: 13 }}
+												>
+													<div
+														className={`activity-feed__icon-wrapper ${styleClass}`}
+														data-tone={tone}
+														style={{ width: 28, height: 28, fontSize: 16, borderRadius: 8 }}
+													>
+														<Icon name={icon} size={16} />
+													</div>
+													<div className="activity-feed__content" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+														<StatusDot tone={tone} />
+														<span style={{ fontWeight: 600 }}>{label}</span>
+														<span className="muted" style={{ fontSize: 12 }}>|</span>
+														<span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+															{entry.description || entry.title}
+														</span>
+														<time className="muted" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+															{formatTime(entry.timestamp)}
+														</time>
+													</div>
+												</m.li>
+											)
+										})}
+									</ul>
+									<div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+										<Button
+											size="sm"
+											variant="ghost"
+											onClick={(e) => {
+												e.stopPropagation()
+												setShowModal(true)
+											}}
+											style={{ fontSize: 13 }}
+										>
+											전체 기록 보기
+										</Button>
+									</div>
+								</m.div>
 							)}
-						</motion.div>
-					)}
-				</AnimatePresence>
+						</AnimatePresence>
+					</LazyMotion>
+				)}
 			</div>
 
 			<Modal

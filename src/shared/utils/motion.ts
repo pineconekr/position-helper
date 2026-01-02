@@ -1,5 +1,5 @@
-import { useReducedMotion } from 'framer-motion'
 import { useAppStore } from '@/shared/state/store'
+import { useEffect, useState } from 'react'
 
 // Source of truth matching src/theme/theme.css
 const rawDurations = {
@@ -49,12 +49,35 @@ export function resolveDurationMs(duration: number, prefersReducedMotion: boolea
 	return prefersReducedMotion ? 0 : duration
 }
 
+/**
+ * 시스템의 prefers-reduced-motion 설정을 직접 감지하는 훅
+ * (useReducedMotion은 MotionConfig와 독립적으로 동작하므로 직접 구현)
+ */
+function useSystemReducedMotion(): boolean {
+	const [prefersReduced, setPrefersReduced] = useState(false)
+
+	useEffect(() => {
+		if (typeof window === 'undefined') return
+
+		const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+		setPrefersReduced(mediaQuery.matches)
+
+		const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches)
+		mediaQuery.addEventListener('change', handler)
+		return () => mediaQuery.removeEventListener('change', handler)
+	}, [])
+
+	return prefersReduced
+}
+
 export function useShouldReduceMotion(): boolean {
 	const motionPreference = useAppStore((s) => s.motionPreference)
-	const systemPreference = useReducedMotion() ?? false
+	const systemPreference = useSystemReducedMotion()
 
+	// 앱 설정 우선
 	if (motionPreference === 'reduce') return true
 	if (motionPreference === 'allow') return false
+	// 'system'인 경우에만 시스템 설정 따름
 	return systemPreference
 }
 

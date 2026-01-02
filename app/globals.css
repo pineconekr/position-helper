@@ -169,14 +169,13 @@ a {
 }
 
 /* ===== Reduced Motion ===== */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+/* 앱 설정이 'system'이고 시스템이 reduce를 요청할 때만 적용 */
+html[data-reduce-motion="true"] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
 
-    html {
-        scroll-behavior: auto;
-    }
+html[data-reduce-motion="true"] {
+    scroll-behavior: auto;
 }
