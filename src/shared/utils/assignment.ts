@@ -1,5 +1,7 @@
 import type { PartAssignment } from '../types'
 
+import { RoleKeys } from '../types'
+
 export const BLANK_ROLE_VALUE = '__blank__'
 
 export type SlotDescriptor = {
@@ -8,9 +10,25 @@ export type SlotDescriptor = {
 	index?: 0 | 1
 }
 
-const SLOT_ROLES: (keyof PartAssignment)[] = ['SW', '자막', '고정', '사이드', '스케치']
+const SLOT_ROLES = RoleKeys
 
 const partLabel = (part: 'part1' | 'part2') => (part === 'part1' ? '1부' : '2부')
+
+/**
+ * Remove cohort number from name (e.g. "12기 홍길동" -> "홍길동")
+ */
+export function stripCohort(name: string): string {
+	if (!name) return name
+	return name.replace(/^\d+\s+/, '')
+}
+
+/**
+ * Extract cohort number from name (e.g. "12기 홍길동" -> 12)
+ */
+export function extractCohort(name: string): number | null {
+	const match = name.match(/^(\d+)\s+/)
+	return match ? parseInt(match[1], 10) : null
+}
 
 export function listSlots(): SlotDescriptor[] {
 	const slots: SlotDescriptor[] = []

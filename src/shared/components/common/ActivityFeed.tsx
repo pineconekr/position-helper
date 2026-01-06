@@ -6,6 +6,8 @@ import { useAppStore } from '@/shared/state/store'
 import type { ActivityEntry, ActivityType } from '@/shared/types'
 import { useShouldReduceMotion } from '@/shared/utils/motion'
 import Modal from './Modal'
+import { AnimatedCollapse } from './AnimatedCollapse'
+import clsx from 'clsx'
 
 type StatusTone = 'success' | 'warning' | 'info' | 'neutral'
 
@@ -16,11 +18,20 @@ type ActivityFeedProps = {
 	emptyMessage?: string
 	collapsible?: boolean
 	defaultCollapsed?: boolean
+	showUndo?: boolean
 }
 
-function StatusDot({ tone }: { tone: StatusTone }) {
-	return <span className="status-dot" data-tone={tone} aria-hidden="true" />
+type EntryStyle = {
+	icon: string
+	bgClass: string
+	textClass: string
+	label: string
+	tone: StatusTone
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 const typeLabels: Record<ActivityType, string> = {
 	assignment: '배정',
@@ -38,104 +49,64 @@ const typeIcons: Record<ActivityType, string> = {
 	system: 'settings'
 }
 
-// 스타일과 아이콘을 동적으로 결정하는 헬퍼 함수
-function getEntryStyle(entry: ActivityEntry) {
+function getEntryStyle(entry: ActivityEntry): EntryStyle {
 	let icon = typeIcons[entry.type]
-	let styleClass = `activity-feed__icon-wrapper--${entry.type}`
+	let bgClass = ''
+	let textClass = ''
 	let label = typeLabels[entry.type]
 	let tone: StatusTone = 'info'
 
-	// 배정 해제/변경 확인
+	// 기본 스타일 설정
+	switch (entry.type) {
+		case 'assignment':
+			bgClass = 'bg-[var(--color-accent)]/10'
+			textClass = 'text-[var(--color-accent)]'
+			break
+		case 'absence':
+			bgClass = 'bg-[var(--color-danger)]/10'
+			textClass = 'text-[var(--color-danger)]'
+			break
+		case 'finalize':
+			bgClass = 'bg-[var(--color-success)]/10'
+			textClass = 'text-[var(--color-success)]'
+			tone = 'success'
+			break
+		case 'member':
+			bgClass = 'bg-[var(--color-surface-elevated)]'
+			textClass = 'text-[var(--color-label-primary)]'
+			break
+		case 'system':
+			bgClass = 'bg-[var(--color-surface-elevated)]'
+			textClass = 'text-[var(--color-label-secondary)]'
+			tone = 'neutral'
+			break
+	}
+
+	// Assignment 세부 상태 확인 (변경/해제)
 	if (entry.type === 'assignment') {
 		const before = entry.meta?.before as string | undefined
 		const after = entry.meta?.after as string | undefined
 
-		// after가 비어있으면 해제
 		if (before && !after) {
 			icon = 'person_remove'
-			styleClass = 'activity-feed__icon-wrapper--assignment-remove'
+			bgClass = 'bg-[var(--color-surface-elevated)]'
+			textClass = 'text-[var(--color-label-secondary)]'
 			label = '해제'
 			tone = 'warning'
-		}
-		// before가 있고 after도 있으면 변경
-		else if (before && after && before !== after) {
+		} else if (before && after && before !== after) {
 			icon = 'sync_alt'
 			label = '변경'
 			tone = 'info'
-		} else {
-			tone = 'info'
 		}
 	}
 
-	// 불참 제거 확인
-	if (entry.type === 'absence') {
-		const action = entry.meta?.action as string | undefined
-		if (action === 'remove') {
-			icon = 'event_available'
-			styleClass = 'activity-feed__icon-wrapper--absence-remove'
-			label = '제거'
-			tone = 'info'
-		} else if (action === 'update') {
-			icon = 'edit_calendar'
-			label = '변경'
-			tone = 'info'
-		} else {
-			tone = 'warning'
-		}
-	}
-
-	// 팀원 삭제/비활성화 확인
-	if (entry.type === 'member') {
-		const action = entry.meta?.action as string | undefined
-		if (action === 'remove') {
-			icon = 'person_off'
-			styleClass = 'activity-feed__icon-wrapper--member-remove'
-			label = '삭제'
-			tone = 'warning'
-		} else if (action === 'toggle-active') {
-			const active = entry.meta?.active as boolean | undefined
-			if (active === false) {
-				icon = 'visibility_off'
-				label = '비활성'
-				tone = 'info'
-			} else {
-				icon = 'visibility'
-				label = '활성'
-				tone = 'info'
-			}
-		}
-	}
-
-	if (entry.type === 'finalize') {
-		tone = 'success'
-	}
-
-	if (entry.type === 'system') {
-		tone = 'neutral'
-	}
-
-	return { icon, styleClass, label, tone }
+	return { icon, bgClass, textClass, label, tone }
 }
 
 function formatTime(timestamp: string): string {
 	try {
 		const date = new Date(timestamp)
-		// 오늘 날짜인지 확인
-		const now = new Date()
-		const isToday = date.getDate() === now.getDate() &&
-			date.getMonth() === now.getMonth() &&
-			date.getFullYear() === now.getFullYear()
-
-		if (isToday) {
-			return date.toLocaleString('ko-KR', {
-				hour: '2-digit',
-				minute: '2-digit'
-			})
-		}
-
 		return date.toLocaleString('ko-KR', {
-			month: 'numeric',
-			day: 'numeric',
 			hour: '2-digit',
 			minute: '2-digit'
 		})
@@ -144,26 +115,121 @@ function formatTime(timestamp: string): string {
 	}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Components
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StatusDot({ tone }: { tone: StatusTone }) {
+	const toneClasses = {
+		success: 'bg-[var(--color-success)]',
+		warning: 'bg-[var(--color-warning)]',
+		info: 'bg-[var(--color-accent)]',
+		neutral: 'bg-[var(--color-label-tertiary)]'
+	}
+	return <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 mr-2 ${toneClasses[tone]}`} />
+}
+
+function ActivityItemInline({ entry }: { entry: ActivityEntry }) {
+	const { icon, bgClass, textClass, label, tone } = getEntryStyle(entry)
+
+	return (
+		<li className="flex items-center py-2 px-3 rounded-[var(--radius-sm)] bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-sm">
+			<div className={clsx('w-6 h-6 rounded-[4px] flex items-center justify-center shrink-0', bgClass, textClass)}>
+				<Icon name={icon} size={14} />
+			</div>
+			<div className="flex-1 min-w-0 ml-3 flex items-center gap-2">
+				<div className="flex items-center shrink-0">
+					<StatusDot tone={tone} />
+					<span className="font-semibold text-[var(--color-label-primary)]">{label}</span>
+				</div>
+				<span className="text-[var(--color-label-tertiary)]">|</span>
+				<span className="flex-1 truncate text-[var(--color-label-secondary)]">
+					{entry.description || entry.title}
+				</span>
+				<time className="text-xs text-[var(--color-label-tertiary)] whitespace-nowrap ml-auto">
+					{formatTime(entry.timestamp)}
+				</time>
+			</div>
+		</li>
+	)
+}
+
+function ActivityItemFull({ entry, onRemove }: { entry: ActivityEntry; onRemove?: () => void }) {
+	const { icon, bgClass, textClass, label, tone } = getEntryStyle(entry)
+
+	return (
+		<li className="flex gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--color-canvas)] border border-[var(--color-border-subtle)] group">
+			<div className={clsx('w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center shrink-0', bgClass, textClass)}>
+				<Icon name={icon} size={16} />
+			</div>
+			<div className="flex-1 min-w-0 flex flex-col gap-0.5">
+				<div className="flex items-center justify-between mb-0.5">
+					<div className="flex items-center gap-2">
+						<StatusDot tone={tone} />
+						<span className="text-xs font-semibold text-[var(--color-label-secondary)] uppercase">{label}</span>
+						<time className="text-xs text-[var(--color-label-tertiary)]">{formatTime(entry.timestamp)}</time>
+					</div>
+					{onRemove && (
+						<button
+							type="button"
+							className="opacity-0 group-hover:opacity-100 p-1 text-[var(--color-label-tertiary)] hover:text-[var(--color-danger)] transition-opacity"
+							onClick={onRemove}
+						>
+							<Icon name="close" size={14} />
+						</button>
+					)}
+				</div>
+				<div className="text-base font-medium text-[var(--color-label-primary)]">{entry.title}</div>
+				{entry.description && (
+					<div className="text-sm text-[var(--color-label-secondary)]">{entry.description}</div>
+				)}
+			</div>
+		</li>
+	)
+}
+
+function ActivityList({ entries, onShowModal, withAnimation = false }: { entries: ActivityEntry[]; onShowModal: () => void; withAnimation?: boolean }) {
+	return (
+		<>
+			<ul className="flex flex-col gap-1.5 list-none">
+				{entries.map((entry) => (
+					<ActivityItemInline key={entry.id} entry={entry} />
+				))}
+			</ul>
+			<div className="flex justify-center mt-2">
+				<Button
+					size="sm"
+					variant="ghost"
+					onClick={(e) => {
+						e.stopPropagation()
+						onShowModal()
+					}}
+					className="text-xs h-6"
+				>
+					전체 기록 보기
+				</Button>
+			</div>
+		</>
+	)
+}
+
 export default function ActivityFeed({
 	title = '최근 활동',
 	filter,
 	maxItems = 16,
 	emptyMessage = '최근 활동이 없습니다.',
 	collapsible = true,
-	defaultCollapsed = true
+	defaultCollapsed = true,
+	showUndo = false
 }: ActivityFeedProps) {
 	const activityLog = useAppStore((s) => s.activityLog)
 	const removeActivity = useAppStore((s) => s.removeActivity)
-	const shouldReduce = useShouldReduceMotion()
+	const undoLastAssignment = useAppStore((s) => s.undoLastAssignment)
+	const canUndo = useAppStore((s) => s.canUndo)
 	const [collapsed, setCollapsed] = useState(collapsible && defaultCollapsed)
 	const [showModal, setShowModal] = useState(false)
 
-	const handleRemove = useCallback(
-		(id: string) => {
-			removeActivity(id)
-		},
-		[removeActivity]
-	)
+	const handleRemove = useCallback((id: string) => removeActivity(id), [removeActivity])
 
 	const filteredEntries = useMemo(() => {
 		return filter && filter.length > 0
@@ -180,202 +246,79 @@ export default function ActivityFeed({
 
 	if (filteredEntries.length === 0) {
 		return (
-			<div className="panel activity-feed" style={{ padding: 12 }}>
-				<div className="activity-feed__header" style={{ marginBottom: 0 }}>
-					<div className="activity-feed__title" style={{ fontSize: 15 }}>{title}</div>
-					<span className="muted" style={{ fontSize: 13 }}>{emptyMessage}</span>
-				</div>
+			<div className="p-3 rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] flex justify-between items-center">
+				<div className="text-[13px] font-semibold text-[var(--color-label-primary)]">{title}</div>
+				<span className="text-sm text-[var(--color-label-tertiary)]">{emptyMessage}</span>
 			</div>
 		)
 	}
 
 	return (
 		<>
-			<div className="panel activity-feed" style={{ padding: 12 }}>
+			<div className="p-3 rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-sm">
 				<div
-					className="activity-feed__header"
-					style={{
-						marginBottom: collapsed ? 0 : 12,
-						cursor: collapsible ? 'pointer' : 'default',
-						userSelect: 'none'
-					}}
+					className={clsx(
+						"flex items-center justify-between select-none",
+						collapsed ? 'mb-0' : 'mb-3',
+						collapsible ? 'cursor-pointer' : 'cursor-default'
+					)}
 					onClick={() => collapsible && setCollapsed(!collapsed)}
 				>
-					<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-						<div className="activity-feed__title" style={{ fontSize: 15 }}>{title}</div>
+					<div className="flex items-center gap-2">
+						<div className="text-sm font-semibold text-[var(--color-label-primary)]">{title}</div>
 						{collapsed && newCount > 0 && (
-							<span className="badge" style={{ fontSize: 11, padding: '2px 6px', background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}>
-								{newCount}개의 추가 활동
+							<span className="text-xs px-1.5 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-medium">
+								+{newCount}
 							</span>
 						)}
 					</div>
-					{collapsible && (
-						<Icon
-							name="expand_more"
-							size={20}
-							className="muted"
-							style={{
-								transition: 'transform 0.2s',
-								transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)'
-							}}
-						/>
-					)}
+					<div className="flex items-center gap-2">
+						{showUndo && canUndo && (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation()
+									undoLastAssignment()
+								}}
+								className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded-[4px]
+									bg-[var(--color-warning)]/10 text-[var(--color-warning)]
+									hover:bg-[var(--color-warning)]/20 transition-colors"
+							>
+								<Icon name="undo" size={12} />
+								<span>실행취소</span>
+							</button>
+						)}
+						{collapsible && (
+							<Icon
+								name="expand_more"
+								size={16}
+								className={clsx("text-[var(--color-label-tertiary)] transition-transform", collapsed ? "rotate-0" : "rotate-180")}
+							/>
+						)}
+					</div>
 				</div>
 
-				{/* 애니메이션 비활성화 시 정적 렌더링 */}
-				{shouldReduce ? (
-					!collapsed && (
-						<div style={{ overflow: 'hidden' }}>
-							<ul className="activity-feed__list" style={{ gap: 8 }}>
-								{displayEntries.map((entry) => {
-									const { icon, styleClass, label, tone } = getEntryStyle(entry)
-									return (
-										<li
-											key={entry.id}
-											className="activity-feed__item"
-											style={{ padding: '8px 12px', alignItems: 'center', fontSize: 13 }}
-										>
-											<div
-												className={`activity-feed__icon-wrapper ${styleClass}`}
-												data-tone={tone}
-												style={{ width: 28, height: 28, fontSize: 16, borderRadius: 8 }}
-											>
-												<Icon name={icon} size={16} />
-											</div>
-											<div className="activity-feed__content" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-												<StatusDot tone={tone} />
-												<span style={{ fontWeight: 600 }}>{label}</span>
-												<span className="muted" style={{ fontSize: 12 }}>|</span>
-												<span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-													{entry.description || entry.title}
-												</span>
-												<time className="muted" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
-													{formatTime(entry.timestamp)}
-												</time>
-											</div>
-										</li>
-									)
-								})}
-							</ul>
-							<div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-								<Button
-									size="sm"
-									variant="ghost"
-									onClick={(e) => {
-										e.stopPropagation()
-										setShowModal(true)
-									}}
-									style={{ fontSize: 13 }}
-								>
-									전체 기록 보기
-								</Button>
-							</div>
-						</div>
-					)
-				) : (
-					<LazyMotion features={domAnimation} strict>
-						<AnimatePresence initial={false} mode="wait">
-							{!collapsed && (
-								<m.div
-									key="activity-content"
-									initial={{ height: 0, opacity: 0 }}
-									animate={{ height: 'auto', opacity: 1 }}
-									exit={{ height: 0, opacity: 0 }}
-									transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-									style={{ overflow: 'hidden' }}
-								>
-									<ul className="activity-feed__list" style={{ gap: 8 }}>
-										{displayEntries.map((entry) => {
-											const { icon, styleClass, label, tone } = getEntryStyle(entry)
-											return (
-												<m.li
-													key={entry.id}
-													layout
-													className="activity-feed__item"
-													style={{ padding: '8px 12px', alignItems: 'center', fontSize: 13 }}
-												>
-													<div
-														className={`activity-feed__icon-wrapper ${styleClass}`}
-														data-tone={tone}
-														style={{ width: 28, height: 28, fontSize: 16, borderRadius: 8 }}
-													>
-														<Icon name={icon} size={16} />
-													</div>
-													<div className="activity-feed__content" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-														<StatusDot tone={tone} />
-														<span style={{ fontWeight: 600 }}>{label}</span>
-														<span className="muted" style={{ fontSize: 12 }}>|</span>
-														<span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-															{entry.description || entry.title}
-														</span>
-														<time className="muted" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>
-															{formatTime(entry.timestamp)}
-														</time>
-													</div>
-												</m.li>
-											)
-										})}
-									</ul>
-									<div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-										<Button
-											size="sm"
-											variant="ghost"
-											onClick={(e) => {
-												e.stopPropagation()
-												setShowModal(true)
-											}}
-											style={{ fontSize: 13 }}
-										>
-											전체 기록 보기
-										</Button>
-									</div>
-								</m.div>
-							)}
-						</AnimatePresence>
-					</LazyMotion>
-				)}
-			</div>
+				<AnimatedCollapse isOpen={!collapsed}>
+					<ActivityList entries={displayEntries} onShowModal={() => setShowModal(true)} />
+				</AnimatedCollapse>
+			</div >
 
 			<Modal
 				title="활동 기록 전체"
 				open={showModal}
 				onClose={() => setShowModal(false)}
 			>
-				<ul className="activity-feed__list">
-					{filteredEntries.map((entry) => {
-						const { icon, styleClass, label, tone } = getEntryStyle(entry)
-						return (
-							<li key={entry.id} className="activity-feed__item">
-								<div className={`activity-feed__icon-wrapper ${styleClass}`} data-tone={tone}>
-									<Icon name={icon} size={18} />
-								</div>
-								<div className="activity-feed__content">
-									<div className="activity-feed__content-header">
-										<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-											<StatusDot tone={tone} />
-											<span className="activity-feed__type-label">{label}</span>
-											<time className="activity-feed__time">{formatTime(entry.timestamp)}</time>
-										</div>
-										<button
-											type="button"
-											className="activity-feed__remove"
-											onClick={() => handleRemove(entry.id)}
-											title="삭제"
-										>
-											<Icon name="close" size={16} />
-										</button>
-									</div>
-									<div className="activity-feed__item-title">{entry.title}</div>
-									{entry.description && (
-										<div className="activity-feed__description">{entry.description}</div>
-									)}
-								</div>
-							</li>
-						)
-					})}
+				<ul className="flex flex-col gap-2 list-none">
+					{filteredEntries.map((entry) => (
+						<ActivityItemFull
+							key={entry.id}
+							entry={entry}
+							onRemove={() => handleRemove(entry.id)}
+						/>
+					))}
 				</ul>
 				{filteredEntries.length === 0 && (
-					<div className="muted" style={{ textAlign: 'center', padding: 40 }}>
+					<div className="text-center py-8 text-[var(--color-label-tertiary)] text-sm">
 						기록이 없습니다.
 					</div>
 				)}

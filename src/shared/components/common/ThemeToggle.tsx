@@ -1,43 +1,46 @@
-import { useAppStore } from '@/shared/state/store'
-import Icon from '@/shared/components/ui/Icon'
+'use client'
+
+import { useEffect, useState } from 'react'
+import Icon from '../ui/Icon'
+import clsx from 'clsx'
 
 export default function ThemeToggle() {
-	const theme = useAppStore((s) => s.theme)
-	const setTheme = useAppStore((s) => s.setTheme)
+    const [theme, setTheme] = useState<'light' | 'dark'>('light')
+    const [mounted, setMounted] = useState(false)
 
-	// 시스템 모드인 경우 라이트 모드로 변환
-	const currentTheme = theme === 'system' ? 'light' : theme
+    useEffect(() => {
+        setMounted(true)
+        // Check initial theme from document
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+        setTheme(isDark ? 'dark' : 'light')
+    }, [])
 
-	function cycleTheme() {
-		if (currentTheme === 'light') {
-			setTheme('dark')
-		} else {
-			setTheme('light')
-		}
-	}
+    const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light'
+        setTheme(newTheme)
+        document.documentElement.setAttribute('data-theme', newTheme)
+        localStorage.setItem('theme', newTheme)
+    }
 
-	const iconMap: Record<'light' | 'dark', string> = {
-		light: 'light_mode',
-		dark: 'dark_mode'
-	}
-	const labelMap: Record<'light' | 'dark', string> = {
-		light: '라이트 모드',
-		dark: '다크 모드'
-	}
+    if (!mounted) {
+        return <div className="w-8 h-8" /> // Placeholder to prevent layout shift
+    }
 
-	const nextTheme = currentTheme === 'light' ? 'dark' : 'light'
-	const nextLabel = nextTheme === 'light' ? '라이트 모드로 전환' : '다크 모드로 전환'
-
-	return (
-		<button
-			className="inline-flex items-center justify-center px-2.5 ml-auto cursor-pointer
-				text-[var(--color-text-primary)] bg-transparent border-none
-				hover:opacity-80 transition-opacity duration-150"
-			onClick={cycleTheme}
-			aria-label={`현재 ${labelMap[currentTheme]}. ${nextLabel}`}
-			title={`${labelMap[currentTheme]} · ${nextLabel}`}
-		>
-			<Icon name={iconMap[currentTheme]} size={20} aria-hidden />
-		</button>
-	)
+    return (
+        <button
+            onClick={toggleTheme}
+            className={clsx(
+                'flex items-center justify-center w-8 h-8 rounded-[var(--radius-sm)]',
+                'text-[var(--color-label-secondary)] hover:text-[var(--color-label-primary)]',
+                'hover:bg-[var(--color-surface-elevated)] transition-colors',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]'
+            )}
+            title={theme === 'light' ? '다크 모드로 전환' : '라이트 모드로 전환'}
+        >
+            <Icon
+                name={theme === 'light' ? 'dark_mode' : 'light_mode'}
+                size={18}
+            />
+        </button>
+    )
 }

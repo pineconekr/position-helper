@@ -1,37 +1,51 @@
-import React from 'react'
-import { clsx } from 'clsx'
+import clsx from 'clsx'
+import type { HTMLAttributes, ReactNode } from 'react'
 
-type BadgeVariant = 'neutral' | 'accent' | 'critical' | 'success' | 'warning'
+export type BadgeVariant = 'default' | 'neutral' | 'outline' | 'success' | 'warning' | 'danger' | 'accent'
 
-interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-	variant?: BadgeVariant
+export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
+    variant?: BadgeVariant
+    size?: 'sm' | 'md'
+    children: ReactNode
 }
 
-const variantStyles: Record<BadgeVariant, string> = {
-	neutral: 'bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border-[var(--color-border-subtle)]',
-	accent: 'bg-[var(--color-accent-soft)] text-[var(--color-accent)] border-transparent',
-	critical: 'bg-[var(--color-critical-soft)] text-[var(--color-critical)] border-transparent',
-	success: 'bg-[var(--color-success-soft)] text-[var(--color-success)] border-transparent',
-	warning: 'bg-[var(--color-warning-soft)] text-[var(--color-warning)] border-transparent',
+/**
+ * Badge Component (Responsive + Accessible)
+ * - rem 기반으로 브라우저 설정 존중
+ * - 모바일에서도 읽기 쉬운 크기
+ * - CSS 변수 기반 테마 (dark: 접두사 미사용)
+ */
+const variants: Record<BadgeVariant, string> = {
+    default: 'bg-[var(--color-surface-elevated)] text-[var(--color-label-primary)] border border-[var(--color-border-default)]',
+    neutral: 'bg-[var(--color-surface)] text-[var(--color-label-secondary)] border border-transparent',
+    outline: 'bg-transparent text-[var(--color-label-secondary)] border border-[var(--color-border-default)]',
+
+    // Colored Variants - Using CSS Variables for consistent theming
+    accent: 'bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20',
+    success: 'bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/20',
+    warning: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/20',
+    danger: 'bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/20',
 }
 
-export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
-	({ className, variant = 'neutral', children, ...props }, ref) => {
-		return (
-			<span
-				ref={ref}
-				className={clsx(
-					'inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full border',
-					'transition-colors duration-150',
-					variantStyles[variant],
-					className
-				)}
-				{...props}
-			>
-				{children}
-			</span>
-		)
-	}
-)
+// 반응형 사이즈: 모바일에서 약간 더 크게
+const sizes = {
+    sm: 'text-xs px-2 sm:px-1.5 h-6 sm:h-5',
+    md: 'text-sm px-2.5 sm:px-2 h-7 sm:h-6',
+}
 
-Badge.displayName = 'Badge'
+export function Badge({ variant = 'default', size = 'md', className, children, ...props }: BadgeProps) {
+    return (
+        <span
+            className={clsx(
+                'inline-flex items-center justify-center font-medium rounded-[0.25rem]',
+                'whitespace-nowrap select-none',
+                variants[variant],
+                sizes[size],
+                className
+            )}
+            {...props}
+        >
+            {children}
+        </span>
+    )
+}

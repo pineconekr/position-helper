@@ -1,114 +1,86 @@
-import { AnimatePresence, m, LazyMotion, domAnimation } from 'framer-motion'
-import { useCallback } from 'react'
-import { useFeedbackStore } from '@/shared/state/feedback'
-import { useShouldReduceMotion } from '@/shared/utils/motion'
-import Icon from '@/shared/components/ui/Icon'
+'use client'
 
-const kindIcon: Record<string, string> = {
-	success: 'check_circle',
-	info: 'info',
-	warning: 'warning',
-	error: 'block'
-}
+import { useToast } from '@/shared/hooks/useToast'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import Icon from '../ui/Icon'
+import clsx from 'clsx'
 
-const kindColors: Record<string, string> = {
-	success: 'text-emerald-500',
-	info: 'text-blue-500',
-	warning: 'text-amber-500',
-	error: 'text-red-500'
+// Define explicit toast type locally if needed or assume hook provides it 
+// but mapping requires a hint
+type ToastItem = {
+    id: string
+    title?: string
+    description?: string
+    kind?: 'info' | 'success' | 'warning' | 'error'
+    action?: { label: string; onClick: () => void }
 }
 
 export default function ToastCenter() {
-	const toasts = useFeedbackStore((s) => s.toasts)
-	const dismiss = useFeedbackStore((s) => s.dismiss)
-	const shouldReduce = useShouldReduceMotion()
+    const { toasts, remove } = useToast()
+    const [mounted, setMounted] = useState(false)
 
-	const handleDismiss = useCallback(
-		(id: string) => {
-			dismiss(id)
-		},
-		[dismiss]
-	)
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
-	if (toasts.length === 0) return null
+    if (!mounted) return null
 
-	// 애니메이션 비활성화 시 정적 렌더링
-	if (shouldReduce) {
-		return (
-			<div
-				className="fixed top-4 right-4 flex flex-col gap-2.5 z-[999] max-w-80 w-[calc(100%-2rem)]"
-				aria-live="polite"
-				role="status"
-			>
-				{toasts.map((toast) => (
-					<div
-						key={toast.id}
-						className="flex items-start gap-2.5 px-3.5 py-3 bg-[var(--color-surface-1)] border border-[var(--color-border-subtle)] rounded-xl shadow-md"
-						role={toast.kind === 'error' ? 'alert' : 'status'}
-					>
-						<div className={`text-lg leading-none ${kindColors[toast.kind] || 'text-blue-500'}`} aria-hidden="true">
-							<Icon name={kindIcon[toast.kind] ?? 'info'} size={20} />
-						</div>
-						<div className="flex-1 min-w-0">
-							<div className="font-medium text-[var(--color-text-primary)]">{toast.title}</div>
-							{toast.description && (
-								<div className="text-sm text-[var(--color-text-muted)] mt-0.5">{toast.description}</div>
-							)}
-						</div>
-						<button
-							type="button"
-							className="p-0 bg-transparent border-none text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text-primary)] transition-colors"
-							onClick={() => handleDismiss(toast.id)}
-							aria-label="알림 닫기"
-						>
-							<Icon name="close" size={18} />
-						</button>
-					</div>
-				))}
-			</div>
-		)
-	}
-
-	return (
-		<LazyMotion features={domAnimation} strict>
-			<div
-				className="fixed top-4 right-4 flex flex-col gap-2.5 z-[999] max-w-80 w-[calc(100%-2rem)]"
-				aria-live="polite"
-				role="status"
-			>
-				<AnimatePresence>
-					{toasts.map((toast) => (
-						<m.div
-							key={toast.id}
-							className="flex items-start gap-2.5 px-3.5 py-3 bg-[var(--color-surface-1)] border border-[var(--color-border-subtle)] rounded-xl shadow-md"
-							role={toast.kind === 'error' ? 'alert' : 'status'}
-							layout
-							initial={{ opacity: 0, y: 20, scale: 0.95 }}
-							animate={{ opacity: 1, y: 0, scale: 1 }}
-							exit={{ opacity: 0, y: -10, scale: 0.95 }}
-							transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-						>
-							<div className={`text-lg leading-none ${kindColors[toast.kind] || 'text-blue-500'}`} aria-hidden="true">
-								<Icon name={kindIcon[toast.kind] ?? 'info'} size={20} />
-							</div>
-							<div className="flex-1 min-w-0">
-								<div className="font-medium text-[var(--color-text-primary)]">{toast.title}</div>
-								{toast.description && (
-									<div className="text-sm text-[var(--color-text-muted)] mt-0.5">{toast.description}</div>
-								)}
-							</div>
-							<button
-								type="button"
-								className="p-0 bg-transparent border-none text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text-primary)] transition-colors"
-								onClick={() => handleDismiss(toast.id)}
-								aria-label="알림 닫기"
-							>
-								<Icon name="close" size={18} />
-							</button>
-						</m.div>
-					))}
-				</AnimatePresence>
-			</div>
-		</LazyMotion>
-	)
+    return createPortal(
+        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
+            {toasts.map((toast: ToastItem) => (
+                <div
+                    key={toast.id}
+                    className={clsx(
+                        'pointer-events-auto w-80 p-4 rounded-[var(--radius-md)] shadow-lg',
+                        'border animate-in slide-in-from-bottom-5 fade-in duration-300',
+                        'bg-[var(--color-surface-elevated)]', // Default Base
+                        // Use semantic CSS variables instead of dark: prefixes
+                        toast.kind === 'error' && 'border-[var(--color-danger)]/30 text-[var(--color-danger)]',
+                        toast.kind === 'success' && 'border-[var(--color-success)]/30 text-[var(--color-success)]',
+                        toast.kind === 'warning' && 'border-[var(--color-warning)]/30 text-[var(--color-warning)]',
+                        (toast.kind === 'info' || !toast.kind) && 'border-[var(--color-border-subtle)] text-[var(--color-label-primary)]'
+                    )}
+                    role="alert"
+                    aria-live="polite"
+                    style={{
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+                    }}
+                >
+                    <div className="flex items-start gap-3">
+                        <div className={clsx(
+                            'shrink-0 mt-0.5',
+                            toast.kind === 'error' && 'text-red-500',
+                            toast.kind === 'success' && 'text-emerald-500',
+                            (toast.kind === 'info' || !toast.kind) && 'text-blue-500'
+                        )}>
+                            <Icon
+                                name={
+                                    toast.kind === 'error' ? 'error' :
+                                        toast.kind === 'success' ? 'check_circle' :
+                                            'info'
+                                }
+                                size={20}
+                            />
+                        </div>
+                        <div className="flex-1">
+                            {toast.title && (
+                                <h4 className="font-semibold text-sm mb-1 leading-none">{toast.title}</h4>
+                            )}
+                            {toast.description && (
+                                <p className="text-sm opacity-90 leading-relaxed">{toast.description}</p>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => remove(toast.id)}
+                            className="shrink-0 text-current opacity-40 hover:opacity-100 transition-opacity"
+                        >
+                            <Icon name="close" size={16} />
+                        </button>
+                    </div>
+                </div>
+            ))}
+        </div>,
+        document.body
+    )
 }

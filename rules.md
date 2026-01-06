@@ -34,6 +34,3 @@
 - **메시지**: Conventional Commits 스타일 준수 (예: `feat: add assignment board`, `fix: correct typo in rules`).
 - **원자적 작업**: 하나의 기능을 완료하거나 하나의 버그를 수정할 때마다 커밋합니다.
 
-## 5. Tauri 관련 주의사항
-- **파일 접근**: 모든 파일 I/O는 Tauri API를 추상화한 데이터 레이어를 통해 수행합니다.
-- **보안**: 엄격히 필요한 경우가 아니면 위험한 Tauri API 권한을 활성화하지 않습니다.

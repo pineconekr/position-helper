@@ -1,12 +1,12 @@
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../store'
 import { getEffectiveTheme } from '../store'
-import type { MotionPreference } from '@/shared/types'
+import type { MotionPreference, ThemePreference } from '@/shared/types'
 
 export type ThemeSlice = {
-	theme: 'light' | 'dark' | 'system'
+	theme: ThemePreference
 	motionPreference: MotionPreference
-	setTheme: (t: 'light' | 'dark' | 'system') => void
+	setTheme: (t: ThemePreference) => void
 	getEffectiveTheme: () => 'light' | 'dark'
 	setMotionPreference: (value: MotionPreference) => void
 }

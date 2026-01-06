@@ -1,26 +1,74 @@
-import React from 'react'
-import { clsx } from 'clsx'
+import clsx from 'clsx'
+import type { TextareaHTMLAttributes } from 'react'
 
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> { }
+export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+	error?: boolean
+	label?: string
+	helperText?: string
+}
 
-export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-	({ className, ...props }, ref) => {
-		return (
+/**
+ * Textarea Component (Responsive + Accessible)
+ * - rem 기반으로 브라우저 설정 존중
+ * - 터치 친화적 패딩
+ */
+export function Textarea({
+	error = false,
+	label,
+	helperText,
+	className,
+	id,
+	...props
+}: TextareaProps) {
+	return (
+		<div className={clsx('flex flex-col gap-1', className)}>
+			{label && (
+				<label
+					htmlFor={id}
+					className="text-sm font-medium text-[var(--color-label-secondary)] ml-0.5"
+				>
+					{label}
+				</label>
+			)}
+
 			<textarea
-				ref={ref}
+				id={id}
 				className={clsx(
-					'w-full px-3 py-2.5 text-[0.9375rem] font-inherit min-h-[100px] resize-y',
-					'bg-[var(--color-surface-1)] text-[var(--color-text-primary)]',
-					'border border-[var(--color-border-subtle)] rounded-xl',
-					'outline-none transition-all duration-150',
-					'focus:border-[var(--color-accent)] focus:ring-2 focus:ring-blue-500/40',
-					'placeholder:text-[var(--color-text-subtle)]',
-					className
+					// Base & 반응형 패딩
+					'w-full min-h-[5rem]',
+					'px-3 sm:px-2.5 py-3 sm:py-2',
+					'text-base', // 16px
+					'rounded-[var(--radius-sm)] resize-y',
+					// Colors
+					'bg-[var(--color-surface)]',
+					'text-[var(--color-label-primary)] placeholder-[var(--color-label-tertiary)]',
+					// Border
+					error
+						? 'border border-[var(--color-danger)]'
+						: 'border border-[var(--color-border-default)] hover:border-[var(--color-border-default)]',
+					// Focus (접근성)
+					'focus:outline-none focus:ring-2 focus:ring-offset-0',
+					error
+						? 'focus:ring-[var(--color-danger)]/20 focus:border-[var(--color-danger)]'
+						: 'focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)]',
+					// Transition
+					'transition-all duration-100',
+					// Disabled
+					'disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--color-canvas)]'
 				)}
 				{...props}
 			/>
-		)
-	}
-)
 
-Textarea.displayName = 'Textarea'
+			{helperText && (
+				<span
+					className={clsx(
+						'text-xs ml-0.5',
+						error ? 'text-[var(--color-danger)]' : 'text-[var(--color-label-tertiary)]'
+					)}
+				>
+					{helperText}
+				</span>
+			)}
+		</div>
+	)
+}

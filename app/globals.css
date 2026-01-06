@@ -1,181 +1,217 @@
 @import "tailwindcss";
 
-/* Import existing theme styles for feature components */
-@import "../src/shared/theme/theme.css";
 
-/* ===== Custom Theme Configuration ===== */
+
+/* 
+  Theme Configuration 
+  - Apple + Linear Inspired
+  - Semantic Tokens
+*/
 @theme {
-    /* Colors - Canvas & Surfaces */
-    --color-canvas: #f8fafc;
-    --color-surface-1: #ffffff;
-    --color-surface-2: #f1f5f9;
-    --color-surface-overlay: #ffffff;
+    /* ══════════════════════════════════════════════════════════════
+       TYPOGRAPHY SCALE (Accessibility + Responsive)
+       - rem 단위 사용: 브라우저 설정 존중
+       - 모바일: 16px 기준 (편안한 읽기)
+       - 데스크톱: 14px 기준 (정보 밀도)
+       ══════════════════════════════════════════════════════════════ */
+    --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-    /* Colors - Text */
-    --color-text-primary: #0f172a;
-    --color-text-muted: #64748b;
-    --color-text-subtle: #94a3b8;
-    --color-text-inverse: #ffffff;
-    --color-text-on-accent: #ffffff;
-    --color-text-on-critical: #ffffff;
+    /* rem 기반 타이포그래피 (브라우저 기본 16px 기준) */
+    --text-xs: 0.8125rem;
+    /* 13px - Labels, timestamps (+1px) */
+    --text-sm: 0.875rem;
+    /* 14px - Secondary text (+1px) */
+    --text-base: 1rem;
+    /* 16px - Body (Desktop) (+2px) */
+    --text-lg: 1.125rem;
+    /* 18px - Subheadings (+2px) */
+    --text-xl: 1.25rem;
+    /* 20px - Section titles (+2px) */
+    --text-2xl: 1.625rem;
+    /* 26px - Page titles (+2px) */
 
-    /* Colors - Semantic */
-    --color-accent: #3b82f6;
+    /* 터치 영역 (Apple HIG: 최소 44pt) */
+    --touch-target-min: 2.75rem;
+    /* 44px */
+    --input-height-mobile: 2.75rem;
+    /* 44px */
+    --input-height-desktop: 2.25rem;
+    /* 36px */
+    --button-height-mobile: 2.75rem;
+    /* 44px */
+    --button-height-desktop: 2.25rem;
+    /* 36px */
+
+    /* Radius - Smooth & Modern (DESIGN_SYSTEM.md) */
+    --radius-sm: 0.375rem;
+    /* 6px */
+    --radius-md: 0.625rem;
+    /* 10px */
+    --radius-lg: 0.875rem;
+    /* 14px */
+    --radius-xl: 1.25rem;
+    /* 20px */
+
+    /* Colors (Mapping to Semantic Vars) */
+    --color-canvas: var(--color-canvas);
+    --color-surface: var(--color-surface);
+    --color-surface-elevated: var(--color-surface-elevated);
+
+    --color-label-primary: var(--color-label-primary);
+    --color-label-secondary: var(--color-label-secondary);
+    --color-label-tertiary: var(--color-label-tertiary);
+
+    --color-border-subtle: var(--color-border-subtle);
+    --color-border-default: var(--color-border-default);
+
+    --color-accent: var(--color-accent);
+    --color-accent-soft: var(--color-accent-soft);
+
+    --color-success: var(--color-success);
+    --color-warning: var(--color-warning);
+    --color-danger: var(--color-danger);
+
+    /* Animation */
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 
+  Semantic Variables Definition
+  - Light: Clean, Crisp, White/Slate
+  - Dark: Deep, Vibrant, Black/Zinc
+*/
+:root {
+    /* Light Mode */
+    --color-canvas: #ffffff;
+    /* Pure white or VERY light gray */
+    --color-surface: #f9fafb;
+    /* Slight contrast for panels */
+    --color-surface-elevated: #ffffff;
+
+    --color-label-primary: #111827;
+    --color-label-secondary: #6b7280;
+    --color-label-tertiary: #9ca3af;
+
+    --color-border-subtle: #f3f4f6;
+    --color-border-default: #e5e7eb;
+
+    --color-accent: #2563eb;
+    /* Blue 600 */
     --color-accent-soft: #eff6ff;
-    --color-critical: #ef4444;
-    --color-critical-soft: #fef2f2;
+    /* Blue 50 */
+
     --color-success: #10b981;
-    --color-success-soft: #ecfdf5;
     --color-warning: #f59e0b;
-    --color-warning-soft: #fffbeb;
-
-    /* Colors - Borders */
-    --color-border-subtle: #e2e8f0;
-    --color-border-strong: #cbd5e1;
-
-    /* Colors - Overlay */
-    --color-overlay: rgba(0, 0, 0, 0.4);
-
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-
-    /* Radius */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-full: 9999px;
-
-    /* Motion */
-    --transition-fast: 150ms;
-    --transition-normal: 250ms;
-    --transition-slow: 400ms;
-    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Chart Colors */
-    --color-data-series-1: #4E79A7;
-    --color-data-series-2: #F28E2B;
-    --color-data-series-3: #E15759;
-    --color-data-series-4: #76B7B2;
-    --color-data-series-5: #59A14F;
-    --color-data-series-6: #EDC948;
+    --color-danger: #ef4444;
 }
 
-/* ===== Dark Theme ===== */
-[data-theme='dark'] {
-    --color-canvas: #0f172a;
-    --color-surface-1: #1e293b;
-    --color-surface-2: #334155;
-    --color-surface-overlay: #1e293b;
+/* Dark Mode Override */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-    --color-text-primary: #f8fafc;
-    --color-text-muted: #94a3b8;
-    --color-text-subtle: #64748b;
-    --color-text-inverse: #0f172a;
+[data-theme="dark"] {
+    /* Dark Mode */
+    --color-canvas: #09090b;
+    /* Zinc 950 - Modern Dark */
+    --color-surface: #121214;
+    --color-surface-elevated: #1c1c1f;
 
-    --color-accent: #60a5fa;
-    --color-accent-soft: rgba(59, 130, 246, 0.2);
-    --color-critical: #f87171;
-    --color-critical-soft: rgba(239, 68, 68, 0.2);
-    --color-success: #34d399;
-    --color-success-soft: rgba(52, 211, 153, 0.2);
-    --color-warning: #fbbf24;
-    --color-warning-soft: rgba(251, 191, 36, 0.2);
+    --color-label-primary: #ededed;
+    --color-label-secondary: #a1a1aa;
+    --color-label-tertiary: #52525b;
 
-    --color-border-subtle: #334155;
-    --color-border-strong: #475569;
-    --color-overlay: rgba(0, 0, 0, 0.7);
+    --color-border-subtle: #27272a;
+    --color-border-default: #3f3f46;
 
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+    --color-accent: #3b82f6;
+    /* Blue 500 */
+    --color-accent-soft: #172554;
+    /* Blue 950 */
 }
 
-/* ===== Base Styles ===== */
-* {
-    @apply box-border;
+/* Base Reset & Utilities */
+@layer base {
+    * {
+        @apply border-border-default;
+    }
+
+    body {
+        @apply bg-canvas text-label-primary font-sans antialiased;
+        line-height: 1.5;
+        letter-spacing: -0.01em;
+    }
 }
 
-html {
-    @apply scroll-smooth;
-    background: var(--color-canvas);
+@layer utilities {
+    .flex-center {
+        @apply flex items-center justify-center;
+    }
+
+    /* Glassmorphism Utility */
+    .glass {
+        @apply bg-canvas/80 backdrop-blur-md border border-border-subtle;
+    }
+
+    /* Spring Animation Utility */
+    .transition-spring {
+        transition-timing-function: var(--ease-spring);
+    }
+
+    /* Skeleton Shimmer Effect */
+    .skeleton-shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .skeleton-shimmer::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        transform: translateX(-100%);
+        background: linear-gradient(90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent);
+        animation: shimmer 2s infinite;
+    }
+
+    /* Hide scrollbar but allow scroll */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
 }
 
-body {
-    @apply m-0 font-sans overflow-hidden;
-    background: var(--color-canvas);
-    color: var(--color-text-primary);
-    transition: background-color var(--transition-normal) var(--ease-default),
-        color var(--transition-normal) var(--ease-default);
+/* Keyframe Animations */
+@keyframes shimmer {
+    100% {
+        transform: translateX(100%);
+    }
 }
 
-a {
-    @apply text-inherit no-underline;
+/* Smooth page transitions */
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
 }
 
-/* ===== Material Symbols ===== */
-.material-symbol {
-    font-family: 'Material Symbols Outlined';
-    font-weight: normal;
-    font-style: normal;
-    font-size: 1em;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
-    display: inline-block;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-feature-settings: 'liga';
-    -webkit-font-smoothing: antialiased;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    color: inherit;
-    vertical-align: middle;
-}
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
 
-/* ===== Scrollbar Styles ===== */
-::-webkit-scrollbar {
-    @apply w-2 h-2;
-}
-
-::-webkit-scrollbar-track {
-    @apply bg-slate-100 rounded-full;
-}
-
-[data-theme='dark'] ::-webkit-scrollbar-track {
-    @apply bg-slate-700;
-}
-
-::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full;
-}
-
-[data-theme='dark'] ::-webkit-scrollbar-thumb {
-    @apply bg-slate-500;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400;
-}
-
-[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400;
-}
-
-/* ===== Focus Ring ===== */
-.focus-ring {
-    @apply outline-none ring-2 ring-blue-500/40 ring-offset-2;
-}
-
-/* ===== Reduced Motion ===== */
-/* 앱 설정이 'system'이고 시스템이 reduce를 요청할 때만 적용 */
-html[data-reduce-motion="true"] * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-}
-
-html[data-reduce-motion="true"] {
-    scroll-behavior: auto;
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

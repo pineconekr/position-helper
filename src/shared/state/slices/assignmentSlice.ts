@@ -40,11 +40,21 @@ const normalizeDraftForPersist = (draft: { part1: PartAssignment; part2: PartAss
 	return clone
 }
 
+// Undo 히스토리 항목 타입
+type DraftHistoryEntry = {
+	draft: { part1: PartAssignment; part2: PartAssignment }
+	activityId?: string
+}
+
 export type AssignmentSlice = {
 	app: AppData
 	currentWeekDate: string
 	currentDraft: { part1: PartAssignment; part2: PartAssignment }
 	warnings: Warning[]
+	/** Undo 히스토리 스택 (최대 20개) */
+	draftHistory: DraftHistoryEntry[]
+	/** Undo 가능 여부 */
+	canUndo: boolean
 	setWeekDate: (date: string) => void
 	setMembers: (members: MembersEntry[]) => void
 	toggleMemberActive: (name: string) => void
@@ -58,15 +68,21 @@ export type AssignmentSlice = {
 	recalcWarnings: () => void
 	setDraft: (draft: { part1: PartAssignment; part2: PartAssignment }) => void
 	finalizeCurrentWeek: () => void
+	/** 마지막 배정 작업 취소 */
+	undoLastAssignment: () => void
 }
 
 const initial: AppData = { weeks: {}, members: [] }
+
+const MAX_HISTORY = 20
 
 export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSlice> = (set, get) => ({
 	app: initial,
 	currentWeekDate: formatDateISO(new Date()),
 	currentDraft: { part1: emptyPart(), part2: emptyPart() },
 	warnings: [],
+	draftHistory: [],
+	canUndo: false,
 	setWeekDate: (date) => {
 		const state = get()
 		if (state.currentWeekDate) {
@@ -154,6 +170,13 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 		const prevDraft = structuredClone(get().currentDraft)
 		const previousValue = getSlotValue(prevDraft, role === '사이드' ? { part, role, index } : { part, role })
 		if (previousValue === trimmedValue) return
+
+		// 히스토리에 저장 (이전 상태)
+		set((s) => {
+			const newHistory = [...s.draftHistory, { draft: prevDraft }].slice(-MAX_HISTORY)
+			return { draftHistory: newHistory, canUndo: true }
+		})
+
 		set((s) => {
 			const next = structuredClone(s.currentDraft)
 			setSlotValue(next, role === '사이드' ? { part, role, index } : { part, role }, trimmedValue)
@@ -177,11 +200,18 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 		if (!source || !target) return
 		if (slotsAreEqual(source, target)) return
 
-		const draft = structuredClone(get().currentDraft)
-		const sourceValue = getSlotValue(draft, source)
+		const prevDraft = structuredClone(get().currentDraft)
+		const sourceValue = getSlotValue(prevDraft, source)
 		if (!sourceValue) return
-		const targetValue = getSlotValue(draft, target)
+		const targetValue = getSlotValue(prevDraft, target)
 
+		// 히스토리에 저장
+		set((s) => {
+			const newHistory = [...s.draftHistory, { draft: prevDraft }].slice(-MAX_HISTORY)
+			return { draftHistory: newHistory, canUndo: true }
+		})
+
+		const draft = structuredClone(get().currentDraft)
 		setSlotValue(draft, target, sourceValue)
 		setSlotValue(draft, source, targetValue ?? '')
 
@@ -214,9 +244,16 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 		get().recalcWarnings()
 	},
 	clearRole: (part, role, index) => {
-		const prevDraft = get().currentDraft
+		const prevDraft = structuredClone(get().currentDraft)
 		const previousValue = getSlotValue(prevDraft, role === '사이드' ? { part, role, index } : { part, role })
 		if (!previousValue) return
+
+		// 히스토리에 저장
+		set((s) => {
+			const newHistory = [...s.draftHistory, { draft: prevDraft }].slice(-MAX_HISTORY)
+			return { draftHistory: newHistory, canUndo: true }
+		})
+
 		set((s) => {
 			const next = structuredClone(s.currentDraft)
 			setSlotValue(next, role === '사이드' ? { part, role, index } : { part, role }, '')
@@ -339,5 +376,31 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 			description: `총 ${totalAssigned}명 배정 저장`,
 			meta: { date, totalAssigned }
 		})
+	},
+	undoLastAssignment: () => {
+		const state = get()
+		if (state.draftHistory.length === 0) return
+
+		// 마지막 히스토리 항목 꺼내기
+		const newHistory = [...state.draftHistory]
+		const lastEntry = newHistory.pop()
+		if (!lastEntry) return
+
+		// 이전 상태로 복원
+		set({
+			currentDraft: structuredClone(lastEntry.draft),
+			draftHistory: newHistory,
+			canUndo: newHistory.length > 0
+		})
+
+		// Undo 활동 기록
+		get().addActivity({
+			type: 'assignment',
+			title: '실행 취소',
+			description: '마지막 배정 작업을 취소했습니다',
+			meta: { action: 'undo' }
+		})
+
+		get().recalcWarnings()
 	}
 })

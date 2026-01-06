@@ -28,6 +28,7 @@ export type ActivityEntry = {
 }
 
 export type MotionPreference = 'allow' | 'system' | 'reduce'
+export type ThemePreference = 'light' | 'dark' | 'system'
 
 const NonEmptyString = z.string()
 export const ZPartAssignment = z.object({
@@ -63,9 +64,12 @@ export const ZCurrentWeekTemplate = z.object({
 })
 
 export type WarningLevel = 'info' | 'warn' | 'error'
+export type RotationCandidate = { name: string; weeksSince: number }
 export type Warning = {
 	id: string
 	level: WarningLevel
 	message: string
 	target?: { date?: string; part?: 'part1' | 'part2'; role?: RoleKey; name?: string }
+	/** Structured data for rotation recommendations */
+	rotationCandidates?: RotationCandidate[]
 }

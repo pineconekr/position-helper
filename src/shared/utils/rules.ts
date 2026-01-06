@@ -1,27 +1,19 @@
 import type { AppData, PartAssignment, RoleKey, Warning, WeekData } from '../types'
+import { RULES_CONFIG, ROLE_CONFIG } from '@/shared/constants/config'
 
 const PART_LABEL: Record<'part1' | 'part2', string> = {
 	part1: '1부',
 	part2: '2부'
 }
 
-const CONTINUOUS_CHECK_WEEKS = 3
-
-const ROTATION_ROLES: RoleKey[] = ['고정', '스케치', '사이드']
-
 function getLastWeeks(currentDate: string, app: AppData, count: number): Array<{ date: string; data: WeekData }> {
 	const dates = Object.keys(app.weeks).sort()
-	const idx = dates.indexOf(currentDate)
-	const result: Array<{ date: string; data: WeekData }> = []
+	const previousWeeks = dates
+		.filter((date) => date < currentDate)
+		.sort((a, b) => b.localeCompare(a))
+		.slice(0, count)
 
-	for (let i = 1; i <= count && idx - i >= 0; i++) {
-		const weekDate = dates[idx - i]
-		if (weekDate && app.weeks[weekDate]) {
-			result.push({ date: weekDate, data: app.weeks[weekDate]! })
-		}
-	}
-
-	return result
+	return previousWeeks.map((date) => ({ date, data: app.weeks[date]! }))
 }
 
 function getWeeksWithinDays(currentDate: string, app: AppData, days: number): Array<{ date: string; data: WeekData }> {
@@ -69,7 +61,7 @@ function isAssignedThisWeek(draft: { part1: PartAssignment; part2: PartAssignmen
 
 export function computeWarnings(currentDate: string, draft: { part1: PartAssignment; part2: PartAssignment }, app: AppData): Warning[] {
 	const warnings: Warning[] = []
-	const lastWeeks = getLastWeeks(currentDate, app, CONTINUOUS_CHECK_WEEKS) // 최근 3주까지 체크
+	const lastWeeks = getLastWeeks(currentDate, app, RULES_CONFIG.CONTINUOUS_CHECK_WEEKS)
 
 	// 1) 최근 N주 내 동일 직무 연속 배정 (경고 병합)
 	if (lastWeeks.length > 0) {
@@ -82,36 +74,35 @@ export function computeWarnings(currentDate: string, draft: { part1: PartAssignm
 			part: 'part1' | 'part2'
 			role: RoleKey
 			name: string
-			weeks: string[]
+			offsets: number[]
 		}
 
 		const continuous = new Map<string, ContinuousBucket>()
-		const addContinuous = (part: 'part1' | 'part2', role: RoleKey, name: string, weekLabel: string) => {
+		const addContinuous = (part: 'part1' | 'part2', role: RoleKey, name: string, offset: number) => {
 			const key = `${part}-${role}-${normalizeName(name)}`
 			if (!normalizeName(name)) return
 			if (!continuous.has(key)) {
-				continuous.set(key, { part, role, name: normalizeName(name), weeks: [] })
+				continuous.set(key, { part, role, name: normalizeName(name), offsets: [] })
 			}
-			continuous.get(key)!.weeks.push(weekLabel)
+			continuous.get(key)!.offsets.push(offset)
 		}
 
 		// 최근 N주 내 모든 주에 대해 체크
 		lastWeeks.forEach((last, index) => {
 			const weekOffset = index + 1 // 1 => 1주 전, 2 => 2주 전 ...
-			const weekLabel = `${weekOffset}주 전`
 			const lastP1 = last.data.part1 as Omit<PartAssignment, '사이드'>
 			const lastP2 = last.data.part2 as Omit<PartAssignment, '사이드'>
 
-			(scalarRoles as readonly ScalarRole[]).forEach((role) => {
-				if (sameMember(p1[role], lastP1[role])) {
-					addContinuous('part1', role, p1[role], weekLabel)
-				}
-				if (sameMember(p2[role], lastP2[role])) {
-					addContinuous('part2', role, p2[role], weekLabel)
-				}
-			})
+				; (scalarRoles as readonly ScalarRole[]).forEach((role) => {
+					if (sameMember(p1[role], lastP1[role])) {
+						addContinuous('part1', role, p1[role], weekOffset)
+					}
+					if (sameMember(p2[role], lastP2[role])) {
+						addContinuous('part2', role, p2[role], weekOffset)
+					}
+				})
 
-			// 사이드(배열) - 슬롯 구분 없이 포함 여부로 체크
+			// 사이드(배열)
 			const lastP1Side = last.data.part1['사이드'] ?? ['', '']
 			const lastP2Side = last.data.part2['사이드'] ?? ['', '']
 			const currentP1Side = draft.part1['사이드'] ?? ['', '']
@@ -119,83 +110,102 @@ export function computeWarnings(currentDate: string, draft: { part1: PartAssignm
 
 			currentP1Side.forEach((m) => {
 				if (m && lastP1Side.includes(m)) {
-					addContinuous('part1', '사이드', m, weekLabel)
+					addContinuous('part1', '사이드', m, weekOffset)
 				}
 			})
 			currentP2Side.forEach((m) => {
 				if (m && lastP2Side.includes(m)) {
-					addContinuous('part2', '사이드', m, weekLabel)
+					addContinuous('part2', '사이드', m, weekOffset)
 				}
 			})
 		})
 
-		// 병합된 연속 경고 생성
-		continuous.forEach(({ part, role, name, weeks }) => {
-			if (weeks.length === 0) return
-			const uniqueWeeks = Array.from(new Set(weeks))
-			const weeksText = uniqueWeeks.join(', ')
-			const countText = uniqueWeeks.length > 1 ? `최근 ${uniqueWeeks.length}주 연속 ` : ''
+		// 계층화된 경고 생성
+		continuous.forEach(({ part, role, name, offsets }) => {
+			if (offsets.length === 0) return
+			const uniqueOffsets = Array.from(new Set(offsets)).sort((a, b) => a - b)
+			const minOffset = uniqueOffsets[0]
+
+			// 경고 레벨 결정 (1주 전: error, 2주 전: warn, 3주 전: info)
+			let level: Warning['level'] = 'info'
+			if (minOffset === 1) level = 'error'
+			else if (minOffset === 2) level = 'warn'
+
+			const weeksText = uniqueOffsets.map(o => `${o}주 전`).join(', ')
+			const countText = uniqueOffsets.length > 1 ? `최근 ${uniqueOffsets.length}주 연속 ` : ''
+
 			warnings.push({
 				id: `cont-${part}-${role}-${name}`,
-				level: 'warn',
+				level,
 				message: `${countText}${PART_LABEL[part]} ${role}에 동일 인원 배정 (${weeksText})`,
 				target: { date: currentDate, part, role, name }
 			})
 		})
 	}
 
-	// 2) 사이드 인원 부족(2명 미만)
-	if (!draft.part1['사이드'][0] || !draft.part1['사이드'][1]) {
-		warnings.push({
-			id: 'p1-side-lack',
-			level: 'warn',
-			message: '1부 사이드 인원이 2명 미만입니다',
-			target: { date: currentDate, part: 'part1', role: '사이드' }
-		})
-	}
-	if (!draft.part2['사이드'][0] || !draft.part2['사이드'][1]) {
-		warnings.push({
-			id: 'p2-side-lack',
-			level: 'warn',
-			message: '2부 사이드 인원이 2명 미만입니다',
-			target: { date: currentDate, part: 'part2', role: '사이드' }
-		})
-	}
+	// 2) 최근 역할 경험 없음 → 배치 유도 알림 (기간별 그룹화)
+	const rotationHistory = getLastWeeks(currentDate, app, 12) // 최근 12주 체크
 
-	// 3) 최근 2주간 역할 경험 없음 → 배치 유도 알림
-	const rotationWindow = getWeeksWithinDays(currentDate, app, 14)
-	if (rotationWindow.length > 0) {
+	if (rotationHistory.length > 0) {
 		const activeMembers = app.members
 			.filter((member) => member.active !== false)
 			.map((member) => normalizeName(member.name))
 			.filter((name): name is string => Boolean(name))
 
-		const hasRecentExperience = (name: string, role: RoleKey) =>
-			rotationWindow.some(({ data }) => wasAssignedInWeek(data, role, name))
+		// SW 수행 가능한 멤버 식별 (전체 이력 기준)
+		const swQualifiedMembers = new Set<string>()
+		Object.values(app.weeks).forEach(weekData => {
+			const p1sw = weekData.part1.SW
+			if (p1sw) swQualifiedMembers.add(normalizeName(p1sw))
+			const p2sw = weekData.part2.SW
+			if (p2sw) swQualifiedMembers.add(normalizeName(p2sw))
+		})
 
-		const rotationNeeds = new Map<RoleKey, string[]>()
+		const getWeeksSinceLastAssignment = (name: string, role: RoleKey): number => {
+			const index = rotationHistory.findIndex(({ data }) => wasAssignedInWeek(data, role, name))
+			if (index === -1) return Infinity
+			return index + 1 // 1 = 1주 전, 2 = 2주 전...
+		}
+
+		const rotationNeeds = new Map<RoleKey, { name: string; weeksSince: number }[]>()
 
 		activeMembers.forEach((name) => {
-			ROTATION_ROLES.forEach((role) => {
-				if (hasRecentExperience(name, role)) return
+			ROLE_CONFIG.ROTATION_ROLES.forEach((role) => {
+				// [규칙 1] SW 역할은 SW 수행 이력이 있는 멤버만 추천
+				if (role === 'SW' && !swQualifiedMembers.has(name)) {
+					return
+				}
+
+				// [규칙 2] 자막 역할은 SW 수행 가능한 고기수 인원은 제외
+				if (role === '자막' && swQualifiedMembers.has(name)) {
+					return
+				}
+
 				if (isAssignedThisWeek(draft, role, name)) return
+
+				const weeksSince = getWeeksSinceLastAssignment(name, role)
+
+				// 1주 전(weeksSince === 1) 배정자는 제외 (휴식 0주)
+				if (weeksSince <= 1) return
+
 				if (!rotationNeeds.has(role)) rotationNeeds.set(role, [])
-				rotationNeeds.get(role)!.push(name)
+				rotationNeeds.get(role)!.push({ name, weeksSince })
 			})
 		})
 
-		rotationNeeds.forEach((names, role) => {
-			if (names.length === 0) return
-			const sorted = [...names].sort((a, b) => a.localeCompare(b, 'ko'))
-			const preview = sorted.slice(0, 4)
-			const remainder = sorted.length - preview.length
-			const listText = preview.join(', ')
-			const suffix = remainder > 0 ? ` 외 ${remainder}명` : ''
+		rotationNeeds.forEach((candidates, role) => {
+			if (candidates.length === 0) return
+
+			// 오랫동안 안한 순으로 정렬 (Infinity가 가장 먼저)
+			candidates.sort((a, b) => b.weeksSince - a.weeksSince)
+
+			// Clean header message, structured data for visual rendering
 			warnings.push({
 				id: `rotation-${role}`,
 				level: 'info',
-				message: `${role} 최근 2주 미배정 대상: ${listText}${suffix}`,
-				target: { role }
+				message: `${role} 배정 추천`,
+				target: { role },
+				rotationCandidates: candidates.slice(0, 8) // Limit to 8 for UI
 			})
 		})
 	}

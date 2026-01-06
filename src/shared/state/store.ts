@@ -9,7 +9,7 @@ import type { AssignmentSlice } from './slices/assignmentSlice'
 import { createAssignmentSlice } from './slices/assignmentSlice'
 
 import { formatDateISO } from '@/shared/utils/date'
-import type { AppData, PartAssignment } from '@/shared/types'
+import type { AppData, PartAssignment, ThemePreference } from '@/shared/types'
 
 const emptyPart = (): PartAssignment => ({ SW: '', 자막: '', 고정: '', 사이드: ['', ''], 스케치: '' })
 
@@ -18,7 +18,7 @@ export function getSystemTheme(): 'light' | 'dark' {
 	return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-export function getEffectiveTheme(theme: 'light' | 'dark' | 'system'): 'light' | 'dark' {
+export function getEffectiveTheme(theme: ThemePreference): 'light' | 'dark' {
 	return theme === 'system' ? getSystemTheme() : theme
 }
 

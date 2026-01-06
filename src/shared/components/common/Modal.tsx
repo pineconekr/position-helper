@@ -1,154 +1,111 @@
-import { AnimatePresence, m, LazyMotion, domAnimation } from 'framer-motion'
-import { ReactNode, useEffect } from 'react'
+'use client'
+
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useShouldReduceMotion } from '@/shared/utils/motion'
-import Icon from '@/shared/components/ui/Icon'
+import type { ReactNode } from 'react'
+import Icon from '../ui/Icon'
+import { Button } from '../ui/Button'
+import clsx from 'clsx'
 
-type Props = {
-	title: string
-	open: boolean
-	onClose: () => void
-	children: ReactNode
-	footer?: ReactNode
-	width?: string | number
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full'
+
+interface ModalProps {
+    open: boolean
+    onClose: () => void
+    title?: string
+    children: ReactNode
+    footer?: ReactNode
+    size?: ModalSize
 }
 
-function ModalContent({ title, onClose, children, footer, width }: Omit<Props, 'open'>) {
-	return (
-		<div
-			className="w-[680px] max-w-[95vw] max-h-[90vh] flex flex-col p-6 rounded-2xl shadow-lg bg-[var(--color-surface-1)]"
-			role="dialog"
-			aria-modal="true"
-			style={width ? { width } : undefined}
-			onClick={(e) => e.stopPropagation()}
-		>
-			{/* Header */}
-			<div className="flex items-center justify-between mb-5">
-				<h3 className="m-0 text-xl font-bold">{title}</h3>
-				<button
-					onClick={onClose}
-					title="닫기"
-					className="w-8 h-8 grid place-items-center rounded-full cursor-pointer
-						bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)]
-						text-[var(--color-text-muted)] transition-all duration-150
-						hover:bg-[var(--color-surface-1)] hover:text-[var(--color-text-primary)]
-						hover:border-[var(--color-border-strong)]"
-					aria-label="닫기"
-				>
-					<Icon name="close" size={20} />
-				</button>
-			</div>
-
-			{/* Content */}
-			<div className={`flex-1 overflow-auto overflow-x-hidden min-h-0 ${footer ? 'mb-5' : ''}`}>
-				{children}
-			</div>
-
-			{/* Footer */}
-			{footer && (
-				<div className="flex justify-end gap-2.5 pt-5 border-t border-[var(--color-border-subtle)]">
-					{footer}
-				</div>
-			)}
-		</div>
-	)
+const sizes: Record<ModalSize, string> = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    full: 'max-w-full m-4',
 }
 
-export default function Modal({ title, open, onClose, children, footer, width }: Props) {
-	const shouldReduce = useShouldReduceMotion()
+export default function Modal({
+    open,
+    onClose,
+    title,
+    children,
+    footer,
+    size = 'md',
+}: ModalProps) {
+    const [mounted, setMounted] = useState(false)
+    const [isVisible, setIsVisible] = useState(false)
 
-	useEffect(() => {
-		if (!open) return
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
-		function handleKeyDown(e: KeyboardEvent) {
-			if (e.key === 'Escape') {
-				onClose()
-			}
-		}
+    useEffect(() => {
+        if (open) {
+            setIsVisible(true)
+            document.body.style.overflow = 'hidden'
+        } else {
+            const timer = setTimeout(() => setIsVisible(false), 200)
+            document.body.style.overflow = 'unset'
+            return () => clearTimeout(timer)
+        }
+    }, [open])
 
-		document.addEventListener('keydown', handleKeyDown)
-		return () => {
-			document.removeEventListener('keydown', handleKeyDown)
-		}
-	}, [open, onClose])
+    if (!mounted) return null
+    if (!isVisible && !open) return null
 
-	if (typeof document === 'undefined') return null
+    return createPortal(
+        <div
+            className={clsx(
+                'fixed inset-0 z-50 flex items-center justify-center p-4',
+                'transition-opacity duration-200',
+                open ? 'opacity-100' : 'opacity-0'
+            )}
+        >
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+                onClick={onClose}
+            />
 
-	// 애니메이션 비활성화 시 정적 렌더링
-	if (shouldReduce) {
-		if (!open) return null
-		return createPortal(
-			<div
-				className="fixed inset-0 bg-black/40 backdrop-blur-sm grid place-items-center z-[1000]"
-				role="presentation"
-				onClick={onClose}
-			>
-				<ModalContent title={title} onClose={onClose} footer={footer} width={width}>
-					{children}
-				</ModalContent>
-			</div>,
-			document.body
-		)
-	}
+            {/* Modal Content */}
+            <div
+                className={clsx(
+                    'relative w-full bg-[var(--color-surface-elevated)]',
+                    'rounded-[var(--radius-lg)] shadow-xl',
+                    'border border-[var(--color-border-subtle)]',
+                    'transform transition-all duration-200',
+                    open ? 'scale-100 translate-y-0' : 'scale-95 translate-y-2',
+                    sizes[size]
+                )}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border-subtle)]">
+                    <h3 className="text-lg font-semibold text-[var(--color-label-primary)]">
+                        {title}
+                    </h3>
+                    <button
+                        onClick={onClose}
+                        className="p-1 rounded-[var(--radius-sm)] text-[var(--color-label-tertiary)] hover:bg-[var(--color-surface)] hover:text-[var(--color-label-secondary)] transition-colors"
+                    >
+                        <Icon name="close" size={20} />
+                    </button>
+                </div>
 
-	return createPortal(
-		<LazyMotion features={domAnimation} strict>
-			<AnimatePresence mode="wait">
-				{open && (
-					<m.div
-						key="modal-overlay"
-						className="fixed inset-0 bg-black/40 backdrop-blur-sm grid place-items-center z-[1000]"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-						role="presentation"
-						onClick={onClose}
-					>
-						<m.div
-							className="w-[680px] max-w-[95vw] max-h-[90vh] flex flex-col p-6 rounded-2xl shadow-lg bg-[var(--color-surface-1)]"
-							role="dialog"
-							aria-modal="true"
-							style={width ? { width } : undefined}
-							initial={{ opacity: 0, y: 16, scale: 0.98 }}
-							animate={{ opacity: 1, y: 0, scale: 1 }}
-							exit={{ opacity: 0, y: 12, scale: 0.98 }}
-							transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-							onClick={(e) => e.stopPropagation()}
-						>
-							{/* Header */}
-							<div className="flex items-center justify-between mb-5">
-								<h3 className="m-0 text-xl font-bold">{title}</h3>
-								<button
-									onClick={onClose}
-									title="닫기"
-									className="w-8 h-8 grid place-items-center rounded-full cursor-pointer
-										bg-[var(--color-surface-2)] border border-[var(--color-border-subtle)]
-										text-[var(--color-text-muted)] transition-all duration-150
-										hover:bg-[var(--color-surface-1)] hover:text-[var(--color-text-primary)]
-										hover:border-[var(--color-border-strong)]"
-									aria-label="닫기"
-								>
-									<Icon name="close" size={20} />
-								</button>
-							</div>
+                {/* Body */}
+                <div className="p-5 overflow-y-auto max-h-[70vh]">
+                    {children}
+                </div>
 
-							{/* Content */}
-							<div className={`flex-1 overflow-auto overflow-x-hidden min-h-0 ${footer ? 'mb-5' : ''}`}>
-								{children}
-							</div>
-
-							{/* Footer */}
-							{footer && (
-								<div className="flex justify-end gap-2.5 pt-5 border-t border-[var(--color-border-subtle)]">
-									{footer}
-								</div>
-							)}
-						</m.div>
-					</m.div>
-				)}
-			</AnimatePresence>
-		</LazyMotion>,
-		document.body
-	)
+                {/* Footer */}
+                {footer && (
+                    <div className="flex items-center justify-end gap-2 px-5 py-4 bg-[var(--color-surface)]/50 border-t border-[var(--color-border-subtle)] rounded-b-[var(--radius-lg)]">
+                        {footer}
+                    </div>
+                )}
+            </div>
+        </div>,
+        document.body
+    )
 }

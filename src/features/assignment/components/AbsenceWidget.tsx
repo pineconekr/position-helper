@@ -1,10 +1,14 @@
+'use client'
+
 import { useRef } from 'react'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Panel } from '@/shared/components/ui/Panel'
 import { Textarea } from '@/shared/components/ui/Textarea'
 import Modal from '@/shared/components/common/Modal'
+import Icon from '@/shared/components/ui/Icon'
 import { useAbsenceManager } from '../hooks/useAbsenceManager'
+import clsx from 'clsx'
 
 export default function AbsenceWidget() {
 	const {
@@ -25,70 +29,98 @@ export default function AbsenceWidget() {
 
 	return (
 		<>
-			<Panel ref={absenceSectionRef} style={{ padding: 16 }}>
-				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-					<div style={{ fontWeight: 600 }}>불참자 관리</div>
-				</div>
-				<div className="col" style={{ gap: 12 }}>
-					<div className="col" style={{ gap: 8 }}>
-						<label style={{ fontSize: '0.875rem' }}>팀원</label>
-						<select
-							value={absenceForm.name}
-							onChange={(e) => setAbsenceForm((f) => ({ ...f, name: e.target.value }))}
-							style={{ padding: '8px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface-1)', color: 'var(--color-text-primary)', width: '100%' }}
-						>
-							<option value="">선택</option>
-							{members.map((m) => <option key={m.name} value={m.name}>{m.name}</option>)}
-						</select>
+			<Panel ref={absenceSectionRef} className="p-4 space-y-4">
+				<div className="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
+					<div className="text-sm font-bold text-[var(--color-label-primary)] flex items-center gap-2">
+						<Icon name="event_busy" size={16} className="text-[var(--color-label-tertiary)]" />
+						불참자 관리
 					</div>
-					<div className="col" style={{ gap: 8 }}>
-						<label style={{ fontSize: '0.875rem' }}>이유(선택)</label>
+					{currentAbsences.length > 0 && (
+						<span className="px-1.5 py-0.5 rounded-[4px] bg-[var(--color-danger)]/10 text-[var(--color-danger)] text-xs font-medium">
+							{currentAbsences.length}명
+						</span>
+					)}
+				</div>
+
+				<div className="flex flex-col gap-3">
+					<div className="space-y-1">
+						<label className="text-xs font-medium text-[var(--color-label-secondary)]">팀원 선택</label>
+						<div className="relative">
+							<select
+								value={absenceForm.name}
+								onChange={(e) => setAbsenceForm((f) => ({ ...f, name: e.target.value }))}
+								className={clsx(
+									"w-full h-8 pl-2 pr-8 rounded-[var(--radius-sm)] appearance-none",
+									"bg-[var(--color-surface)] border border-[var(--color-border-default)]",
+									"text-sm text-[var(--color-label-primary)]",
+									"focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)]",
+									"transition-all duration-100"
+								)}
+							>
+								<option value="">선택해주세요</option>
+								{members.map((m) => (
+									<option key={m.name} value={m.name}>{m.name}</option>
+								))}
+							</select>
+							<div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-label-tertiary)]">
+								<Icon name="expand_more" size={16} />
+							</div>
+						</div>
+					</div>
+
+					<div className="space-y-1">
+						<label className="text-xs font-medium text-[var(--color-label-secondary)]">사유 (선택)</label>
 						<Input
 							value={absenceForm.reason}
 							onChange={(e) => setAbsenceForm((f) => ({ ...f, reason: e.target.value }))}
-							placeholder="예: 시험"
+							placeholder="예: 시험, 여행"
+							className="bg-[var(--color-surface)]"
 						/>
 					</div>
-					<div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-						<Button variant="primary" onClick={addAbsence} disabled={!currentWeekDate || !absenceForm.name} style={{ width: '100%' }}>
-							추가/업데이트
-						</Button>
-					</div>
+
+					<Button
+						variant="solid"
+						onClick={addAbsence}
+						disabled={!currentWeekDate || !absenceForm.name}
+						className="w-full justify-center"
+						size="sm"
+					>
+						불참 등록
+					</Button>
 				</div>
+
 				{currentAbsences.length > 0 && (
-					<div style={{ marginTop: 16 }}>
-						<div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: 8, color: 'var(--color-text-muted)' }}>목록 ({currentAbsences.length})</div>
-						<div className="col" style={{ gap: 8 }}>
-							{currentAbsences.map((a) => (
-								<div key={a.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-md)' }}>
-									<div className="col" style={{ gap: 2 }}>
-										<div style={{ fontWeight: 500 }}>{a.name}</div>
-										<div className="muted" style={{ fontSize: '0.8125rem' }}>{a.reason || '-'}</div>
-									</div>
-									<div style={{ display: 'flex', gap: 4 }}>
-										<Button
-											variant="ghost"
-											size="sm"
-											icon="edit_note"
-											onClick={() => openEditAbsence(a.name)}
-											title="수정"
-											style={{ padding: 4, width: 28, height: 28 }}
-										/>
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => removeAbsence(a.name)}
-											title="삭제"
-											icon="close"
-											style={{ padding: 4, width: 28, height: 28, color: 'var(--color-critical)' }}
-										/>
-									</div>
+					<div className="space-y-2 pt-2">
+						{currentAbsences.map((a) => (
+							<div key={a.name} className="flex items-center justify-between p-2 rounded-[var(--radius-sm)] bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] group">
+								<div className="flex flex-col">
+									<span className="text-sm font-medium text-[var(--color-label-primary)]">{a.name}</span>
+									<span className="text-xs text-[var(--color-label-tertiary)]">{a.reason || '사유 없음'}</span>
 								</div>
-							))}
-						</div>
+								<div className="flex gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+									<button
+										onClick={() => openEditAbsence(a.name)}
+										className="p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-accent)] rounded-[4px] hover:bg-[var(--color-surface)]"
+									>
+										<Icon name="edit" size={14} />
+									</button>
+									<button
+										onClick={() => removeAbsence(a.name)}
+										className="p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-danger)] rounded-[4px] hover:bg-[var(--color-surface)]"
+									>
+										<Icon name="close" size={14} />
+									</button>
+								</div>
+							</div>
+						))}
 					</div>
 				)}
-				{!currentWeekDate && <div className="muted" style={{ marginTop: 8, fontSize: '0.875rem' }}>날짜를 먼저 선택하세요.</div>}
+
+				{!currentWeekDate && (
+					<div className="text-xs text-[var(--color-danger)] text-center py-2 bg-[var(--color-danger)]/5 rounded-[var(--radius-sm)]">
+						주차를 먼저 선택해주세요
+					</div>
+				)}
 			</Panel>
 
 			<Modal
@@ -97,17 +129,19 @@ export default function AbsenceWidget() {
 				onClose={() => setEditingAbsence(null)}
 				footer={
 					<>
-						<Button onClick={() => setEditingAbsence(null)}>취소</Button>
-						<Button variant="primary" onClick={saveAbsenceReason}>저장</Button>
+						<Button variant="ghost" onClick={() => setEditingAbsence(null)}>취소</Button>
+						<Button variant="solid" onClick={saveAbsenceReason}>저장</Button>
 					</>
 				}
+				size="sm"
 			>
-				<div className="col">
-					<label style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: 4 }}>이유</label>
+				<div className="flex flex-col gap-1.5">
+					<label className="text-xs font-medium text-[var(--color-label-secondary)]">사유 입력</label>
 					<Textarea
 						value={editingAbsence?.reason ?? ''}
 						onChange={(e) => setEditingAbsence((prev) => prev ? { ...prev, reason: e.target.value } : prev)}
-						placeholder="예: 시험, 여행 등"
+						placeholder="불참 사유를 수정하세요"
+						autoFocus
 					/>
 				</div>
 			</Modal>

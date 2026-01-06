@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { TOAST_CONFIG } from '@/shared/constants/config'
 
 export type ToastKind = 'info' | 'success' | 'warning' | 'error'
 
@@ -26,8 +27,6 @@ type FeedbackState = {
 	clear: () => void
 }
 
-const DEFAULT_DURATION = 4200
-
 const createId = () => `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
 export const useFeedbackStore = create<FeedbackState>()((set, get) => ({
@@ -39,7 +38,7 @@ export const useFeedbackStore = create<FeedbackState>()((set, get) => ({
 			kind: toast.kind,
 			title: toast.title,
 			description: toast.description,
-			duration: toast.duration ?? DEFAULT_DURATION,
+			duration: toast.duration ?? TOAST_CONFIG.DEFAULT_DURATION_MS,
 			createdAt: Date.now()
 		}
 		set((state) => ({ toasts: [...state.toasts, entry] }))

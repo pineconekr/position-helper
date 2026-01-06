@@ -4,6 +4,9 @@ import { useDraggable } from '@dnd-kit/core'
 import { useAppStore } from '@/shared/state/store'
 import { BLANK_ROLE_VALUE } from '@/shared/utils/assignment'
 import { encodeMemberId } from '@/shared/utils/dndIds'
+import Icon from '@/shared/components/ui/Icon'
+import { Panel } from '@/shared/components/ui/Panel'
+import clsx from 'clsx'
 
 type Props = {
 	orientation?: 'vertical' | 'horizontal'
@@ -17,30 +20,42 @@ type MemberItemProps = {
 	label: string
 	value: string
 	selected?: boolean
+	assigned?: boolean
 	onClick?: () => void
 }
 
-function MemberItem({ label, value, selected, onClick }: MemberItemProps) {
+function MemberItem({ label, value, selected, assigned, onClick }: MemberItemProps) {
 	const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
 		id: encodeMemberId(value === '' ? BLANK_ROLE_VALUE : value)
 	})
-	const style = {
+
+	const style: CSSProperties = {
 		cursor: 'grab',
-		userSelect: 'none' as const,
+		userSelect: 'none',
 		transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-		opacity: isDragging ? 0.7 : 1
+		opacity: isDragging ? 0.5 : (assigned ? 0.6 : 1),
+		zIndex: isDragging ? 100 : undefined,
 	}
 
 	return (
 		<div
 			ref={setNodeRef}
-			className={`member-item${selected ? ' member-item--selected' : ''}`}
+			className={clsx(
+				'px-3 py-1.5 rounded-full border transition-all duration-150',
+				'flex items-center gap-1.5 min-h-[32px]',
+				'text-sm font-medium',
+				selected
+					? 'bg-[var(--color-accent)] text-white border-transparent shadow-sm'
+					: 'bg-[var(--color-surface)] border-[var(--color-border-subtle)] text-[var(--color-label-primary)] hover:border-[var(--color-border-default)] hover:shadow-sm',
+				assigned && 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)] border-transparent'
+			)}
 			onClick={onClick}
 			style={style}
 			{...attributes}
 			{...listeners}
 		>
-			{label}
+			{assigned && <Icon name="check" size={12} className={selected ? 'text-white' : 'text-[var(--color-accent)]'} />}
+			<span>{label}</span>
 		</div>
 	)
 }
@@ -52,7 +67,27 @@ export default function MemberList({
 	variant = 'panel',
 	title = '팀원 목록'
 }: Props) {
-	const members = useAppStore((s) => s.app.members)
+	const members = useAppStore((s) => s.app?.members || [])
+	const draft = useAppStore((s) => s.currentDraft)
+
+	const assignedNames = useMemo(() => {
+		const names = new Set<string>()
+		if (!draft) return names
+
+		const parts = [draft.part1, draft.part2]
+
+		parts.forEach(p => {
+			if (p.SW) names.add(p.SW)
+			if (p['자막']) names.add(p['자막'])
+			if (p['고정']) names.add(p['고정'])
+			if (p['스케치']) names.add(p['스케치'])
+			p['사이드'].forEach(n => {
+				if (n) names.add(n)
+			})
+		})
+		return names
+	}, [draft])
+
 	const items = useMemo(() => {
 		const byCohort = [...members].sort((a, b) => {
 			const parse = (name: string) => {
@@ -65,34 +100,21 @@ export default function MemberList({
 			return a.name.localeCompare(b.name, 'ko')
 		})
 		const mapped = byCohort.map((m) => ({ id: encodeMemberId(m.name), label: m.name, value: m.name }))
-		const blank = { id: encodeMemberId(BLANK_ROLE_VALUE), label: '-', value: '' }
+		const blank = { id: encodeMemberId(BLANK_ROLE_VALUE), label: '공란', value: '' }
 		return [...mapped, blank]
 	}, [members])
 
 	const isInline = variant === 'inline'
-	const containerStyle: CSSProperties = isInline
-		? {
-				padding: '8px 10px',
-				border: '1px solid var(--color-border-subtle)',
-				borderRadius: 'var(--radius-md)',
-				background: 'var(--color-surface-1)',
-				overflowX: orientation === 'horizontal' ? 'auto' : undefined,
-				display: 'flex',
-				flexDirection: 'column',
-				gap: 8
-			}
-		: { padding: 12 }
 
-	return (
-		<div className={isInline ? undefined : 'panel'} style={containerStyle}>
-			{title !== null && (
-				<div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+	const content = (
+		<>
+			{title && (
+				<div className="text-sm font-semibold mb-2 flex items-center gap-2 text-[var(--color-label-secondary)]">
 					<span>{title}</span>
 				</div>
 			)}
 			<div
-				className={orientation === 'horizontal' ? 'member-list horizontal' : 'member-list'}
-				style={isInline ? { gap: 8 } : undefined}
+				className={`flex gap-2 ${orientation === 'horizontal' ? 'flex-row flex-wrap' : 'flex-col'}`}
 			>
 				{items.map((i) => (
 					<MemberItem
@@ -100,13 +122,26 @@ export default function MemberList({
 						label={i.label}
 						value={i.value}
 						selected={selectedMember === i.value}
+						assigned={i.value !== '' && assignedNames.has(i.value)}
 						onClick={i.value === '' ? undefined : () => onMemberClick?.(i.value)}
 					/>
 				))}
-				{items.length === 0 && <div className="muted">팀원을 먼저 추가하세요</div>}
+				{items.length === 0 && (
+					<div className="text-xs text-[var(--color-label-tertiary)] py-2">
+						팀원을 먼저 추가하세요
+					</div>
+				)}
 			</div>
-		</div>
+		</>
+	)
+
+	if (isInline) {
+		return <div className="flex flex-col gap-2">{content}</div>
+	}
+
+	return (
+		<Panel className="p-3">
+			{content}
+		</Panel>
 	)
 }
-
-
