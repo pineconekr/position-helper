@@ -9,6 +9,7 @@ import ToastCenter from '@/shared/components/common/ToastCenter'
 import { ThemeProvider } from '@/shared/theme/ThemeProvider'
 import Icon from '@/shared/components/ui/Icon'
 import { useShouldReduceMotion } from '@/shared/utils/motion'
+import { DbSyncProvider } from '@/shared/components/providers/DbSyncProvider'
 import './globals.css'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body className="font-sans antialiased bg-[var(--color-canvas)] text-[var(--color-label-primary)] transition-colors duration-300">
                 <ThemeProvider>
                     <MotionSettingsSync />
-                    <AppShell>{children}</AppShell>
+                    <DbSyncProvider>
+                        <AppShell>{children}</AppShell>
+                    </DbSyncProvider>
                     <ToastCenter />
                 </ThemeProvider>
             </body>

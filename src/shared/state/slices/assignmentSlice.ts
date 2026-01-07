@@ -70,6 +70,10 @@ export type AssignmentSlice = {
 	finalizeCurrentWeek: () => void
 	/** 마지막 배정 작업 취소 */
 	undoLastAssignment: () => void
+	/** DB에서 데이터 불러오기 */
+	loadFromDb: () => Promise<void>
+	/** DB로 현재 데이터 저장 (필요시) */
+	syncToDb: () => Promise<void>
 }
 
 const initial: AppData = { weeks: {}, members: [] }
@@ -142,6 +146,8 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 				meta: { action: 'note-update', before: prev?.notes, after: m.notes }
 			})
 		})
+		// Sync to DB
+		get().syncToDb()
 	},
 	toggleMemberActive: (name) => {
 		const prevMember = get().app.members.find((m) => m.name === name)
@@ -157,6 +163,8 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 			description: nextMember.active ? '활성화' : '비활성화',
 			meta: { action: 'toggle-active', active: nextMember.active }
 		})
+		// Sync to DB
+		get().syncToDb()
 	},
 	loadWeekToDraft: (date) => {
 		set((s) => {
@@ -311,6 +319,8 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 				meta: { action: 'update', date, absence: a, before: prevMap.get(a.name) }
 			})
 		})
+		// Sync to DB
+		get().syncToDb()
 	},
 	importData: (data) => {
 		// 새로운 객체로 설정하여 참조 변경 보장
@@ -376,6 +386,9 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 			description: `총 ${totalAssigned}명 배정 저장`,
 			meta: { date, totalAssigned }
 		})
+
+		// Background sync to DB
+		get().syncToDb()
 	},
 	undoLastAssignment: () => {
 		const state = get()
@@ -402,5 +415,40 @@ export const createAssignmentSlice: StateCreator<AppState, [], [], AssignmentSli
 		})
 
 		get().recalcWarnings()
+	},
+	loadFromDb: async () => {
+		const { getAllData } = await import('@/shared/lib/db-actions')
+		try {
+			const data = await getAllData()
+			if (data && (data.members.length > 0 || Object.keys(data.weeks).length > 0)) {
+				set({ app: data })
+				// 현재 날짜 로드
+				const date = get().currentWeekDate
+				if (date && data.weeks[date]) {
+					const wk = data.weeks[date]
+					set({ currentDraft: { part1: structuredClone(wk.part1), part2: structuredClone(wk.part2) } })
+				}
+				get().recalcWarnings()
+			}
+		} catch (error) {
+			console.error('Failed to load from DB:', error)
+		}
+	},
+	syncToDb: async () => {
+		const { saveWeekAssignment, updateMember } = await import('@/shared/lib/db-actions')
+		const state = get()
+		try {
+			// 멤버 동기화 (간소화를 위해 전체 순회, 추후 최적화 가능)
+			for (const member of state.app.members) {
+				await updateMember(member)
+			}
+			// 현재 주차 동기화
+			const date = state.currentWeekDate
+			if (date && state.app.weeks[date]) {
+				await saveWeekAssignment(date, state.app.weeks[date])
+			}
+		} catch (error) {
+			console.error('Failed to sync to DB:', error)
+		}
 	}
 })
