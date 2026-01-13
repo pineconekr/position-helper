@@ -19,7 +19,7 @@ import { useTheme } from '@/shared/theme/ThemeProvider'
 import {
     calculateMemberStatistics
 } from '../utils/statsCalculations'
-import { getChartThemeColors, getRoleColor, getCohortColor, SEMANTIC_COLORS } from '../utils/chartTheme'
+import { getChartThemeColors, getRoleColor, SEMANTIC_COLORS } from '../utils/chartTheme'
 import { stripCohort, extractCohort } from '@/shared/utils/assignment'
 import type { RoleKey } from '@/shared/types'
 import { RoleKeys } from '@/shared/types'
@@ -41,6 +41,9 @@ echarts.use([
 
 // 필터 타입
 type FilterType = 'all' | RoleKey
+
+// 최소 출석 주수 (이 기준 미만은 "신입"으로 간주)
+const MIN_WEEKS_FOR_STATS = 3
 
 // 편차 레벨 및 색상
 const getDeviationLevel = (deviation: number): {
@@ -67,6 +70,7 @@ interface MemberDeviationData {
     actualRate: number   // 실제 배정률
     deviation: number    // 편차 (%)
     roleDeviations: Record<RoleKey, number> // 역할별 편차
+    isNewMember?: boolean // 신입 여부 (출석 주수 < MIN_WEEKS_FOR_STATS)
 }
 
 export default function AssignmentDeviationChart() {
@@ -75,28 +79,46 @@ export default function AssignmentDeviationChart() {
     const isDark = effectiveTheme === 'dark'
 
     const [activeFilter, setActiveFilter] = useState<FilterType>('all')
+    const [includeNewMembers, setIncludeNewMembers] = useState(false) // 신입 포함 여부
 
     // 공통 테마 색상 사용
     const themeColors = useMemo(() => getChartThemeColors(isDark), [isDark])
 
     // 멤버별 편차 데이터 계산
-    const deviationData = useMemo((): MemberDeviationData[] | null => {
+    const { deviationData, newMemberCount } = useMemo((): {
+        deviationData: MemberDeviationData[] | null
+        newMemberCount: number
+    } => {
         const stats = calculateMemberStatistics(app, false)
-        if (!stats || stats.length === 0) return null
+        if (!stats || stats.length === 0) return { deviationData: null, newMemberCount: 0 }
 
-        // 평균 배정률 계산 (출석 주당 배정 횟수)
+        // 모든 출석 기록이 있는 멤버
         const membersWithAttendance = stats.filter(s => s.attendedWeeks > 0)
-        if (membersWithAttendance.length === 0) return null
+        if (membersWithAttendance.length === 0) return { deviationData: null, newMemberCount: 0 }
 
-        const avgRate = membersWithAttendance.reduce(
+        // 신입과 기존 멤버 분리 (배정 이력 유무 기준)
+        // 신입 = 배정 기록이 없는 멤버 (weeks에 있지만 아직 배정받지 못함)
+        const establishedMembers = membersWithAttendance.filter(s => s.totalAssignments > 0)
+        const newMembers = membersWithAttendance.filter(s => s.totalAssignments === 0)
+
+        // 아직 출석 기록이 없는 신입도 카운트 (members에서 weeks에 없는 사람)
+        const activeMembers = app.members?.filter(m => m.active) || []
+        const membersWithNoHistory = activeMembers.filter(m =>
+            !membersWithAttendance.some(s => s.name === m.name)
+        )
+        const totalNewMemberCount = newMembers.length + membersWithNoHistory.length
+
+        // 평균 배정률은 기존 멤버 기준으로만 계산 (신입 제외)
+        const baseForAverage = establishedMembers.length > 0 ? establishedMembers : membersWithAttendance
+        const avgRate = baseForAverage.reduce(
             (sum, s) => sum + (s.totalAssignments / s.attendedWeeks),
             0
-        ) / membersWithAttendance.length
+        ) / baseForAverage.length
 
-        // 역할별 평균 배정률 계산 (해당 역할 경험자 기준)
+        // 역할별 평균 배정률 계산 (기존 멤버 기준)
         const roleAvgRates: Record<RoleKey, number> = {} as Record<RoleKey, number>
         RoleKeys.forEach(role => {
-            const membersWithRole = membersWithAttendance.filter(s => s.roleCounts[role] > 0)
+            const membersWithRole = baseForAverage.filter(s => s.roleCounts[role] > 0)
             if (membersWithRole.length > 0) {
                 roleAvgRates[role] = membersWithRole.reduce(
                     (sum, s) => sum + (s.roleCounts[role] / s.attendedWeeks),
@@ -107,9 +129,10 @@ export default function AssignmentDeviationChart() {
             }
         })
 
-        return membersWithAttendance.map(s => {
+        const result = membersWithAttendance.map(s => {
             const actualRate = s.totalAssignments / s.attendedWeeks
             const deviation = avgRate > 0 ? ((actualRate - avgRate) / avgRate) * 100 : 0
+            const isNewMember = s.totalAssignments === 0 // 배정 이력이 없으면 신입
 
             // 역할별 편차 계산
             const roleDeviations: Record<RoleKey, number> = {} as Record<RoleKey, number>
@@ -134,18 +157,28 @@ export default function AssignmentDeviationChart() {
                 expectedRate: avgRate,
                 actualRate,
                 deviation,
-                roleDeviations
+                roleDeviations,
+                isNewMember // 신입 여부 플래그 추가
             }
         })
+
+        return { deviationData: result, newMemberCount: totalNewMemberCount }
     }, [app])
 
-    // 필터된 데이터 가져오기
-    const getFilteredDeviation = useCallback((data: MemberDeviationData[], filter: FilterType) => {
+    // 필터된 데이터 가져오기 (신입 포함 여부 반영)
+    const getFilteredDeviation = useCallback((
+        data: MemberDeviationData[],
+        filter: FilterType,
+        includeNew: boolean
+    ) => {
+        // 신입 제외 옵션 적용
+        let filtered = includeNew ? data : data.filter(d => !d.isNewMember)
+
         if (filter === 'all') {
-            return data.map(d => ({ ...d, currentDeviation: d.deviation }))
+            return filtered.map(d => ({ ...d, currentDeviation: d.deviation }))
         }
         // 특정 역할 필터: 해당 역할의 경험이 있는 멤버만
-        return data
+        return filtered
             .filter(d => d.roleAssignments[filter as RoleKey] > 0)
             .map(d => ({ ...d, currentDeviation: d.roleDeviations[filter as RoleKey] }))
     }, [])
@@ -154,7 +187,7 @@ export default function AssignmentDeviationChart() {
     const option = useMemo((): EChartsOption | null => {
         if (!deviationData || deviationData.length === 0) return null
 
-        const filteredData = getFilteredDeviation(deviationData, activeFilter)
+        const filteredData = getFilteredDeviation(deviationData, activeFilter, includeNewMembers)
         if (filteredData.length === 0) return null
 
         // 편차 범위 계산 (symmetrical)
@@ -207,26 +240,25 @@ export default function AssignmentDeviationChart() {
         const seriesData = positions.map(pos => {
             const d = pos.data
             const devLevel = getDeviationLevel(d.currentDeviation)
-            const cohortColor = getCohortColor(d.cohort, isDark)
 
             return {
                 value: [pos.x, pos.y],
                 name: d.displayName,
                 itemStyle: {
-                    color: cohortColor,
-                    borderColor: devLevel.color[isDark ? 'dark' : 'light'],
+                    color: devLevel.color[isDark ? 'dark' : 'light'],
+                    borderColor: themeColors.surface,
                     borderWidth: 2,
                     shadowBlur: 8,
                     shadowColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.15)',
-                    opacity: 0.95
+                    opacity: 1
                 },
                 label: {
                     show: true,
                     position: 'top' as const,
-                    distance: 8,
-                    formatter: d.displayName,
+                    distance: 6,
+                    formatter: d.name,
                     fontSize: 11,
-                    fontWeight: 500,
+                    fontWeight: 600,
                     color: themeColors.textPrimary,
                 },
                 memberData: d
@@ -465,15 +497,15 @@ export default function AssignmentDeviationChart() {
                     },
                     z: 2
                 },
-                // 극단값 효과
+                // 극단값 효과 (호버 시에만 리플 표시 - 성능 최적화)
                 ...(effectScatterData.length > 0 ? [{
                     type: 'effectScatter' as const,
                     data: effectScatterData,
                     symbolSize: 22,
-                    showEffectOn: 'render' as const,
+                    showEffectOn: 'emphasis' as const, // 'render' → 'emphasis': 호버 시에만 애니메이션
                     rippleEffect: {
-                        period: 3,
-                        scale: 2.5,
+                        period: 4, // 3 → 4: 더 느린 주기로 GPU 부하 감소
+                        scale: 2,  // 2.5 → 2: 리플 크기 축소
                         brushType: 'stroke' as const
                     },
                     z: 3
@@ -510,7 +542,7 @@ export default function AssignmentDeviationChart() {
                 }
             ] as any
         }
-    }, [deviationData, activeFilter, isDark, themeColors, getFilteredDeviation])
+    }, [deviationData, activeFilter, isDark, themeColors, getFilteredDeviation, includeNewMembers])
 
     // 필터 버튼 컴포넌트
     const FilterButton = ({ filter, label }: { filter: FilterType; label: string }) => {
@@ -552,7 +584,7 @@ export default function AssignmentDeviationChart() {
     }
 
     // 통계 요약
-    const filteredData = getFilteredDeviation(deviationData, activeFilter)
+    const filteredData = getFilteredDeviation(deviationData, activeFilter, includeNewMembers)
     const underassigned = filteredData.filter(d => d.currentDeviation <= -30).length
     const balanced = filteredData.filter(d => d.currentDeviation > -30 && d.currentDeviation < 30).length
     const overassigned = filteredData.filter(d => d.currentDeviation >= 30).length
@@ -571,12 +603,47 @@ export default function AssignmentDeviationChart() {
 
             {/* 필터 탭 및 요약 */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 p-4 bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-xl">
-                {/* 필터 버튼 */}
-                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[var(--color-surface-elevated)] rounded-lg">
-                    <FilterButton filter="all" label="전체" />
-                    {RoleKeys.map(role => (
-                        <FilterButton key={role} filter={role} label={role} />
-                    ))}
+                {/* 필터 버튼 + 신입 토글 */}
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[var(--color-surface-elevated)] rounded-lg">
+                        <FilterButton filter="all" label="전체" />
+                        {RoleKeys.map(role => (
+                            <FilterButton key={role} filter={role} label={role} />
+                        ))}
+                    </div>
+
+                    {/* 신입 포함 토글 */}
+                    {newMemberCount > 0 && (
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={includeNewMembers}
+                                onClick={() => setIncludeNewMembers(!includeNewMembers)}
+                                className={`
+                                    relative w-9 h-5 rounded-full transition-colors duration-200
+                                    ${includeNewMembers
+                                        ? 'bg-[var(--color-accent)]'
+                                        : 'bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)]'}
+                                `}
+                            >
+                                <span
+                                    className={`
+                                        absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200
+                                        ${includeNewMembers
+                                            ? 'left-[18px] bg-white'
+                                            : 'left-0.5 bg-[var(--color-label-tertiary)]'}
+                                    `}
+                                />
+                            </button>
+                            <span className="text-xs text-[var(--color-label-secondary)]">
+                                신입 포함
+                                <span className="ml-1 text-[var(--color-label-tertiary)]">
+                                    ({newMemberCount}명)
+                                </span>
+                            </span>
+                        </label>
+                    )}
                 </div>
 
                 {/* 요약 통계 */}
@@ -616,19 +683,7 @@ export default function AssignmentDeviationChart() {
                 </div>
             )}
 
-            {/* 범례 */}
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[var(--color-label-tertiary)]">
-                <span className="font-medium text-[var(--color-label-secondary)]">기수별 색상:</span>
-                {[15, 16, 17, 18, 19, 20, 21].map(cohort => (
-                    <div key={cohort} className="flex items-center gap-1">
-                        <span
-                            className="w-3 h-3 rounded-full border border-[var(--color-border-subtle)]"
-                            style={{ background: getCohortColor(cohort, isDark) }}
-                        />
-                        <span>{cohort}기</span>
-                    </div>
-                ))}
-            </div>
+
         </Panel>
     )
 }

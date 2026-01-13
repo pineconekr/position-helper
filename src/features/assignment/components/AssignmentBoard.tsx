@@ -1,7 +1,7 @@
 import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import { useEffect, useState, useId, useMemo } from 'react'
 import AssignmentSummary from './AssignmentSummary'
-import AssignmentTable from './AssignmentTable'
+import AssignmentTable, { type SlotKey } from './AssignmentTable'
 import MemberList from './MemberList'
 import WarningWidget from './WarningWidget'
 import WarningBadge from '@/shared/components/common/WarningBadge'
@@ -23,6 +23,8 @@ import {
 	getPartLabel,
 	type PartKey
 } from '../utils/slotValidation'
+import { evaluateDraftScore, MemberContext, calculateCandidateScore } from '@/features/stats/utils/assignmentSuggestionEngine'
+import { RoleKeys } from '@/shared/types'
 import clsx from 'clsx'
 
 const DRAG_ACTIVATION_DISTANCE = 8
@@ -41,6 +43,7 @@ export default function AssignmentBoard() {
 
 	const [selectedMember, setSelectedMember] = useState<string | null>(null)
 	const [isMounted, setIsMounted] = useState(false)
+	const [showInactive, setShowInactive] = useState(false)
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
@@ -70,6 +73,70 @@ export default function AssignmentBoard() {
 	}, [isMounted, currentWeekDate, draft, recalcWarnings])
 
 	const currentAbsences = app.weeks[currentWeekDate]?.absences ?? []
+
+	// 실시간 배정 최적성 점수 계산
+	const draftEvaluation = useMemo(() => {
+		const absenteeNames = currentAbsences.map(a => a.name)
+		return evaluateDraftScore(app, draft, absenteeNames)
+	}, [app, draft, currentAbsences])
+
+	// 선택된 멤버에 대한 각 슬롯별 점수 미리보기 계산
+	const previewScores = useMemo(() => {
+		if (!selectedMember || !app || !app.members) return null
+
+		const absenteeNames = currentAbsences.map(a => a.name)
+		const absentSet = new Set(absenteeNames)
+
+		// 선택된 멤버가 불참자면 점수 표시 안함
+		if (absentSet.has(selectedMember)) return null
+
+		const context = new MemberContext(app)
+
+		// 현재 드래프트에서 이미 배정된 멤버 추적
+		const assignedToday = new Set<string>()
+		const parts = [draft.part1, draft.part2]
+		parts.forEach(p => {
+			if (p.SW) assignedToday.add(p.SW)
+			if (p['자막']) assignedToday.add(p['자막'])
+			if (p['고정']) assignedToday.add(p['고정'])
+			if (p['스케치']) assignedToday.add(p['스케치'])
+			p['사이드'].forEach(n => { if (n) assignedToday.add(n) })
+		})
+
+		const scores = new Map<SlotKey, number>()
+		const partKeys = ['part1', 'part2'] as const
+
+		for (const part of partKeys) {
+			for (const role of RoleKeys) {
+				// SW 역할은 자격자만 볼 수 있음
+				if (role === 'SW' && !context.isSWQualified(selectedMember)) continue
+
+				if (role === '사이드') {
+					for (const idx of [0, 1] as const) {
+						const slotKey: SlotKey = `${part}-${role}-${idx}`
+						const score = calculateCandidateScore(
+							selectedMember,
+							{ part, role, index: idx },
+							context,
+							assignedToday
+						)
+						scores.set(slotKey, score.score)
+					}
+				} else {
+					const slotKey: SlotKey = `${part}-${role}`
+					const score = calculateCandidateScore(
+						selectedMember,
+						{ part, role },
+						context,
+						assignedToday
+					)
+					scores.set(slotKey, score.score)
+				}
+			}
+		}
+
+		return scores
+	}, [selectedMember, app, draft, currentAbsences])
 
 	function handleMemberClick(name: string) {
 		setSelectedMember((prev) => (prev === name ? null : name))
@@ -208,11 +275,29 @@ export default function AssignmentBoard() {
 
 						{/* 배정 테이블 */}
 						<div>
-							<div className="flex items-center gap-2 mb-2">
-								<span className="text-base font-bold text-[var(--color-label-primary)]">배정</span>
-								<span className="text-xs text-[var(--color-label-tertiary)]">
-									드래그하여 배정하세요
-								</span>
+							<div className="flex items-center justify-between gap-2 mb-2">
+								<div className="flex items-center gap-2">
+									<span className="text-base font-bold text-[var(--color-label-primary)]">배정</span>
+									<span className="text-xs text-[var(--color-label-tertiary)]">
+										드래그하여 배정하세요
+									</span>
+								</div>
+								{/* 실시간 최적성 점수 */}
+								{draftEvaluation.filledSlots > 0 && (
+									<div className={clsx(
+										'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all',
+										draftEvaluation.level === 'excellent' && 'bg-[var(--color-success)]/10 text-[var(--color-success)]',
+										draftEvaluation.level === 'good' && 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]',
+										draftEvaluation.level === 'fair' && 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]',
+										draftEvaluation.level === 'poor' && 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
+									)}>
+										<Icon name="balance" size={14} />
+										<span>{draftEvaluation.overallScore}점</span>
+										<span className="text-[var(--color-label-secondary)] font-normal">
+											{draftEvaluation.summary}
+										</span>
+									</div>
+								)}
 							</div>
 							<AssignmentTable
 								selectedMember={selectedMember}
@@ -225,16 +310,32 @@ export default function AssignmentBoard() {
 										description: '배정이 해제되었습니다.',
 									})
 								}}
+								previewScores={previewScores}
 							/>
 						</div>
 					</Panel>
 
 					<Panel className="p-4">
 						<div className="flex items-center justify-between gap-2 mb-3">
-							<span className="text-base font-bold text-[var(--color-label-primary)]">팀원 목록</span>
-							{selectedMember && (
-								<Badge variant="accent" size="sm">선택됨: {selectedMember}</Badge>
-							)}
+							<div className="flex items-center gap-2">
+								<span className="text-base font-bold text-[var(--color-label-primary)]">팀원 목록</span>
+								{selectedMember && (
+									<Badge variant="accent" size="sm">선택됨: {selectedMember}</Badge>
+								)}
+							</div>
+							<button
+								type="button"
+								onClick={() => setShowInactive(prev => !prev)}
+								className={clsx(
+									'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all',
+									showInactive
+										? 'bg-[var(--color-accent)] text-white shadow-sm'
+										: 'bg-[var(--color-surface-elevated)] text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)] border border-[var(--color-border-subtle)]'
+								)}
+							>
+								<Icon name={showInactive ? 'visibility' : 'visibility_off'} size={14} />
+								<span>비활성 멤버 포함</span>
+							</button>
 						</div>
 						<MemberList
 							orientation="horizontal"
@@ -242,6 +343,8 @@ export default function AssignmentBoard() {
 							title={null}
 							selectedMember={selectedMember}
 							onMemberClick={handleMemberClick}
+							showInactive={showInactive}
+							onToggleInactive={() => setShowInactive(prev => !prev)}
 						/>
 					</Panel>
 				</div>

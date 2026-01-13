@@ -27,6 +27,8 @@ const ROLE_COLORS: Record<RoleKey, string> = {
     스케치: 'text-rose-500 dark:text-rose-400',
 }
 
+type SlotKey = `${PartKey}-${RoleKey}` | `${PartKey}-${RoleKey}-${0 | 1}`
+
 type RoleCellProps = {
     part: PartKey
     role: RoleKey
@@ -35,9 +37,10 @@ type RoleCellProps = {
     selected?: boolean
     onClick?: () => void
     onClear?: () => void
+    previewScore?: number | null
 }
 
-function RoleCell({ part, role, index, value, selected, onClick, onClear }: RoleCellProps) {
+function RoleCell({ part, role, index, value, selected, onClick, onClear, previewScore }: RoleCellProps) {
     const dropId = encodeDropId({ part, role, index })
     const assignedId = encodeAssignedId({ part, role, index }, value)
 
@@ -60,6 +63,14 @@ function RoleCell({ part, role, index, value, selected, onClick, onClear }: Role
         transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
         opacity: isDragging ? 0.4 : 1,
         zIndex: isDragging ? 100 : undefined,
+    }
+
+    // 점수에 따른 색상 결정
+    const getScoreColor = (score: number) => {
+        if (score >= 120) return 'text-[var(--color-success)]'
+        if (score >= 80) return 'text-[var(--color-accent)]'
+        if (score >= 0) return 'text-[var(--color-warning)]'
+        return 'text-[var(--color-danger)]'
     }
 
     return (
@@ -96,7 +107,17 @@ function RoleCell({ part, role, index, value, selected, onClick, onClear }: Role
                 {...attributes}
                 {...listeners}
             >
-                <span className="truncate px-2">{displayValue || '—'}</span>
+                {/* 빈 슬롯: 점수 미리보기 표시 */}
+                {isEmpty && previewScore !== null && previewScore !== undefined ? (
+                    <span className={clsx(
+                        'text-xs font-bold',
+                        getScoreColor(previewScore)
+                    )}>
+                        +{previewScore}
+                    </span>
+                ) : (
+                    <span className="truncate px-2">{displayValue || '—'}</span>
+                )}
 
                 {!isEmpty && onClear && (
                     <button
@@ -128,9 +149,10 @@ type Props = {
     selectedMember?: string | null
     onSlotClick?: (part: PartKey, role: RoleKey, index?: 0 | 1) => void
     onClearSlot?: (part: PartKey, role: RoleKey, index?: 0 | 1) => void
+    previewScores?: Map<SlotKey, number> | null
 }
 
-export default function AssignmentTable({ selectedMember, onSlotClick, onClearSlot }: Props) {
+export default function AssignmentTable({ selectedMember, onSlotClick, onClearSlot, previewScores }: Props) {
     const draft = useAppStore((s) => s.currentDraft)
 
     const getValue = (part: PartKey, role: RoleKey, index?: 0 | 1): string => {
@@ -139,6 +161,11 @@ export default function AssignmentTable({ selectedMember, onSlotClick, onClearSl
             return p['사이드'][index ?? 0] || ''
         }
         return (p[role] as string) || ''
+    }
+
+    const getSlotKey = (part: PartKey, role: RoleKey, index?: 0 | 1): SlotKey => {
+        if (index !== undefined) return `${part}-${role}-${index}`
+        return `${part}-${role}`
     }
 
     const gridCols = 'grid-cols-[48px_1fr_1fr_1fr_2fr_1fr]'
@@ -184,31 +211,43 @@ export default function AssignmentTable({ selectedMember, onSlotClick, onClearSl
                                 return (
                                     <CellWrapper key={`${part}-${role}`}>
                                         <div className="flex w-full gap-1">
-                                            {[0, 1].map((idx) => (
-                                                <RoleCell
-                                                    key={idx}
-                                                    part={part}
-                                                    role={role}
-                                                    index={idx as 0 | 1}
-                                                    value={getValue(part, role, idx as 0 | 1)}
-                                                    selected={selectedMember === getValue(part, role, idx as 0 | 1) && getValue(part, role, idx as 0 | 1) !== ''}
-                                                    onClick={() => onSlotClick?.(part, role, idx as 0 | 1)}
-                                                    onClear={() => onClearSlot?.(part, role, idx as 0 | 1)}
-                                                />
-                                            ))}
+                                            {[0, 1].map((idx) => {
+                                                const slotKey = getSlotKey(part, role, idx as 0 | 1)
+                                                const value = getValue(part, role, idx as 0 | 1)
+                                                const isEmpty = value === '' || value === BLANK_ROLE_VALUE
+                                                return (
+                                                    <RoleCell
+                                                        key={idx}
+                                                        part={part}
+                                                        role={role}
+                                                        index={idx as 0 | 1}
+                                                        value={value}
+                                                        selected={selectedMember === value && value !== ''}
+                                                        onClick={() => onSlotClick?.(part, role, idx as 0 | 1)}
+                                                        onClear={() => onClearSlot?.(part, role, idx as 0 | 1)}
+                                                        previewScore={isEmpty && previewScores ? previewScores.get(slotKey) ?? null : null}
+                                                    />
+                                                )
+                                            })}
                                         </div>
                                     </CellWrapper>
                                 )
                             }
+
+                            const slotKey = getSlotKey(part, role)
+                            const value = getValue(part, role)
+                            const isEmpty = value === '' || value === BLANK_ROLE_VALUE
+
                             return (
                                 <CellWrapper key={`${part}-${role}`}>
                                     <RoleCell
                                         part={part}
                                         role={role}
-                                        value={getValue(part, role)}
-                                        selected={selectedMember === getValue(part, role) && getValue(part, role) !== ''}
+                                        value={value}
+                                        selected={selectedMember === value && value !== ''}
                                         onClick={() => onSlotClick?.(part, role)}
                                         onClear={() => onClearSlot?.(part, role)}
+                                        previewScore={isEmpty && previewScores ? previewScores.get(slotKey) ?? null : null}
                                     />
                                 </CellWrapper>
                             )
@@ -219,3 +258,5 @@ export default function AssignmentTable({ selectedMember, onSlotClick, onClearSl
         </div>
     )
 }
+
+export type { SlotKey }

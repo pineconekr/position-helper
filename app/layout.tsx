@@ -16,7 +16,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="ko" suppressHydrationWarning>
             <head>
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+                {/* Preload font for faster LCP */}
+                <link
+                    rel="preload"
+                    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+                    as="style"
+                />
+                <link
+                    rel="stylesheet"
+                    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+                />
             </head>
             <body className="font-sans antialiased bg-[var(--color-canvas)] text-[var(--color-label-primary)] transition-colors duration-300">
                 <ThemeProvider>

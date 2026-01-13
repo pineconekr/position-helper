@@ -247,7 +247,7 @@ export default function ActivityFeed({
 	if (filteredEntries.length === 0) {
 		return (
 			<div className="p-3 rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] flex justify-between items-center">
-				<div className="text-[13px] font-semibold text-[var(--color-label-primary)]">{title}</div>
+				<div className="text-sm font-semibold text-[var(--color-label-primary)]">{title}</div>
 				<span className="text-sm text-[var(--color-label-tertiary)]">{emptyMessage}</span>
 			</div>
 		)

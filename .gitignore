@@ -41,6 +41,9 @@ pnpm-debug.log*
 *.tsbuildinfo
 *.tsbuildinfo.*
 
+# Trace files
+Trace-*.json
+
 # Formatting / Linting
 .eslintcache
 

@@ -37,14 +37,7 @@ echarts.use([
 	CanvasRenderer
 ])
 
-// 역할별 그라데이션 생성
-const getRoleGradient = (role: string, isDark: boolean) => {
-	const baseColor = getRoleColor(role, isDark)
-	return new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-		{ offset: 0, color: baseColor },
-		{ offset: 1, color: isDark ? `${baseColor}cc` : `${baseColor}dd` }
-	])
-}
+// 역할별 그라데이션 생성 함수 제거됨
 
 export default function ActivityTimeline() {
 	const app = useAppStore((s) => s.app)
@@ -262,7 +255,7 @@ export default function ActivityTimeline() {
 							// 점선 효과를 위한 대시 패턴은 ECharts에서 직접 지원하지 않으므로 얇은 테두리로 대체
 						} else if (status.status === 'assigned') {
 							const primaryRole = status.roles[0]
-							fill = getRoleGradient(primaryRole, isDark)
+							fill = getRoleColor(primaryRole, isDark)
 							stroke = 'transparent'
 							text = status.roles.map(r => getRoleAbbr(r)).join('+')
 							textColor = '#ffffff'
@@ -319,7 +312,7 @@ export default function ActivityTimeline() {
 					data: seriesData,
 					z: 2
 				},
-				// 연속 배정 펄스 효과
+				// 연속 배정 펄스 효과 (호버 시에만 리플 표시 - 성능 최적화)
 				...(highlightData.length > 0 ? [{
 					type: 'effectScatter' as const,
 					data: highlightData.map((d: any) => ({
@@ -327,10 +320,10 @@ export default function ActivityTimeline() {
 						symbolSize: 8
 					})),
 					symbolSize: 4,
-					showEffectOn: 'render' as const,
+					showEffectOn: 'emphasis' as const, // 'render' → 'emphasis': 호버 시에만 애니메이션
 					rippleEffect: {
-						period: 2,
-						scale: 3,
+						period: 4, // 2 → 4: 더 느린 주기로 GPU 부하 감소
+						scale: 2.5, // 3 → 2.5: 리플 크기 축소
 						brushType: 'stroke' as const,
 						color: themeColors.warning
 					},
@@ -431,7 +424,7 @@ export default function ActivityTimeline() {
 
 					{stats.consecutiveWarnings > 0 && (
 						<>
-							<div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-warning)]/10 rounded-lg animate-pulse">
+							<div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-warning)]/10 rounded-lg border border-[var(--color-warning)]/30">
 								<span className="text-lg font-bold text-[var(--color-warning)]">{stats.consecutiveWarnings}</span>
 								<span className="text-xs text-[var(--color-label-secondary)]">연속 배정</span>
 							</div>
@@ -459,7 +452,7 @@ export default function ActivityTimeline() {
 			{/* 범례 */}
 			<div className="flex items-center gap-4 mb-3 text-xs text-[var(--color-label-tertiary)]">
 				<div className="flex items-center gap-1.5">
-					<div className="w-4 h-4 rounded-md border border-[var(--color-border)] flex items-center justify-center text-[8px]">✕</div>
+					<div className="w-4 h-4 rounded-md border border-[var(--color-border)] flex items-center justify-center text-xs">✕</div>
 					<span>불참</span>
 				</div>
 				<div className="flex items-center gap-1.5">

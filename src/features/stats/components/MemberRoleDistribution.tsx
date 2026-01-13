@@ -28,16 +28,6 @@ echarts.use([BarChart, PieChart, GridComponent, TooltipComponent, LegendComponen
 // 정렬 타입
 type SortType = 'total' | 'rate' | 'cohort'
 
-// 역할별 그라데이션 (더 부드러운 효과)
-const getRoleGradient = (role: RoleKey, isDark: boolean) => {
-	const color = getRoleColor(role, isDark)
-	return new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-		{ offset: 0, color: color },
-		{ offset: 0.5, color: color },
-		{ offset: 1, color: isDark ? `${color}90` : `${color}b0` }
-	])
-}
-
 interface MemberData {
 	name: string
 	displayName: string
@@ -142,7 +132,7 @@ export default function MemberRoleDistribution() {
 				blurScope: 'coordinateSystem' as const
 			},
 			itemStyle: {
-				color: getRoleGradient(role, isDark),
+				color: getRoleColor(role, isDark),
 				borderRadius: roleIdx === RoleKeys.length - 1 ? [0, 6, 6, 0] : roleIdx === 0 ? [6, 0, 0, 6] : 0,
 				shadowBlur: 4,
 				shadowColor: `${getRoleColor(role, isDark)}30`,
@@ -369,12 +359,12 @@ export default function MemberRoleDistribution() {
 							{RoleKeys.map(role => (
 								<div key={role} className="flex flex-col items-center gap-0.5">
 									<div
-										className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+										className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
 										style={{ background: getRoleColor(role, isDark) }}
 									>
 										{roleTotals[role]}
 									</div>
-									<span className="text-[9px] text-[var(--color-label-tertiary)]">{role}</span>
+									<span className="text-xs text-[var(--color-label-tertiary)]">{role}</span>
 								</div>
 							))}
 						</div>
@@ -422,3 +412,4 @@ export default function MemberRoleDistribution() {
 		</Panel>
 	)
 }
+

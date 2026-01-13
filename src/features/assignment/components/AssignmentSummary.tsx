@@ -118,7 +118,7 @@ export default function AssignmentSummary() {
 					<h2 className="text-lg font-bold text-[var(--color-label-primary)] m-0">
 						배정 현황
 					</h2>
-					<span className="text-xs font-medium text-[var(--color-label-tertiary)]">
+					<span className="text-xs font-medium text-[var(--color-label-tertiary)]" suppressHydrationWarning>
 						{dateLabel}
 					</span>
 				</div>

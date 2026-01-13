@@ -231,46 +231,7 @@ export function calculateMemberStatistics(app: AppData, includeInactive = false)
 	return Array.from(statsMap.values())
 }
 
-/**
- * 역할별 기여도 트리맵 데이터 계산
- * 차트 2: Role Contribution Treemap
- */
-export function calculateRoleContributions(app: AppData, includeInactive = false): RoleContribution[] {
-	const stats = calculateMemberStatistics(app, includeInactive)
-	const contributions: RoleContribution[] = []
 
-	RoleKeys.forEach(role => {
-		let totalCount = 0
-		const members: { name: string; count: number; percentage: number }[] = []
-
-		stats.forEach(memberStat => {
-			const count = memberStat.roleCounts[role]
-			if (count > 0) {
-				totalCount += count
-				members.push({ name: memberStat.name, count, percentage: 0 })
-			}
-		})
-
-		// 백분율 계산
-		members.forEach(m => {
-			m.percentage = totalCount > 0 ? (m.count / totalCount) * 100 : 0
-		})
-
-		// 카운트 내림차순 정렬
-		members.sort((a, b) => b.count - a.count)
-
-		contributions.push({
-			role,
-			totalCount,
-			members
-		})
-	})
-
-	// 총 배정 수 기준 내림차순 정렬
-	contributions.sort((a, b) => b.totalCount - a.totalCount)
-
-	return contributions
-}
 
 /**
  * 팀원-역할 히트맵 데이터 계산
@@ -365,70 +326,7 @@ export function calculateStatsSummary(app: AppData): {
 	}
 }
 
-/**
- * 팀원별 불참률 계산 (TOP N)
- */
-export function calculateAbsenceRanking(app: AppData, topN = 3): {
-	name: string
-	displayName: string
-	absenceCount: number
-	absenceRate: number // 백분율
-}[] {
-	if (!app || !app.weeks || !app.members) return []
-	const totalWeeks = Object.keys(app.weeks).length
-	if (totalWeeks === 0) return []
 
-	const activeMembers = app.members.filter(m => m.active)
-
-	// 멤버별 불참 횟수 집계
-	const absenceCounts = new Map<string, number>()
-	activeMembers.forEach(m => absenceCounts.set(m.name, 0))
-
-	Object.values(app.weeks).forEach((weekData: WeekData) => {
-		weekData.absences.forEach(absence => {
-			if (absenceCounts.has(absence.name)) {
-				absenceCounts.set(absence.name, (absenceCounts.get(absence.name) || 0) + 1)
-			}
-		})
-	})
-
-	// 불참률 계산 및 정렬
-	const ranking = activeMembers
-		.map(m => ({
-			name: m.name,
-			displayName: stripCohort(m.name),
-			absenceCount: absenceCounts.get(m.name) || 0,
-			absenceRate: ((absenceCounts.get(m.name) || 0) / totalWeeks) * 100
-		}))
-		.sort((a, b) => b.absenceRate - a.absenceRate)
-		.slice(0, topN)
-
-	return ranking
-}
-
-/**
- * 팀원별 총 배정 횟수 계산 (TOP N)
- */
-export function calculateAssignmentRanking(app: AppData, topN = 3): {
-	name: string
-	displayName: string
-	assignmentCount: number
-	attendedWeeks: number
-	assignmentRate: number // 출석당 평균 배정 (주당 2파트이므로 최대 2)
-}[] {
-	const stats = calculateMemberStatistics(app, false) // Active only
-
-	return stats
-		.map(s => ({
-			name: s.name,
-			displayName: stripCohort(s.name),
-			assignmentCount: s.totalAssignments,
-			attendedWeeks: s.attendedWeeks,
-			assignmentRate: s.attendedWeeks > 0 ? s.totalAssignments / s.attendedWeeks : 0
-		}))
-		.sort((a, b) => b.assignmentCount - a.assignmentCount)
-		.slice(0, topN)
-}
 
 /**
  * 배정 부족 팀원 (출석 대비 배정률이 낮은 TOP N)
@@ -1131,63 +1029,7 @@ export function detectConsecutiveAssignments(app: AppData): {
 	})
 }
 
-/**
- * 장기 불참자 감지 (최근 N주 연속 불참)
- */
-export function detectLongTermAbsences(app: AppData, minWeeks = 2): {
-	memberName: string
-	displayName: string
-	consecutiveAbsences: number
-	lastAttendedDate: string | null
-	reasons: string[]
-}[] {
-	if (!app || !app.weeks || !app.members) return []
 
-	const weekDates = sortWeekDates(Object.keys(app.weeks))
-	if (weekDates.length < minWeeks) return []
-
-	const activeMembers = app.members.filter(m => m.active)
-	const results: {
-		memberName: string
-		displayName: string
-		consecutiveAbsences: number
-		lastAttendedDate: string | null
-		reasons: string[]
-	}[] = []
-
-	activeMembers.forEach(member => {
-		let consecutiveAbsences = 0
-		let lastAttendedDate: string | null = null
-		const reasons: string[] = []
-
-		// 최근부터 역순으로 확인
-		for (let i = weekDates.length - 1; i >= 0; i--) {
-			const date = weekDates[i]
-			const weekData = app.weeks[date]
-			const absence = weekData.absences.find(a => a.name === member.name)
-
-			if (absence) {
-				consecutiveAbsences++
-				if (absence.reason) reasons.push(absence.reason)
-			} else {
-				lastAttendedDate = date
-				break
-			}
-		}
-
-		if (consecutiveAbsences >= minWeeks) {
-			results.push({
-				memberName: member.name,
-				displayName: stripCohort(member.name),
-				consecutiveAbsences,
-				lastAttendedDate,
-				reasons: [...new Set(reasons)] // 중복 제거
-			})
-		}
-	})
-
-	return results.sort((a, b) => b.consecutiveAbsences - a.consecutiveAbsences)
-}
 
 /**
  * 배정 추천 (배정 부족자 + 역할별 오래 안 맡은 팀원)

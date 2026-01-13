@@ -107,7 +107,7 @@ function WarningItem({ warning }: { warning: Warning }) {
 					</span>
 					{timeContext && (
 						<span className={clsx(
-							'shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded-[4px] border',
+							'shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-[4px] border',
 							warning.level === 'error'
 								? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)] border-[var(--color-danger)]/20'
 								: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20'

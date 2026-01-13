@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
-
+/* 
+  Typography Scale Override (시원한 가독성)
+  @layer 외부 정의 -> @layer theme보다 우선순위 높음
+*/
+:root {
+    --text-xs: 0.9375rem;    /* 15px */
+    --text-sm: 1rem;         /* 16px */
+    --text-base: 1.125rem;   /* 18px */
+    --text-lg: 1.25rem;      /* 20px */
+    --text-xl: 1.5rem;       /* 24px */
+    --text-2xl: 2rem;        /* 32px */
+    --text-3xl: 2.25rem;     /* 36px */
+}
 
 /* 
   Theme Configuration 
@@ -17,19 +29,16 @@
     --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-    /* rem 기반 타이포그래피 (브라우저 기본 16px 기준) */
-    --text-xs: 0.8125rem;
-    /* 13px - Labels, timestamps (+1px) */
-    --text-sm: 0.875rem;
-    /* 14px - Secondary text (+1px) */
-    --text-base: 1rem;
-    /* 16px - Body (Desktop) (+2px) */
-    --text-lg: 1.125rem;
-    /* 18px - Subheadings (+2px) */
-    --text-xl: 1.25rem;
-    /* 20px - Section titles (+2px) */
-    --text-2xl: 1.625rem;
-    /* 26px - Page titles (+2px) */
+    /* rem 기반 타이포그래피 (시원한 가독성 스케일) */
+    /* Tailwind v4: --font-size-* 형식으로 text-* 유틸리티 오버라이드 */
+    --font-size-xs: 0.9375rem;    /* 15px - Labels, timestamps */
+    --font-size-sm: 1rem;         /* 16px - Secondary text */
+    --font-size-base: 1.125rem;   /* 18px - Body */
+    --font-size-lg: 1.25rem;      /* 20px - Subheadings */
+    --font-size-xl: 1.5rem;       /* 24px - Section titles */
+    --font-size-2xl: 2rem;        /* 32px - Page titles */
+    --font-size-3xl: 2.25rem;     /* 36px */
+    --font-size-4xl: 2.5rem;      /* 40px */
 
     /* 터치 영역 (Apple HIG: 최소 44pt) */
     --touch-target-min: 2.75rem;
@@ -116,7 +125,8 @@
     --color-surface: #121214;
     --color-surface-elevated: #1c1c1f;
 
-    --color-label-primary: #ededed;
+    --color-label-primary: #d4d4d8;
+    /* Zinc-300 - 눈부심 방지 */
     --color-label-secondary: #a1a1aa;
     --color-label-tertiary: #52525b;
 
@@ -135,11 +145,43 @@
         @apply border-border-default;
     }
 
+    /* Global Scrollbar Styling (Apply to ALL elements) */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-border-default) transparent;
+    }
+
+    *::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    *::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background: var(--color-border-default);
+        border-radius: 10px;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+        background: var(--color-label-tertiary);
+    }
+
     body {
         @apply bg-canvas text-label-primary font-sans antialiased;
-        line-height: 1.5;
+        line-height: 1.625; /* leading-relaxed */
         letter-spacing: -0.01em;
     }
+
+    /* Typography Scale Override (시원한 가독성) */
+    .text-xs { font-size: 0.9375rem !important; }  /* 15px */
+    .text-sm { font-size: 1rem !important; }       /* 16px */
+    .text-base { font-size: 1.125rem !important; } /* 18px */
+    .text-lg { font-size: 1.25rem !important; }    /* 20px */
+    .text-xl { font-size: 1.5rem !important; }     /* 24px */
+    .text-2xl { font-size: 2rem !important; }      /* 32px */
 }
 
 @layer utilities {
