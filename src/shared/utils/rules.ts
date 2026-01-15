@@ -16,20 +16,7 @@ function getLastWeeks(currentDate: string, app: AppData, count: number): Array<{
 	return previousWeeks.map((date) => ({ date, data: app.weeks[date]! }))
 }
 
-function getWeeksWithinDays(currentDate: string, app: AppData, days: number): Array<{ date: string; data: WeekData }> {
-	const current = new Date(`${currentDate}T00:00:00`)
-	if (Number.isNaN(current.getTime())) return []
-	return Object.keys(app.weeks)
-		.filter((date) => {
-			if (!date) return false
-			const target = new Date(`${date}T00:00:00`)
-			if (Number.isNaN(target.getTime())) return false
-			const diffDays = (current.getTime() - target.getTime()) / (1000 * 60 * 60 * 24)
-			return diffDays > 0 && diffDays <= days
-		})
-		.sort()
-		.map((date) => ({ date, data: app.weeks[date]! }))
-}
+
 
 const normalizeName = (value?: string) => (typeof value === 'string' ? value.trim() : '')
 

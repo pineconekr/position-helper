@@ -16,9 +16,11 @@ const partLabel = (part: 'part1' | 'part2') => (part === 'part1' ? '1부' : '2�
 
 /**
  * Remove cohort number from name (e.g. "12기 홍길동" -> "홍길동")
+ * Also converts BLANK_ROLE_VALUE to "공란" for display
  */
 export function stripCohort(name: string): string {
 	if (!name) return name
+	if (name === BLANK_ROLE_VALUE) return '공란'
 	return name.replace(/^\d+\s+/, '')
 }
 

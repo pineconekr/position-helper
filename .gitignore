@@ -63,3 +63,6 @@ __pycache__/
 *$py.class
 venv/
 .venv/
+
+# Local Netlify folder
+.netlify
