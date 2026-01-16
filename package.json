@@ -17,6 +17,7 @@
   "dependencies": {
     "@heroicons/vue": "^2.2.0",
     "@neondatabase/serverless": "^1.0.2",
+    "@tanstack/vue-table": "^8.21.3",
     "@vueuse/core": "^14.1.0",
     "@vueuse/motion": "^3.0.3",
     "class-variance-authority": "^0.7.1",

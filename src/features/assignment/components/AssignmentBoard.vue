@@ -355,7 +355,7 @@ function getLevelClass(level: string): string {
 
     <!-- 사이드 컬럼 (위젯) -->
     <div class="flex-[1_1_300px] max-w-full flex flex-col gap-4">
-      <WarningWidget />
+      <WarningWidget @select-member="handleMemberClick" />
       <AbsenceWidget />
 
       <div class="text-[var(--color-label-tertiary)] text-xs leading-relaxed px-1">

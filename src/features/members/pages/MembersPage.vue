@@ -2,7 +2,8 @@
 /**
  * MembersPage.vue - 팀원 관리 페이지
  */
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, h, type Ref } from 'vue'
+import type { Updater } from '@tanstack/vue-table'
 import { useAssignmentStore } from '@/stores/assignment'
 import Modal from '@/components/common/Modal.vue'
 import ActivityFeed from '@/shared/components/common/ActivityFeed.vue'
@@ -16,6 +17,22 @@ import Icon from '@/components/ui/Icon.vue'
 import { type MembersEntry } from '@/shared/types'
 import { stripCohort, extractCohort } from '@/shared/utils/assignment'
 import clsx from 'clsx'
+import { 
+  FlexRender,
+  getCoreRowModel,
+  useVueTable,
+  type ColumnDef,
+  getSortedRowModel,
+  type SortingState,
+} from '@tanstack/vue-table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const store = useAssignmentStore()
 
@@ -83,6 +100,101 @@ const generationStats = computed(() => {
 
 const activeCount = computed(() => members.value.filter(m => m.active).length)
 const maxGenCount = computed(() => Math.max(1, ...generationStats.value.sorted.map(s => s[1])))
+
+// Table Setup
+type MemberWithGen = typeof membersWithGen.value[0]
+
+const sorting = ref<SortingState>([])
+
+const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
+  {
+    accessorKey: 'generation',
+    header: () => h('div', { class: 'text-center w-14' }, '기수'),
+    cell: ({ row }) => {
+      const gen = row.original.generation
+      return h('div', { class: 'text-center' }, 
+        gen 
+          ? h('span', { class: 'text-sm font-mono text-[var(--color-label-secondary)]' }, gen)
+          : h('span', { class: 'text-[var(--color-label-tertiary)]' }, '-')
+      )
+    },
+  },
+  {
+    accessorKey: 'name',
+    header: ({ column }) => {
+      return h(Button, {
+        variant: 'ghost',
+        class: '-ml-4 h-8 data-[state=open]:bg-accent',
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+      }, () => ['이름', h(Icon, { name: 'unfold_more', size: 12, class: 'ml-2' })])
+    },
+    cell: ({ row }) => {
+      const member = row.original
+      return h('div', { class: 'flex items-center gap-3' }, [
+        h('div', {
+          class: clsx(
+            'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--color-border-subtle)]',
+            member.generation
+              ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+              : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)]'
+          )
+        }, member.displayName.charAt(0)),
+        h('div', { class: 'flex flex-col' }, [
+          h('span', { class: 'text-base font-medium text-[var(--color-label-primary)]' }, member.displayName),
+          member.notes ? h('span', { class: 'text-xs text-[var(--color-label-tertiary)] truncate max-w-[var(--truncate-max-width)]' }, member.notes) : null
+        ])
+      ])
+    }
+  },
+  {
+    accessorKey: 'active',
+    header: () => h('div', { class: 'text-center w-20' }, '상태'),
+    cell: ({ row }) => {
+      return h('div', { class: 'text-center' }, 
+        h('div', {
+          class: clsx(
+            'inline-block w-2 h-2 rounded-full',
+            row.original.active ? 'bg-[var(--color-success)]' : 'bg-[var(--color-label-tertiary)]'
+          )
+        })
+      )
+    }
+  },
+  {
+    id: 'actions',
+    header: () => h('div', { class: 'w-16' }),
+    cell: ({ row }) => {
+      const member = row.original
+      return h('div', { class: 'flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity' }, [
+        h('button', {
+          onClick: () => openEditModal(member),
+          class: 'p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-accent)] rounded-[4px] hover:bg-[var(--color-surface-elevated)]',
+        }, h(Icon, { name: 'edit', size: 14 })),
+        h('button', {
+          onClick: () => { deletingMember.value = member },
+          class: 'p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-danger)] rounded-[4px] hover:bg-[var(--color-surface-elevated)]',
+        }, h(Icon, { name: 'delete', size: 14 }))
+      ])
+    }
+  }
+])
+
+const table = useVueTable({
+  get data() { return filteredMembers.value },
+  get columns() { return columns.value },
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  onSortingChange: updaterOrValue => valueUpdater(updaterOrValue, sorting),
+  state: {
+    get sorting() { return sorting.value },
+  },
+})
+
+function valueUpdater<T extends Updater<any>>(updaterOrValue: T, ref: Ref) {
+  ref.value = typeof updaterOrValue === 'function'
+    ? updaterOrValue(ref.value)
+    : updaterOrValue
+}
 
 // Actions
 function handleSubmit() {
@@ -187,21 +299,39 @@ function closeModal() {
           </div>
         </div>
 
-        <!-- Member Table -->
+        <!-- Member Table (shadcn Data Table) -->
         <div class="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)]">
-              <tr class="text-left text-xs font-semibold text-[var(--color-label-tertiary)] uppercase tracking-wider">
-                <th class="px-4 py-2 text-center w-14">기수</th>
-                <th class="px-4 py-2">이름</th>
-                <th class="px-4 py-2 w-20 text-center">상태</th>
-                <th class="px-4 py-2 w-16"></th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-[var(--color-border-subtle)]">
-              <tr v-if="filteredMembers.length === 0">
-                <td colspan="4" class="py-12 text-center">
-                  <div class="flex flex-col items-center justify-center gap-2">
+          <Table>
+            <TableHeader class="bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)]">
+              <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="border-0 hover:bg-transparent">
+                <TableHead v-for="header in headerGroup.headers" :key="header.id" :class="clsx('text-xs font-semibold text-[var(--color-label-tertiary)] uppercase tracking-wider h-10', header.column.id === 'generation' ? 'text-center' : '')">
+                  <FlexRender
+                    v-if="!header.isPlaceholder"
+                    :render="header.column.columnDef.header"
+                    :props="header.getContext()"
+                  />
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <template v-if="table.getRowModel().rows?.length">
+                <TableRow
+                  v-for="row in table.getRowModel().rows"
+                  :key="row.id"
+                  :data-state="row.getIsSelected() ? 'selected' : undefined"
+                  :class="clsx(
+                    'group transition-colors hover:bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)] last:border-0',
+                    !row.original.active && 'opacity-60'
+                  )"
+                >
+                  <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" class="py-2.5">
+                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                  </TableCell>
+                </TableRow>
+              </template>
+              <TableRow v-else>
+                <TableCell colspan="4" class="h-24 text-center py-12">
+                   <div class="flex flex-col items-center justify-center gap-2">
                     <div class="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center">
                       <Icon name="person_off" :size="20" class="text-[var(--color-label-tertiary)]" />
                     </div>
@@ -209,67 +339,10 @@ function closeModal() {
                       {{ searchTerm ? '검색 결과가 없습니다' : '조건에 맞는 팀원이 없습니다' }}
                     </p>
                   </div>
-                </td>
-              </tr>
-              <tr
-                v-for="member in filteredMembers"
-                :key="member.name"
-                :class="clsx(
-                  'group transition-colors hover:bg-[var(--color-surface-elevated)]',
-                  !member.active && 'opacity-60'
-                )"
-              >
-                <td class="px-4 py-2.5 text-center">
-                  <span v-if="member.generation" class="text-sm font-mono text-[var(--color-label-secondary)]">
-                    {{ member.generation }}
-                  </span>
-                  <span v-else class="text-[var(--color-label-tertiary)]">-</span>
-                </td>
-                <td class="px-4 py-2.5">
-                  <div class="flex items-center gap-3">
-                    <div :class="clsx(
-                      'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border border-[var(--color-border-subtle)]',
-                      member.generation
-                        ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
-                        : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)]'
-                    )">
-                      {{ member.displayName.charAt(0) }}
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-base font-medium text-[var(--color-label-primary)]">
-                        {{ member.displayName }}
-                      </span>
-                      <span v-if="member.notes" class="text-xs text-[var(--color-label-tertiary)] truncate max-w-[var(--truncate-max-width)]">
-                        {{ member.notes }}
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-4 py-2.5 text-center">
-                  <div :class="clsx(
-                    'inline-block w-2 h-2 rounded-full',
-                    member.active ? 'bg-[var(--color-success)]' : 'bg-[var(--color-label-tertiary)]'
-                  )" />
-                </td>
-                <td class="px-4 py-2.5 text-right">
-                  <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      @click="openEditModal(member)"
-                      class="p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-accent)] rounded-[4px] hover:bg-[var(--color-surface-elevated)]"
-                    >
-                      <Icon name="edit" :size="14" />
-                    </button>
-                    <button
-                      @click="deletingMember = member"
-                      class="p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-danger)] rounded-[4px] hover:bg-[var(--color-surface-elevated)]"
-                    >
-                      <Icon name="delete" :size="14" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
       </div>
 

@@ -10,7 +10,7 @@
  */
 import { computed, ref } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
-import type { WarningLevel } from '@/shared/types'
+import type { Warning, WarningLevel } from '@/shared/types'
 import { Card, CardContent } from '@/components/ui/card'
 import Icon from '@/components/ui/Icon.vue'
 import clsx from 'clsx'
@@ -76,6 +76,16 @@ const filterButtons: { key: FilterType; label: string; icon: string }[] = [
   { key: 'warn', label: '주의', icon: 'warning' },
   { key: 'info', label: '추천', icon: 'lightbulb' }
 ]
+
+const emit = defineEmits<{
+  'select-member': [name: string]
+}>()
+
+function handleWarningClick(warning: Warning) {
+  if (warning.target?.name) {
+    emit('select-member', warning.target.name)
+  }
+}
 </script>
 
 <template>
@@ -113,10 +123,10 @@ const filterButtons: { key: FilterType; label: string; icon: string }[] = [
           @click="activeFilter = filter.key"
           :class="clsx(
             'px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-150',
-            'flex items-center gap-1',
+            'flex items-center gap-1 cursor-pointer select-none',
             activeFilter === filter.key
               ? 'bg-[var(--color-accent)] text-white'
-              : 'bg-[var(--color-surface)] text-[var(--color-label-secondary)] hover:bg-[var(--color-surface-elevated)]'
+              : 'bg-[var(--color-surface)] text-[var(--color-label-secondary)] hover:bg-[var(--color-surface-elevated)] active:scale-95'
           )"
         >
           <Icon :name="filter.icon" :size="12" />
@@ -150,10 +160,11 @@ const filterButtons: { key: FilterType; label: string; icon: string }[] = [
         <div
           v-for="warning in filteredWarnings"
           :key="warning.id"
+          @click="handleWarningClick(warning)"
           :class="clsx(
             'relative flex items-start gap-3 p-3 rounded-[var(--radius-sm)]',
             'bg-[var(--color-surface)] border-l-[3px]',
-            'transition-all duration-150 hover:bg-[var(--color-surface-elevated)]',
+            'transition-all duration-150 hover:bg-[var(--color-surface-elevated)] cursor-pointer active:scale-[0.98]',
             warning.level === 'error' 
               ? 'border-l-[var(--color-danger)]' 
               : 'border-l-[var(--color-warning)]'
@@ -226,9 +237,10 @@ const filterButtons: { key: FilterType; label: string; icon: string }[] = [
             <span
               v-for="(candidate, index) in suggestion.rotationCandidates"
               :key="candidate.name"
+              @click="emit('select-member', candidate.name)"
               :class="clsx(
                 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs',
-                'border border-[var(--color-border-subtle)]',
+                'border border-[var(--color-border-subtle)] cursor-pointer hover:border-[var(--color-accent)] transition-colors active:scale-95',
                 index === 0 
                   ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-medium border-[var(--color-accent)]/30' 
                   : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)]'

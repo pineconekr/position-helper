@@ -78,7 +78,10 @@ function getCellClasses(value: string, isSelected: boolean, isDragging: boolean 
     'border border-transparent rounded-[var(--radius-sm)]',
     isDragging && 'opacity-50',
     isEmpty 
-      ? 'text-[var(--color-label-tertiary)] hover:bg-[var(--color-surface-elevated)] cursor-default'
+      ? clsx(
+          'text-[var(--color-label-tertiary)] hover:bg-[var(--color-surface-elevated)]',
+          isSelected ? 'cursor-pointer' : 'cursor-default'
+        )
       : isBlank
         ? 'bg-[var(--color-surface-elevated)] text-[var(--color-label-tertiary)] border border-dashed border-[var(--color-border-subtle)] cursor-grab'
         : isSelected 
