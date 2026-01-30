@@ -60,11 +60,11 @@ const typeLabels: Record<ActivityType, string> = {
 }
 
 const typeIcons: Record<ActivityType, string> = {
-  assignment: 'assignment_ind',
-  absence: 'event_busy',
-  finalize: 'check_circle',
-  member: 'person',
-  system: 'settings'
+  assignment: 'ClipboardDocumentCheckIcon',
+  absence: 'CalendarDaysIcon',
+  finalize: 'SolidCheckCircleIcon',
+  member: 'UserIcon',
+  system: 'Cog6ToothIcon'
 }
 
 // Helpers
@@ -106,13 +106,13 @@ function getEntryStyle(entry: ActivityEntry): EntryStyle {
     const after = entry.meta?.after as string | undefined
 
     if (before && !after) {
-      icon = 'person_remove'
+      icon = 'UserMinusIcon'
       bgClass = 'bg-[var(--color-surface-elevated)]'
       textClass = 'text-[var(--color-label-secondary)]'
       label = '해제'
       tone = 'warning'
     } else if (before && after && before !== after) {
-      icon = 'sync_alt'
+      icon = 'ArrowsRightLeftIcon'
       label = '변경'
       tone = 'info'
     }
@@ -215,13 +215,13 @@ function toggleCollapse() {
             @click.stop="handleUndo"
             class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded-[4px] bg-[var(--color-warning)]/10 text-[var(--color-warning)] hover:bg-[var(--color-warning)]/20 transition-colors"
           >
-            <Icon name="undo" :size="12" />
+            <Icon name="ArrowUturnLeftIcon" :size="12" />
             <span>실행취소</span>
           </button>
           <!-- Collapse Toggle -->
           <Icon
             v-if="collapsible"
-            name="expand_more"
+            name="ChevronDownIcon"
             :size="16"
             :class="[
               'text-[var(--color-label-tertiary)] transition-transform',
@@ -313,7 +313,7 @@ function toggleCollapse() {
                 class="opacity-0 group-hover:opacity-100 p-1 text-[var(--color-label-tertiary)] hover:text-[var(--color-danger)] transition-opacity"
                 @click="handleRemove(entry.id)"
               >
-                <Icon name="close" :size="14" />
+                <Icon name="XMarkIcon" :size="14" />
               </button>
             </div>
             <div class="text-base font-medium text-[var(--color-label-primary)]">{{ entry.title }}</div>

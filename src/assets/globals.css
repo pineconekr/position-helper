@@ -12,7 +12,42 @@
     --text-lg: 1.25rem;      /* 20px */
     --text-xl: 1.5rem;       /* 24px */
     --text-2xl: 2rem;        /* 32px */
-    --text-3xl: 2.25rem;     /* 36px */     --radius: 0.625rem;     --background: oklch(1 0 0);     --foreground: oklch(0.145 0 0);     --card: oklch(1 0 0);     --card-foreground: oklch(0.145 0 0);     --popover: oklch(1 0 0);     --popover-foreground: oklch(0.145 0 0);     --primary: oklch(0.205 0 0);     --primary-foreground: oklch(0.985 0 0);     --secondary: oklch(0.97 0 0);     --secondary-foreground: oklch(0.205 0 0);     --muted: oklch(0.97 0 0);     --muted-foreground: oklch(0.556 0 0);     --accent: oklch(0.97 0 0);     --accent-foreground: oklch(0.205 0 0);     --destructive: oklch(0.577 0.245 27.325);     --border: oklch(0.922 0 0);     --input: oklch(0.922 0 0);     --ring: oklch(0.708 0 0);     --chart-1: oklch(0.646 0.222 41.116);     --chart-2: oklch(0.6 0.118 184.704);     --chart-3: oklch(0.398 0.07 227.392);     --chart-4: oklch(0.828 0.189 84.429);     --chart-5: oklch(0.769 0.188 70.08);     --sidebar: oklch(0.985 0 0);     --sidebar-foreground: oklch(0.145 0 0);     --sidebar-primary: oklch(0.205 0 0);     --sidebar-primary-foreground: oklch(0.985 0 0);     --sidebar-accent: oklch(0.97 0 0);     --sidebar-accent-foreground: oklch(0.205 0 0);     --sidebar-border: oklch(0.922 0 0);     --sidebar-ring: oklch(0.708 0 0);
+    --text-3xl: 2.25rem;     /* 36px */
+    
+    --radius: 0.625rem;
+    
+    /* shadcn-vue 토큰 - Stitch Light Mode */
+    --background: #f6f6f8;
+    --foreground: #111827;
+    --card: #ffffff;
+    --card-foreground: #111827;
+    --popover: #ffffff;
+    --popover-foreground: #111827;
+    --primary: #2b4bee;
+    --primary-foreground: #ffffff;
+    --secondary: #f3f4f6;
+    --secondary-foreground: #111827;
+    --muted: #f3f4f6;
+    --muted-foreground: #6b7280;
+    --accent: #e0e7ff;
+    --accent-foreground: #2b4bee;
+    --destructive: #ef4444;
+    --border: #e5e7eb;
+    --input: #e5e7eb;
+    --ring: #2b4bee;
+    --chart-1: #2b4bee;
+    --chart-2: #10b981;
+    --chart-3: #f59e0b;
+    --chart-4: #8b5cf6;
+    --chart-5: #ec4899;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #111827;
+    --sidebar-primary: #2b4bee;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f3f4f6;
+    --sidebar-accent-foreground: #111827;
+    --sidebar-border: #e5e7eb;
+    --sidebar-ring: #2b4bee;
 }
 
 /* 
@@ -96,53 +131,69 @@
 
 /* 
   Semantic Variables Definition
-  - Light: Clean, Crisp, White/Slate
-  - Dark: Deep, Vibrant, Black/Zinc
+  - Stitch "이거어때" 다크모드 팔레트 전면 적용
+  - Light: Clean Light Gray (#f6f6f8)
+  - Dark: Deep Navy (#101322) - Stitch 정확한 색상
+  - Accent: Vivid Blue (#2b4bee) - Stitch Primary
 */
 :root {
-    /* Light Mode */
-    --color-canvas: #ffffff;
-    /* Pure white or VERY light gray */
-    --color-surface: #f9fafb;
-    /* Slight contrast for panels */
+    /* Light Mode - Stitch Style */
+    --color-canvas: #f6f6f8;
+    /* Stitch Light Background */
+    --color-surface: #ffffff;
+    /* White: 카드/패널 */
     --color-surface-elevated: #ffffff;
 
     --color-label-primary: #111827;
-    --color-label-secondary: #6b7280;
-    --color-label-tertiary: #9ca3af;
+    /* Gray-900: 최고 대비 */
+    --color-label-secondary: #4b5563;
+    /* Gray-600: 보조 텍스트 */
+    --color-label-tertiary: #6b7280;
+    /* Gray-500 */
 
-    --color-border-subtle: #f3f4f6;
-    --color-border-default: #e5e7eb;
+    --color-border-subtle: #e5e7eb;
+    /* Gray-200 */
+    --color-border-default: #d1d5db;
+    /* Gray-300 */
 
-    --color-accent: #2563eb;
-    /* Blue 600 */
-    --color-accent-soft: #eff6ff;
-    /* Blue 50 */
+    --color-accent: #2b4bee;
+    /* Stitch Primary Blue */
+    --color-accent-soft: #dbeafe;
+    /* Blue-100 */
 
     --color-success: #10b981;
+    /* Emerald-500 */
     --color-warning: #f59e0b;
+    /* Amber-500 */
     --color-danger: #ef4444;
+    /* Red-500 */
 }
 
-/* Dark Mode Override - Using .dark class for Tailwind/shadcn compatibility */
+/* Dark Mode Override - Stitch "이거어때" 다크모드 완전 적용 */
 .dark {
-    --color-canvas: #09090b;
-    /* Zinc 950 - Modern Dark */
-    --color-surface: #121214;
-    --color-surface-elevated: #1c1c1f;
+    --color-canvas: #101322;
+    /* Stitch Dark Background (Deep Navy) */
+    --color-surface: #1f2937;
+    /* Gray-800: 카드/패널 */
+    --color-surface-elevated: #374151;
+    /* Gray-700: 팝오버/모달/호버 */
 
-    --color-label-primary: #d4d4d8;
-    /* Zinc-300 - 눈부심 방지 */
-    --color-label-secondary: #a1a1aa;
-    --color-label-tertiary: #52525b;
+    --color-label-primary: #f9fafb;
+    /* Gray-50: 최고 대비 */
+    --color-label-secondary: #d1d5db;
+    /* Gray-300 */
+    --color-label-tertiary: #9ca3af;
+    /* Gray-400 */
 
-    --color-border-subtle: #27272a;
-    --color-border-default: #3f3f46;
+    --color-border-subtle: #374151;
+    /* Gray-700 */
+    --color-border-default: #4b5563;
+    /* Gray-600 */
 
-    --color-accent: #3b82f6;
-    /* Blue 500 */
-    --color-accent-soft: #172554;
-    /* Blue 950 */
+    --color-accent: #5b6cf9;
+    /* Stitch Primary Blue (다크모드용 밝게 조정) */
+    --color-accent-soft: #1e3a8a;
+    /* Blue-900 */
 }
 
 /* Base Reset & Utilities */
@@ -549,6 +600,8 @@
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
+    
+    /* shadcn-vue 토큰 */
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
@@ -580,6 +633,20 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    
+    /* 시맨틱 토큰 - Tailwind 유틸리티로 사용 가능 */
+    /* bg-canvas, bg-surface, text-label-primary 등 */
+    --color-canvas: var(--color-canvas);
+    --color-surface: var(--color-surface);
+    --color-surface-elevated: var(--color-surface-elevated);
+    --color-label-primary: var(--color-label-primary);
+    --color-label-secondary: var(--color-label-secondary);
+    --color-label-tertiary: var(--color-label-tertiary);
+    --color-border-subtle: var(--color-border-subtle);
+    --color-border-default: var(--color-border-default);
+    --color-success: var(--color-success);
+    --color-warning: var(--color-warning);
+    --color-danger: var(--color-danger);
 }
 
 /* 
@@ -587,37 +654,38 @@
 */
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    /* shadcn-vue 토큰 - Stitch Dark Mode */
+    --background: #101322;
+    --foreground: #f9fafb;
+    --card: #1f2937;
+    --card-foreground: #f9fafb;
+    --popover: #1f2937;
+    --popover-foreground: #f9fafb;
+    --primary: #5b6cf9;
+    --primary-foreground: #ffffff;
+    --secondary: #374151;
+    --secondary-foreground: #f9fafb;
+    --muted: #374151;
+    --muted-foreground: #9ca3af;
+    --accent: #1e3a8a;
+    --accent-foreground: #5b6cf9;
+    --destructive: #f87171;
+    --border: #374151;
+    --input: #374151;
+    --ring: #5b6cf9;
+    --chart-1: #5b6cf9;
+    --chart-2: #34d399;
+    --chart-3: #fbbf24;
+    --chart-4: #a78bfa;
+    --chart-5: #f472b6;
+    --sidebar: #1f2937;
+    --sidebar-foreground: #f9fafb;
+    --sidebar-primary: #5b6cf9;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #374151;
+    --sidebar-accent-foreground: #f9fafb;
+    --sidebar-border: #374151;
+    --sidebar-ring: #5b6cf9;
 }
 
 /* 

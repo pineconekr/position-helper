@@ -18,15 +18,15 @@ const theme = computed(() => themeStore.theme)
 const motionPreference = computed(() => themeStore.motionPreference || 'system')
 
 const themeOptions: Array<{ value: ThemePreference; title: string; description: string; icon: string }> = [
-  { value: 'system', icon: 'computer', title: '시스템 설정', description: '운영체제에 따라 자동 변경' },
-  { value: 'light', icon: 'light_mode', title: '라이트 모드', description: '밝은 환경에 적합' },
-  { value: 'dark', icon: 'dark_mode', title: '다크 모드', description: '눈의 피로 감소' }
+  { value: 'system', icon: 'ComputerDesktopIcon', title: '시스템 설정', description: '운영체제에 따라 자동 변경' },
+  { value: 'light', icon: 'SunIcon', title: '라이트 모드', description: '밝은 환경에 적합' },
+  { value: 'dark', icon: 'MoonIcon', title: '다크 모드', description: '눈의 피로 감소' }
 ]
 
 const motionOptions: Array<{ value: MotionPreference; title: string; description: string; icon: string }> = [
-  { value: 'system', icon: 'computer', title: '시스템 설정', description: '운영체제 설정에 따라 자동으로 조절' },
-  { value: 'allow', icon: 'auto_awesome', title: '애니메이션 켜기', description: '부드러운 전환 효과 활성화' },
-  { value: 'reduce', icon: 'eco', title: '애니메이션 끄기', description: '빠른 반응 속도 우선' }
+  { value: 'system', icon: 'ComputerDesktopIcon', title: '시스템 설정', description: '운영체제 설정에 따라 자동으로 조절' },
+  { value: 'allow', icon: 'SparklesIcon', title: '애니메이션 켜기', description: '부드러운 전환 효과 활성화' },
+  { value: 'reduce', icon: 'BoltSlashIcon', title: '애니메이션 끄기', description: '빠른 반응 속도 우선' }
 ]
 
 async function handleResetData() {
@@ -60,7 +60,7 @@ async function handleResetData() {
       <CardContent class="p-4">
       <div class="flex items-center gap-3 mb-6">
         <div class="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
-          <Icon name="palette" :size="20" class="text-[var(--color-accent)]" />
+          <Icon name="SwatchIcon" :size="20" class="text-[var(--color-accent)]" />
         </div>
         <div>
           <h2 class="text-base font-semibold text-[var(--color-label-primary)]">테마</h2>
@@ -81,7 +81,7 @@ async function handleResetData() {
           )"
         >
           <div v-if="theme === option.value" class="absolute top-3 right-3">
-            <Icon name="check_circle" :size="20" class="text-[var(--color-accent)]" />
+            <Icon name="SolidCheckCircleIcon" :size="20" class="text-[var(--color-accent)]" />
           </div>
           <div :class="clsx(
             'w-10 h-10 rounded-lg flex items-center justify-center',
@@ -105,7 +105,7 @@ async function handleResetData() {
       <CardContent class="p-4">
       <div class="flex items-center gap-3 mb-6">
         <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-          <Icon name="motion_mode" :size="20" class="text-purple-500" />
+          <Icon name="SparklesIcon" :size="20" class="text-purple-500" />
         </div>
         <div>
           <h2 class="text-base font-semibold text-[var(--color-label-primary)]">화면 효과</h2>
@@ -126,7 +126,7 @@ async function handleResetData() {
           )"
         >
           <div v-if="motionPreference === option.value" class="absolute top-3 right-3">
-            <Icon name="check_circle" :size="20" class="text-purple-500" />
+            <Icon name="SolidCheckCircleIcon" :size="20" class="text-purple-500" />
           </div>
           <div :class="clsx(
             'w-10 h-10 rounded-lg flex items-center justify-center',
@@ -151,7 +151,7 @@ async function handleResetData() {
       <!-- Danger Header -->
       <div class="flex items-center gap-3 mb-6">
         <div class="w-10 h-10 rounded-lg bg-[var(--color-danger)]/10 flex items-center justify-center">
-          <Icon name="warning" :size="20" class="text-[var(--color-danger)]" />
+          <Icon name="ExclamationTriangleIcon" :size="20" class="text-[var(--color-danger)]" />
         </div>
         <div>
           <h2 class="text-base font-semibold text-[var(--color-label-primary)]">위험 영역</h2>
@@ -168,7 +168,7 @@ async function handleResetData() {
           </div>
         </div>
         <Button variant="destructive" size="lg" @click="handleResetData">
-          <Icon name="delete" class="mr-2" :size="18" />
+          <Icon name="TrashIcon" class="mr-2" :size="18" />
           모든 데이터 삭제
         </Button>
       </div>

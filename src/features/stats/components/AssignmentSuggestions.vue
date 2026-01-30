@@ -104,7 +104,7 @@ function closeModal() {
 
     <!-- Warning Banner -->
     <Alert v-if="hasWarnings" variant="warning" class="mb-4 flex-shrink-0">
-      <Icon name="warning" :size="18" />
+      <Icon name="ExclamationTriangleIcon" :size="18" />
       <AlertTitle class="ml-2 font-semibold text-xs">
         {{ plan.summary.warnings.length }}개 슬롯에 적합한 후보가 없습니다. 확인이 필요합니다.
       </AlertTitle>
@@ -138,7 +138,7 @@ function closeModal() {
                 {{ rec.recommended.displayName }}
               </span>
               <span v-else class="text-sm font-medium text-[var(--color-warning)] flex items-center gap-1.5">
-                <Icon name="warning" :size="14" />
+                <Icon name="ExclamationTriangleIcon" :size="14" />
                 후보 없음
               </span>
             </div>
@@ -151,7 +151,7 @@ function closeModal() {
             </span>
             <!-- Chevron -->
             <Icon
-              name="chevron_right"
+              name="ChevronRightIcon"
               :size="14"
               class="text-[var(--color-label-tertiary)] group-hover:text-[var(--color-label-primary)] transition-colors flex-shrink-0 opacity-50 group-hover:opacity-100 ml-1"
             />
@@ -183,7 +183,7 @@ function closeModal() {
                 {{ rec.recommended.displayName }}
               </span>
               <span v-else class="text-sm font-medium text-[var(--color-warning)] flex items-center gap-1.5">
-                <Icon name="warning" :size="14" />
+                <Icon name="ExclamationTriangleIcon" :size="14" />
                 후보 없음
               </span>
             </div>
@@ -194,7 +194,7 @@ function closeModal() {
               {{ rec.recommended.score }}
             </span>
             <Icon
-              name="chevron_right"
+              name="ChevronRightIcon"
               :size="14"
               class="text-[var(--color-label-tertiary)] group-hover:text-[var(--color-label-primary)] transition-colors flex-shrink-0 opacity-50 group-hover:opacity-100 ml-1"
             />
@@ -238,7 +238,7 @@ function closeModal() {
               class="icon-btn"
               aria-label="닫기"
             >
-              <Icon name="close" :size="20" />
+              <Icon name="XMarkIcon" :size="20" />
             </button>
           </div>
 
@@ -249,7 +249,7 @@ function closeModal() {
             >
               <!-- Empty State -->
               <div v-if="(selectedSlot.recommended ? [selectedSlot.recommended, ...selectedSlot.alternatives] : allCandidatesForSlot).length === 0" class="py-12 text-center">
-                <Icon name="person_off" :size="36" class="text-[var(--color-label-tertiary)]/50 mx-auto mb-3" />
+                <Icon name="UserMinusIcon" :size="36" class="text-[var(--color-label-tertiary)]/50 mx-auto mb-3" />
                 <p class="text-sm text-[var(--color-label-secondary)]">
                   배정 가능한 팀원이 없습니다
                 </p>

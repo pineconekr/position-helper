@@ -108,7 +108,93 @@ Tailwind의 `sm:` (640px) 기준으로 모바일/데스크톱 분기:
 
 ---
 
-## 7. Changelog
+## 7. Stitch 디자인 통합 가이드
+
+### 7.1 색상 매핑 테이블 (다크모드 전면 적용)
+Stitch "이거어때" 다크모드 디자인이 globals.css에 완전 적용되었습니다.
+
+#### 시맨틱 토큰 (커스텀)
+| 모드 | 역할 | 토큰 | 적용값 | WCAG AA |
+|:---|:---|:---|:---|:---:|
+| Light | Background | `--color-canvas` | `#f6f6f8` | ✅ |
+| Light | Accent | `--color-accent` | `#2b4bee` | ✅ |
+| **Dark** | **Background** | `--color-canvas` | **`#101322`** | ✅ |
+| **Dark** | **Accent** | `--color-accent` | **`#5b6cf9`** | ✅ |
+
+#### shadcn-vue 토큰 (Tailwind 클래스용)
+| 모드 | Tailwind 클래스 | 토큰 | 적용값 |
+|:---|:---|:---|:---|
+| Light | `bg-background` | `--background` | `#f6f6f8` |
+| Light | `bg-card` | `--card` | `#ffffff` |
+| Light | `text-primary` | `--primary` | `#2b4bee` |
+| Light | `bg-muted` | `--muted` | `#f3f4f6` |
+| **Dark** | `bg-background` | `--background` | **`#101322`** |
+| **Dark** | `bg-card` | `--card` | **`#1f2937`** |
+| **Dark** | `text-primary` | `--primary` | **`#5b6cf9`** |
+| **Dark** | `bg-muted` | `--muted` | **`#374151`** |
+
+
+### 7.2 다크모드 호환성
+- Stitch 디자인은 Tailwind의 `dark:` 클래스를 사용합니다.
+- Position Helper는 `.dark` 클래스 선택자를 사용합니다.
+- **호환됨**: Tailwind v4에서 `darkMode: "class"`가 기본 설정이므로 `.dark` 클래스와 `dark:` 접두사가 연동됩니다.
+
+### 7.3 폰트 전략
+- Stitch: "Plus Jakarta Sans"
+- Position Helper: "Pretendard" (한국어 최적화)
+- **권장**: Pretendard 유지. 필요시 영문에만 Jakarta 적용 (`@font-face` 분리)
+
+---
+
+## 8. 접근성 가이드라인 (WCAG 2.1 AA)
+
+### 8.1 색상 대비율
+- **텍스트**: 배경 대비 최소 4.5:1
+- **대형 텍스트 (18px+)**: 최소 3:1
+- 모든 시맨틱 토큰은 WCAG AA 대비율 충족
+
+### 8.2 포커스 표시 (focus-visible)
+```css
+/* globals.css에 정의됨 */
+.interactive-base:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+```
+모든 클릭 가능한 요소에 `focus-visible` 스타일 적용 필수.
+
+### 8.3 터치 타겟
+- 최소 크기: **44px × 44px** (Apple HIG 기준)
+- 유틸리티 클래스: `.touch-target` 또는 `min-h-[44px]`
+
+### 8.4 ARIA 속성
+- **네비게이션**: `aria-current="page"` (활성 링크)
+- **아이콘 버튼**: `aria-label="설명"` 필수
+- **장식용 아이콘**: `aria-hidden="true"`
+
+### 8.5 체크리스트
+- [ ] 모든 이미지에 `alt` 속성
+- [ ] 아이콘 버튼에 `aria-label`
+- [ ] 네비게이션에 `aria-current`
+- [ ] 색상만으로 정보 전달하지 않음 (아이콘/텍스트 병행)
+- [ ] 키보드로 모든 기능 접근 가능
+
+---
+
+## 9. Changelog
+- **2026-01-30 (2차)**: Stitch 다크모드 전면 적용 및 레이아웃 교체
+  - **shadcn-vue 토큰 통합**: `--background`, `--card`, `--primary` 등 모든 토큰을 Stitch 팔레트로 교체
+  - **다크모드 색상**: `#101322` (배경), `#1f2937` (카드), `#5b6cf9` (액센트)
+  - **AppShell.vue Stitch 스타일 적용**: 
+    - 헤더 높이 h-12 → h-16
+    - 네비게이션 Pill 스타일 (`bg-muted` + `rounded-full`)
+    - 로고 그림자 (`shadow-lg shadow-primary/30`)
+    - 최대 너비 1600px로 확장
+  - **shadcn Tailwind 클래스 사용**: `bg-background`, `bg-card`, `text-foreground` 등으로 통일
+- **2026-01-30**: Stitch 디자인 통합 및 WCAG 2.1 AA 접근성 가이드라인 추가
+  - Stitch 색상 매핑 테이블 작성
+  - AppShell.vue에 `aria-current`, `aria-hidden` 적용
+  - 접근성 체크리스트 및 가이드라인 문서화
 - **2026-01-06 (3차)**: 코드 품질 및 일관성 개선
   - `dark:` 접두사 완전 제거 → 시맨틱 CSS 변수 통일
   - 디자인 토큰 중앙화 (`config.ts`: DESIGN_TOKENS, SEMANTIC_COLORS)
@@ -123,4 +209,3 @@ Tailwind의 `sm:` (640px) 기준으로 모바일/데스크톱 분기:
 - **2026-01-06**: Apple(심미성) + Linear(생산성) 하이브리드 시스템으로 개편
   - 시맨틱 토큰 기반의 다크 모드 구조 확립
   - 정보 밀도를 높인 컴팩트한 타이포그래피 및 레이아웃 원칙 도입
-

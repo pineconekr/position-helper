@@ -165,7 +165,7 @@ const isInline = computed(() => props.variant === 'inline')
             : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)] border border-[var(--color-border-subtle)]'
         )"
       >
-        <Icon :name="showInactive ? 'visibility' : 'visibility_off'" :size="14" />
+        <Icon :name="showInactive ? 'EyeIcon' : 'EyeSlashIcon'" :size="14" />
         <span>비활성 멤버 포함 {{ inactiveCount > 0 ? `(${inactiveCount})` : '' }}</span>
       </button>
     </div>
@@ -184,10 +184,10 @@ const isInline = computed(() => props.variant === 'inline')
         @dragstart="(e) => handleDragStart(e, item)"
       >
         <!-- 비활성 아이콘 -->
-        <Icon v-if="item.inactive" name="block" :size="12" class="text-[var(--color-label-tertiary)]" />
+        <Icon v-if="item.inactive" name="NoSymbolIcon" :size="12" class="text-[var(--color-label-tertiary)]" />
         
         <!-- 불참 아이콘 -->
-        <Icon v-else-if="absentNames.has(item.value)" name="person_off" :size="12" class="text-[var(--color-danger)]" />
+        <Icon v-else-if="absentNames.has(item.value)" name="UserMinusIcon" :size="12" class="text-[var(--color-danger)]" />
         
         <!-- 배정 횟수 배지 -->
         <span
@@ -229,8 +229,8 @@ const isInline = computed(() => props.variant === 'inline')
         @click="handleClick(item)"
         @dragstart="(e) => handleDragStart(e, item)"
       >
-        <Icon v-if="item.inactive" name="block" :size="12" class="text-[var(--color-label-tertiary)]" />
-        <Icon v-else-if="absentNames.has(item.value)" name="person_off" :size="12" class="text-[var(--color-danger)]" />
+        <Icon v-if="item.inactive" name="NoSymbolIcon" :size="12" class="text-[var(--color-label-tertiary)]" />
+        <Icon v-else-if="absentNames.has(item.value)" name="UserMinusIcon" :size="12" class="text-[var(--color-danger)]" />
         <span>{{ item.label }}</span>
       </div>
     </div>

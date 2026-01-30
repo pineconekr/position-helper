@@ -70,7 +70,7 @@ function saveAbsenceReason() {
     <CardContent class="p-4 space-y-4">
     <div class="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
       <div class="text-sm font-bold text-[var(--color-label-primary)] flex items-center gap-2">
-        <Icon name="event_busy" :size="16" class="text-[var(--color-label-tertiary)]" />
+        <Icon name="CalendarDaysIcon" :size="16" class="text-[var(--color-label-tertiary)]" />
         불참자 관리
       </div>
       <span 
@@ -99,7 +99,7 @@ function saveAbsenceReason() {
             <option v-for="m in members" :key="m.name" :value="m.name">{{ m.name }}</option>
           </select>
           <div class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-label-tertiary)]">
-            <Icon name="expand_more" :size="16" />
+            <Icon name="ChevronDownIcon" :size="16" />
           </div>
         </div>
       </div>
@@ -140,13 +140,13 @@ function saveAbsenceReason() {
             @click="openEditAbsence(a.name)"
             class="p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-accent)] rounded-[4px] hover:bg-[var(--color-surface)]"
           >
-            <Icon name="edit" :size="14" />
+            <Icon name="PencilIcon" :size="14" />
           </button>
           <button
             @click="removeAbsence(a.name)"
             class="p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-danger)] rounded-[4px] hover:bg-[var(--color-surface)]"
           >
-            <Icon name="close" :size="14" />
+            <Icon name="XMarkIcon" :size="14" />
           </button>
         </div>
       </div>

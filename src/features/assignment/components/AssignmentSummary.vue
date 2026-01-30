@@ -75,7 +75,7 @@ const formattedDate = computed(() => {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <Icon name="calendar_month" :size="18" class="text-[var(--color-accent)]" />
+        <Icon name="CalendarDaysIcon" :size="18" class="text-[var(--color-accent)]" />
         <h3 class="text-sm font-semibold text-[var(--color-label-primary)]">이번 주 배정 현황</h3>
       </div>
       <Badge variant="accent">{{ formattedDate }}</Badge>

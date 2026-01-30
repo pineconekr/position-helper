@@ -252,7 +252,7 @@ const gridCols = 'grid-cols-[48px_1fr_1fr_1fr_2fr_1fr]'
                     )"
                     tabindex="-1"
                   >
-                    <Icon name="close" :size="10" />
+                    <Icon name="XMarkIcon" :size="10" />
                   </button>
                 </div>
               </div>
@@ -303,7 +303,7 @@ const gridCols = 'grid-cols-[48px_1fr_1fr_1fr_2fr_1fr]'
                   )"
                   tabindex="-1"
                 >
-                  <Icon name="close" :size="10" />
+                  <Icon name="XMarkIcon" :size="10" />
                 </button>
               </div>
             </div>

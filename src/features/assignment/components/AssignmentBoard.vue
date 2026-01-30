@@ -280,7 +280,7 @@ function getLevelClass(level: string): string {
                       @click="handleUndo"
                       class="!px-2 !py-1 !h-auto text-xs active:scale-95 transition-transform origin-left"
                     >
-                      <Icon name="undo" :size="14" />
+                      <Icon name="ArrowUturnLeftIcon" :size="14" />
                       <span class="ml-1">되돌리기</span>
                     </Button>
                   </TooltipTrigger>
@@ -298,7 +298,7 @@ function getLevelClass(level: string): string {
                 getLevelClass(draftEvaluation.level)
               ]"
             >
-              <Icon name="balance" :size="14" />
+              <Icon name="ScaleIcon" :size="14" />
               <span>{{ draftEvaluation.overallScore }}점</span>
               <span class="text-[var(--color-label-secondary)] font-normal">
                 {{ draftEvaluation.summary }}
@@ -336,7 +336,7 @@ function getLevelClass(level: string): string {
                 : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)] border border-[var(--color-border-subtle)]'
             ]"
           >
-            <Icon :name="showInactive ? 'visibility' : 'visibility_off'" :size="14" />
+            <Icon :name="showInactive ? 'EyeIcon' : 'EyeSlashIcon'" :size="14" />
             <span>비활성 멤버 포함</span>
           </button>
         </div>
@@ -360,7 +360,7 @@ function getLevelClass(level: string): string {
 
       <div class="text-[var(--color-label-tertiary)] text-xs leading-relaxed px-1">
         <div class="flex gap-1.5 mb-1.5 items-center">
-          <Icon name="info" :size="14" />
+          <Icon name="InformationCircleIcon" :size="14" />
           <span class="font-semibold text-[var(--color-label-secondary)]">도움말</span>
         </div>
         <ul class="m-0 pl-4 list-disc space-y-1">

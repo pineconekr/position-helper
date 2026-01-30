@@ -11,7 +11,6 @@ import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { analyzeDraft, slotToLabel } from '@/shared/utils/assignment'
 import { saveJsonFile, openJsonFile } from '@/shared/utils/json'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import Icon from '@/components/ui/Icon.vue'
 import AssignmentBoard from '../components/AssignmentBoard.vue'
 
@@ -137,43 +136,31 @@ async function handleFinalize() {
 </script>
 
 <template>
-  <div class="space-y-5">
-    <!-- Action Bar -->
-    <Card class="p-3">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <!-- Left: Info -->
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-[var(--radius-sm)] bg-[var(--color-accent)]/10 flex items-center justify-center border border-[var(--color-accent)]/20">
-            <Icon name="drag_indicator" :size="18" class="text-[var(--color-accent)]" />
-          </div>
-          <div>
-            <div class="text-sm font-bold text-[var(--color-label-primary)]">드래그로 배정</div>
-            <div class="text-xs text-[var(--color-label-secondary)]">팀원을 역할 슬롯에 끌어다 놓으세요</div>
-          </div>
-        </div>
-
-        <!-- Right: Actions -->
-        <div class="flex items-center gap-2 self-end sm:self-auto">
-          <div class="w-px h-5 bg-[var(--color-border-subtle)] mx-1" />
-
-          <Button variant="outline" size="sm" @click="handleImport">
-            <Icon name="upload" :size="16" />
-            불러오기
-          </Button>
-          <Button variant="outline" size="sm" @click="handleExport">
-            <Icon name="download" :size="16" />
-            내보내기
-          </Button>
-
-          <div class="w-px h-5 bg-[var(--color-border-subtle)] mx-1" />
-
-          <Button variant="default" size="sm" @click="handleFinalize">
-            <Icon name="check" :size="16" />
-            확정
-          </Button>
-        </div>
+  <div class="space-y-6">
+    <!-- Action Bar - Stitch Simple Style -->
+    <div class="flex items-center justify-between gap-4">
+      <!-- Left: Page Info -->
+      <div>
+        <h1 class="text-xl font-bold text-foreground">배정</h1>
+        <p class="text-sm text-muted-foreground">팀원을 드래그하여 역할에 배정하세요</p>
       </div>
-    </Card>
+
+      <!-- Right: Actions -->
+      <div class="flex items-center gap-2">
+        <Button variant="ghost" size="sm" @click="handleImport">
+          <Icon name="ArrowUpTrayIcon" :size="16" />
+          <span class="hidden sm:inline ml-1.5">불러오기</span>
+        </Button>
+        <Button variant="ghost" size="sm" @click="handleExport">
+          <Icon name="ArrowDownTrayIcon" :size="16" />
+          <span class="hidden sm:inline ml-1.5">내보내기</span>
+        </Button>
+        <Button variant="default" size="sm" @click="handleFinalize">
+          <Icon name="CheckIcon" :size="16" />
+          확정
+        </Button>
+      </div>
+    </div>
 
     <!-- Assignment Board -->
     <AssignmentBoard />

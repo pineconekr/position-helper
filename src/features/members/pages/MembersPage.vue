@@ -38,7 +38,6 @@ const store = useAssignmentStore()
 
 // State
 const searchTerm = ref('')
-const filter = ref<'all' | 'active' | 'inactive'>('all')
 const isModalOpen = ref(false)
 const editingMember = ref<MembersEntry | null>(null)
 const deletingMember = ref<MembersEntry | null>(null)
@@ -73,12 +72,8 @@ const membersWithGen = computed(() =>
 const filteredMembers = computed(() => {
   const lowerQuery = searchTerm.value.toLowerCase()
   return membersWithGen.value.filter(m => {
-    const matchesSearch = m.name.toLowerCase().includes(lowerQuery) ||
+    return m.name.toLowerCase().includes(lowerQuery) ||
       m.notes?.toLowerCase().includes(lowerQuery)
-    const matchesFilter = filter.value === 'all'
-      ? true
-      : filter.value === 'active' ? m.active : !m.active
-    return matchesSearch && matchesFilter
   })
 })
 
@@ -109,7 +104,13 @@ const sorting = ref<SortingState>([])
 const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
   {
     accessorKey: 'generation',
-    header: () => h('div', { class: 'text-center w-14' }, '기수'),
+    header: ({ column }) => {
+      return h(Button, {
+        variant: 'ghost',
+        class: 'h-8 data-[state=open]:bg-accent w-full justify-center',
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+      }, () => ['기수', h(Icon, { name: 'ChevronUpDownIcon', size: 12, class: 'ml-1' })])
+    },
     cell: ({ row }) => {
       const gen = row.original.generation
       return h('div', { class: 'text-center' }, 
@@ -117,6 +118,11 @@ const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
           ? h('span', { class: 'text-sm font-mono text-[var(--color-label-secondary)]' }, gen)
           : h('span', { class: 'text-[var(--color-label-tertiary)]' }, '-')
       )
+    },
+    sortingFn: (rowA, rowB) => {
+      const a = rowA.original.generation ?? 0
+      const b = rowB.original.generation ?? 0
+      return a - b
     },
   },
   {
@@ -126,7 +132,7 @@ const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
         variant: 'ghost',
         class: '-ml-4 h-8 data-[state=open]:bg-accent',
         onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-      }, () => ['이름', h(Icon, { name: 'unfold_more', size: 12, class: 'ml-2' })])
+      }, () => ['이름', h(Icon, { name: 'ChevronUpDownIcon', size: 12, class: 'ml-2' })])
     },
     cell: ({ row }) => {
       const member = row.original
@@ -148,17 +154,30 @@ const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
   },
   {
     accessorKey: 'active',
-    header: () => h('div', { class: 'text-center w-20' }, '상태'),
+    header: ({ column }) => {
+      return h(Button, {
+        variant: 'ghost',
+        class: 'h-8 data-[state=open]:bg-accent w-full justify-center',
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+      }, () => ['상태', h(Icon, { name: 'ChevronUpDownIcon', size: 12, class: 'ml-1' })])
+    },
     cell: ({ row }) => {
-      return h('div', { class: 'text-center' }, 
+      const isActive = row.original.active
+      return h('div', { class: 'flex items-center justify-center gap-1.5' }, [
         h('div', {
           class: clsx(
-            'inline-block w-2 h-2 rounded-full',
-            row.original.active ? 'bg-[var(--color-success)]' : 'bg-[var(--color-label-tertiary)]'
+            'w-2 h-2 rounded-full',
+            isActive ? 'bg-[var(--color-success)]' : 'bg-[var(--color-label-tertiary)]'
           )
-        })
-      )
-    }
+        }),
+        h('span', { class: 'text-xs text-[var(--color-label-secondary)]' }, isActive ? '활동' : '비활동')
+      ])
+    },
+    sortingFn: (rowA, rowB) => {
+      const a = rowA.original.active ? 1 : 0
+      const b = rowB.original.active ? 1 : 0
+      return a - b
+    },
   },
   {
     id: 'actions',
@@ -169,11 +188,11 @@ const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
         h('button', {
           onClick: () => openEditModal(member),
           class: 'p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-accent)] rounded-[4px] hover:bg-[var(--color-surface-elevated)]',
-        }, h(Icon, { name: 'edit', size: 14 })),
+        }, h(Icon, { name: 'PencilIcon', size: 14 })),
         h('button', {
           onClick: () => { deletingMember.value = member },
           class: 'p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-danger)] rounded-[4px] hover:bg-[var(--color-surface-elevated)]',
-        }, h(Icon, { name: 'delete', size: 14 }))
+        }, h(Icon, { name: 'TrashIcon', size: 14 }))
       ])
     }
   }
@@ -252,16 +271,14 @@ function closeModal() {
 
 <template>
   <div class="space-y-6">
-    <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <!-- Page Header - Stitch Style -->
+    <div class="flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-xl font-bold tracking-tight text-[var(--color-label-primary)]">팀원 관리</h1>
-        <p class="mt-1 text-sm text-[var(--color-label-secondary)]">
-          전체 {{ members.length }}명 관리 중
-        </p>
+        <h1 class="text-xl font-bold text-foreground">팀원 관리</h1>
+        <p class="text-sm text-muted-foreground">총 {{ members.length }}명 · 활동 중 {{ activeCount }}명</p>
       </div>
-      <Button variant="default" @click="openAddModal" class="w-full sm:w-auto">
-        <Icon name="add" class="mr-2" :size="16" />
+      <Button variant="default" @click="openAddModal">
+        <Icon name="PlusIcon" :size="16" />
         팀원 추가
       </Button>
     </div>
@@ -270,32 +287,15 @@ function closeModal() {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Left: Member List -->
       <div class="lg:col-span-2 space-y-4">
-        <!-- Filters & Search -->
-        <div class="flex flex-col sm:flex-row gap-3 justify-between p-1">
-          <div class="flex p-0.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] shrink-0">
-            <button
-              v-for="f in (['all', 'active', 'inactive'] as const)"
-              :key="f"
-              @click="filter = f"
-              :class="clsx(
-                'btn-interactive px-3 py-1 text-sm font-medium rounded-[4px]',
-                filter === f
-                  ? 'bg-[var(--color-surface)] text-[var(--color-label-primary)] shadow-sm ring-1 ring-black/5'
-                  : 'text-[var(--color-label-secondary)] hover:text-[var(--color-label-primary)]'
-              )"
-            >
-              {{ f === 'all' ? '전체' : f === 'active' ? '활동 중' : '비활동' }}
-            </button>
-          </div>
+        <!-- Search -->
+        <div class="flex justify-end p-1">
           <div class="relative w-full sm:w-64">
-            <div class="relative">
-              <Icon name="search" :size="14" class="absolute left-2.5 top-2.5 text-muted-foreground z-10" />
-              <Input
-                v-model="searchTerm"
-                placeholder="이름 검색..."
-                class="w-full pl-8"
-              />
-            </div>
+            <Icon name="MagnifyingGlassIcon" :size="14" class="absolute left-2.5 top-2.5 text-muted-foreground z-10" />
+            <Input
+              v-model="searchTerm"
+              placeholder="이름 검색..."
+              class="w-full pl-8"
+            />
           </div>
         </div>
 
@@ -333,7 +333,7 @@ function closeModal() {
                 <TableCell colspan="4" class="h-24 text-center py-12">
                    <div class="flex flex-col items-center justify-center gap-2">
                     <div class="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center">
-                      <Icon name="person_off" :size="20" class="text-[var(--color-label-tertiary)]" />
+                      <Icon name="UserMinusIcon" :size="20" class="text-[var(--color-label-tertiary)]" />
                     </div>
                     <p class="text-sm text-[var(--color-label-secondary)]">
                       {{ searchTerm ? '검색 결과가 없습니다' : '조건에 맞는 팀원이 없습니다' }}
@@ -346,59 +346,36 @@ function closeModal() {
         </div>
       </div>
 
-      <!-- Right: Sidebar -->
-      <div class="space-y-5">
-        <!-- Status Overview -->
-        <Card class="border-2 border-[var(--color-accent)]/20 relative overflow-hidden">
-          <CardContent class="p-4">
-          <div class="absolute inset-0 bg-[var(--color-accent)]/5" />
-          <div class="relative z-10">
-            <h3 class="text-[var(--color-accent)] text-sm font-semibold uppercase tracking-wide mb-3">활동 현황</h3>
-            <div class="flex items-end gap-2 mb-2">
-              <span class="text-3xl font-bold tracking-tight text-[var(--color-label-primary)]">{{ activeCount }}</span>
-              <span class="text-[var(--color-label-secondary)] text-sm mb-1">/ {{ members.length }}명</span>
-            </div>
-            <div class="w-full bg-[var(--color-surface)] h-1.5 rounded-full overflow-hidden">
-              <div
-                class="bg-[var(--color-accent)] h-full rounded-full transition-all duration-1000"
-                :style="{ width: `${members.length > 0 ? (activeCount / members.length) * 100 : 0}%` }"
-              />
-            </div>
-          </div>
-          </CardContent>
-        </Card>
-
-        <!-- Generation Distribution -->
+      <!-- Right: Sidebar - Stitch Style -->
+      <div class="space-y-4">
+        <!-- Generation Distribution - Simple -->
         <Card>
           <CardContent class="p-4">
-          <h3 class="text-base font-medium text-[var(--color-label-primary)] mb-3 flex items-center gap-2">
-            <Icon name="groups" :size="16" class="text-[var(--color-label-tertiary)]" />
-            기수별 분포
-          </h3>
-          <div class="space-y-2">
-            <div
-              v-for="([gen, count], idx) in generationStats.sorted"
-              :key="gen"
-              class="flex items-center gap-3 text-sm"
-            >
-              <div class="w-8 font-mono text-[var(--color-label-secondary)] text-right">{{ gen }}기</div>
-              <div class="flex-1 h-1.5 bg-[var(--color-surface-elevated)] rounded-full overflow-hidden">
-                <div
-                  :class="`h-full rounded-full ${idx === 0 ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-label-tertiary)]'}`"
-                  :style="{ width: `${(count / maxGenCount) * 100}%` }"
-                />
+            <h3 class="text-sm font-semibold text-foreground mb-4">기수별 분포</h3>
+            <div class="space-y-3">
+              <div
+                v-for="([gen, count], idx) in generationStats.sorted"
+                :key="gen"
+                class="flex items-center gap-3"
+              >
+                <div class="w-8 text-sm text-muted-foreground text-right">{{ gen }}기</div>
+                <div class="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    :class="`h-full rounded-full ${idx === 0 ? 'bg-primary' : 'bg-muted-foreground/30'}`"
+                    :style="{ width: `${(count / maxGenCount) * 100}%` }"
+                  />
+                </div>
+                <div class="w-4 text-sm font-medium text-foreground text-right">{{ count }}</div>
               </div>
-              <div class="w-4 text-right font-medium text-[var(--color-label-primary)]">{{ count }}</div>
+              <div
+                v-if="generationStats.unknown > 0"
+                class="flex items-center gap-3 text-sm pt-2 border-t border-border"
+              >
+                <div class="w-8 text-muted-foreground text-right">-</div>
+                <div class="flex-1 text-muted-foreground">기수 미확인</div>
+                <div class="w-4 text-right text-muted-foreground">{{ generationStats.unknown }}</div>
+              </div>
             </div>
-            <div
-              v-if="generationStats.unknown > 0"
-              class="flex items-center gap-3 text-xs pt-2 border-t border-[var(--color-border-subtle)]"
-            >
-              <div class="w-8 text-[var(--color-label-tertiary)] text-right">-</div>
-              <div class="flex-1 text-[var(--color-label-tertiary)] text-xs">기수 미확인</div>
-              <div class="w-4 text-right font-medium text-[var(--color-label-secondary)]">{{ generationStats.unknown }}</div>
-            </div>
-          </div>
           </CardContent>
         </Card>
 
@@ -485,7 +462,7 @@ function closeModal() {
       size="sm"
     >
       <Alert variant="destructive">
-        <Icon name="warning" :size="20" />
+        <Icon name="ExclamationTriangleIcon" :size="20" />
         <AlertTitle class="ml-2">정말 삭제하시겠습니까?</AlertTitle>
         <AlertDescription class="ml-2 mt-1">
           <strong>{{ deletingMember?.name }}</strong>님의 데이터가 영구적으로 삭제됩니다.

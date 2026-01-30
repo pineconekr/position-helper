@@ -48,19 +48,19 @@ const rotationSuggestions = computed(() =>
 const getLevelConfig = (level: WarningLevel) => {
   const configs = {
     error: {
-      icon: 'error',
+      icon: 'SolidExclamationCircleIcon',
       accentColor: 'var(--color-danger)',
       bgColor: 'var(--color-danger)',
       label: '긴급'
     },
     warn: {
-      icon: 'warning',
+      icon: 'ExclamationTriangleIcon',
       accentColor: 'var(--color-warning)',
       bgColor: 'var(--color-warning)',
       label: '주의'
     },
     info: {
-      icon: 'lightbulb',
+      icon: 'LightBulbIcon',
       accentColor: 'var(--color-accent)',
       bgColor: 'var(--color-accent)',
       label: '추천'
@@ -71,10 +71,10 @@ const getLevelConfig = (level: WarningLevel) => {
 
 // 필터 버튼 설정
 const filterButtons: { key: FilterType; label: string; icon: string }[] = [
-  { key: 'all', label: '전체', icon: 'list' },
-  { key: 'error', label: '긴급', icon: 'error' },
-  { key: 'warn', label: '주의', icon: 'warning' },
-  { key: 'info', label: '추천', icon: 'lightbulb' }
+  { key: 'all', label: '전체', icon: 'Bars3Icon' },
+  { key: 'error', label: '긴급', icon: 'SolidExclamationCircleIcon' },
+  { key: 'warn', label: '주의', icon: 'ExclamationTriangleIcon' },
+  { key: 'info', label: '추천', icon: 'LightBulbIcon' }
 ]
 
 const emit = defineEmits<{
@@ -94,7 +94,7 @@ function handleWarningClick(warning: Warning) {
       <!-- 헤더 -->
       <div class="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
         <div class="text-sm font-bold text-[var(--color-label-primary)] flex items-center gap-2">
-          <Icon name="notifications" :size="16" class="text-[var(--color-label-tertiary)]" />
+          <Icon name="BellIcon" :size="16" class="text-[var(--color-label-tertiary)]" />
           배정 피드백
         </div>
         
@@ -225,7 +225,7 @@ function handleWarningClick(warning: Warning) {
         >
           <div class="flex items-center gap-2 mb-2">
             <div class="w-6 h-6 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex-center">
-              <Icon name="lightbulb" :size="12" />
+              <Icon name="LightBulbIcon" :size="12" />
             </div>
             <span class="text-sm font-semibold text-[var(--color-label-primary)]">
               {{ suggestion.message }}
@@ -263,7 +263,7 @@ function handleWarningClick(warning: Warning) {
       >
         <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-[var(--color-surface)] flex-center">
           <Icon 
-            :name="activeFilter === 'info' ? 'lightbulb' : 'check_circle'" 
+            :name="activeFilter === 'info' ? 'LightBulbIcon' : 'SolidCheckCircleIcon'" 
             :size="24" 
             class="text-[var(--color-success)]" 
           />
