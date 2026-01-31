@@ -9,25 +9,25 @@ We utilize a consistent severity-based visual language across all notification c
 
 ### Severity Levels (`Warning['level']`)
 
-| Level | Semantic Meaning | Tailwind Theme (Light/Dark) | Icon (Material Symbols) |
+| Level | Semantic Meaning | Tailwind Theme (Light/Dark) | Icon (Heroicons) |
 | :--- | :--- | :--- | :--- |
-| **Error** | **Blocker / Rule Violation** | `bg-red-500/10` + `text-red-500` | `error` |
-| **Warn** | **Potential Issue** | `bg-amber-500/10` + `text-amber-500` | `warning` |
-| **Info** | **Suggestion / Note** | `bg-blue-500/10` + `text-blue-500` | `info` |
+| **Error** | **Blocker / Rule Violation** | `bg-red-500/10` + `text-red-500` | `exclamation-circle` |
+| **Warn** | **Potential Issue** | `bg-amber-500/10` + `text-amber-500` | `exclamation-triangle` |
+| **Info** | **Suggestion / Note** | `bg-blue-500/10` + `text-blue-500` | `information-circle` |
 
-### Configuration implementation (`WarningWidget.tsx`)
+### Configuration implementation (`WarningWidget.vue`)
 
 ```typescript
-const levelConfig: Record<Warning['level'], LevelConfig> = {
+const levelConfig: Record<WarningLevel, LevelConfig> = {
   error: {
-    icon: 'error',
-    bgClass: 'bg-red-500/10 dark:bg-red-500/15',
-    textClass: 'text-red-500'
+    icon: ExclamationCircleIcon,
+    bgClass: 'bg-destructive/15 text-destructive',
+    borderClass: 'border-destructive/50'
   },
   warn: {
-    icon: 'warning',
-    bgClass: 'bg-amber-500/10 dark:bg-amber-500/15',
-    textClass: 'text-amber-500'
+    icon: ExclamationTriangleIcon,
+    bgClass: 'bg-amber-500/15 text-amber-500',
+    borderClass: 'border-amber-500/50'
   }
   // ...info
 }
@@ -37,20 +37,20 @@ const levelConfig: Record<Warning['level'], LevelConfig> = {
 
 ## 3. Architecture & Data Flow
 
-The system follows a uni-directional data flow using **Zustand** for state management. 
+The system follows a uni-directional data flow using **Pinia** for state management. 
 
 ### Data Flow Diagram
 
 ```mermaid
 graph TD
-    User[User Action] -->|Click/Drop| Validate{Validator}
+    User[User Action] -->|Click/Drag| Action{Store Action}
     
-    Validate -->|Fail| Toast[Toast Error UI]
-    Validate -->|Pass| Dispatch[Dispatch Action]
+    Action -->|Valid| Mutation[Mutate State]
+    Action -->|Invalid| Toast[Toast Error UI]
     
-    Dispatch --> Store[Zustand Store]
+    Mutation --> Store[Pinia Store]
     
-    subgraph "Side Effects (Middleware-like)"
+    subgraph "Side Effects"
         Store --> Activity[Add Activity Log]
         Store --> Calc[Recalc Warnings]
     end
@@ -63,70 +63,42 @@ graph TD
 
 ## 4. Key Components & Logic
 
-### A. Pre-Assignment Validation (`slotValidation.ts`)
+### A. Pre-Assignment Validation (`assignment.ts`)
 
-Before any state mutation, we validate the intent. We use a **Discriminated Union** return type for type-safe handling of validation failures.
+In the Store actions, we perform basic validation before mutating state.
 
-```typescript
-export type AssignmentValidation =
-    | { canAssign: true }
-    | { 
-        canAssign: false; 
-        reason: 'same_slot' | 'already_in_part'; 
-        existingSlot?: SlotInfo 
-      }
-
-export function validateAssignment(draft, part, role, name): AssignmentValidation {
-    // 1. Check if member exists in the target part (1st/2nd Service)
-    const existing = findMemberSlotInPart(draft, part, name)
-    
-    if (!existing) return { canAssign: true }
-    
-    // 2. Check if it's the exact same slot (idempotent action)
-    if (isSameSlot(existing, target)) {
-        return { canAssign: false, reason: 'same_slot', existingSlot: existing }
-    }
-    
-    // 3. Member is already in a DIFFERENT role in this part
-    return { canAssign: false, reason: 'already_in_part', existingSlot: existing }
-}
-```
-
-### B. Persistent State Monitoring (`assignmentSlice.ts`)
+### B. Persistent State Monitoring (`assignment.ts`)
 
 The store triggers a warning recalculation (`recalcWarnings`) whenever the assignment draft or week date changes. This ensures the Warning Widget is always eventually consistent with the board state.
 
 ```typescript
-// Zustand Slice Pattern
-export const createAssignmentSlice: StateCreator<...> = (set, get) => ({
+// Pinia Store
+export const useAssignmentStore = defineStore('assignment', () => {
     // ... actions
     
-    assignRole: (part, role, value) => {
+    function assignRole(part, role, value) {
         // 1. Mutate State
-        set(produce(state => {
-            state.currentDraft[part][role] = value
-        }))
+        setSlotValue(currentDraft.value, { part, role }, value)
         
         // 2. Add Audit Log
-        get().addActivity({ type: 'assignment', ... })
+        activityStore.addActivity({ type: 'assignment', ... })
         
         // 3. Trigger Rule Engine
-        get().recalcWarnings() 
-    },
+        recalcWarnings() 
+    }
 
-    recalcWarnings: () => {
-        const warnings = computeWarnings(get().currentWeekDate, get().currentDraft, get().app)
-        set({ warnings })
+    function recalcWarnings() {
+        warnings.value = computeWarnings(currentWeekDate.value, currentDraft.value, app.value)
     }
 })
 ```
 
-### C. The Warning Widget (`WarningWidget.tsx`)
+### C. The Warning Widget (`WarningWidget.vue`)
 
-A unified view for all persistent alerts. It uses a **Split-Tab Design** to separate critical blocking issues from helpful suggestions.
+A unified view for all persistent alerts. It uses a **Filter Design** to view specific types of issues.
 
-*   **Alerts Tab**: Filters for `level === 'error' | 'warn'`
-*   **Info Tab**: Filters for `level === 'info'` (AI Suggestions, etc.)
+*   **Error/Warn**: Critical blocking issues.
+*   **Info**: helpful suggestions (Rotation candidates).
 
 ---
 
@@ -134,11 +106,11 @@ A unified view for all persistent alerts. It uses a **Split-Tab Design** to sepa
 
 ### Toast Triggers (Ephemeral)
 *   **Blocker**: "Member already assigned to Part 1" (Error Toast)
-*   **Info**: "Member assignment cleared" (Info Toast)
+*   Uses `vue-sonner` for toast notifications.
 
 ### Activity Feed (Historical)
 *   Visualizes the `draftHistory` stack.
-*   Uses `framer-motion` for smooth layout transitions when items are added.
+*   Uses `@vueuse/motion` for smooth layout transitions when items are added.
 *   Includes `Undo` capability directly from the feed header.
 
 ## 6. Development Notes
