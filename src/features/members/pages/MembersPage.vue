@@ -6,11 +6,10 @@ import { ref, computed, watch, h, type Ref } from 'vue'
 import type { Updater } from '@tanstack/vue-table'
 import { useAssignmentStore } from '@/stores/assignment'
 import Modal from '@/components/common/Modal.vue'
-import ActivityFeed from '@/shared/components/common/ActivityFeed.vue'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
+
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import Icon from '@/components/ui/Icon.vue'
@@ -22,6 +21,7 @@ import {
   getCoreRowModel,
   useVueTable,
   type ColumnDef,
+  type Column,
   getSortedRowModel,
   type SortingState,
 } from '@tanstack/vue-table'
@@ -94,22 +94,40 @@ const generationStats = computed(() => {
 })
 
 const activeCount = computed(() => members.value.filter(m => m.active).length)
-const maxGenCount = computed(() => Math.max(1, ...generationStats.value.sorted.map(s => s[1])))
 
 // Table Setup
 type MemberWithGen = typeof membersWithGen.value[0]
 
 const sorting = ref<SortingState>([])
 
-const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
+/**
+ * 컨럼의 현재 정렬 상태에 따라 아이콘 정보를 반환
+ * @param column - TanStack Table 컨럼 객체
+ * @returns 아이콘 이름과 CSS 클래스
+ */
+function getSortIcon(column: Column<MemberWithGen, unknown>) {
+  const sortState = column.getIsSorted()
+  if (sortState === 'asc') return { name: 'ChevronUpIcon', class: 'ml-1.5 text-[var(--color-accent)]' }
+  if (sortState === 'desc') return { name: 'ChevronDownIcon', class: 'ml-1.5 text-[var(--color-accent)]' }
+  return { name: 'ChevronUpDownIcon', class: 'ml-1.5 text-[var(--color-label-tertiary)]' }
+}
+
+// 컬럼 정의 - 정적 배열로 정의하여 불필요한 재생성 방지
+const columns: ColumnDef<MemberWithGen>[] = [
   {
     accessorKey: 'generation',
     header: ({ column }) => {
+      const icon = getSortIcon(column)
       return h(Button, {
         variant: 'ghost',
         class: 'h-8 data-[state=open]:bg-accent w-full justify-center',
         onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-      }, () => ['기수', h(Icon, { name: 'ChevronUpDownIcon', size: 12, class: 'ml-1' })])
+      }, () => [
+        '기수', 
+        h('span', { class: 'w-5 inline-flex justify-center' }, 
+          h(Icon, { name: icon.name, size: 14, class: icon.class })
+        )
+      ])
     },
     cell: ({ row }) => {
       const gen = row.original.generation
@@ -128,11 +146,17 @@ const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
   {
     accessorKey: 'name',
     header: ({ column }) => {
+      const icon = getSortIcon(column)
       return h(Button, {
         variant: 'ghost',
         class: '-ml-4 h-8 data-[state=open]:bg-accent',
         onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-      }, () => ['이름', h(Icon, { name: 'ChevronUpDownIcon', size: 12, class: 'ml-2' })])
+      }, () => [
+        '이름', 
+        h('span', { class: 'w-5 inline-flex justify-center' }, 
+          h(Icon, { name: icon.name, size: 14, class: icon.class })
+        )
+      ])
     },
     cell: ({ row }) => {
       const member = row.original
@@ -155,11 +179,17 @@ const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
   {
     accessorKey: 'active',
     header: ({ column }) => {
+      const icon = getSortIcon(column)
       return h(Button, {
         variant: 'ghost',
         class: 'h-8 data-[state=open]:bg-accent w-full justify-center',
         onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
-      }, () => ['상태', h(Icon, { name: 'ChevronUpDownIcon', size: 12, class: 'ml-1' })])
+      }, () => [
+        '상태', 
+        h('span', { class: 'w-5 inline-flex justify-center' }, 
+          h(Icon, { name: icon.name, size: 14, class: icon.class })
+        )
+      ])
     },
     cell: ({ row }) => {
       const isActive = row.original.active
@@ -196,11 +226,12 @@ const columns = computed<ColumnDef<MemberWithGen>[]>(() => [
       ])
     }
   }
-])
+]
 
 const table = useVueTable({
   get data() { return filteredMembers.value },
-  get columns() { return columns.value },
+  columns, // 정적 배열 직접 참조
+  getRowId: (row) => row.name, // 안정적인 row ID 사용
   getCoreRowModel: getCoreRowModel(),
   getSortedRowModel: getSortedRowModel(),
   onSortingChange: updaterOrValue => valueUpdater(updaterOrValue, sorting),
@@ -270,122 +301,144 @@ function closeModal() {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Page Header - Stitch Style -->
-    <div class="flex items-center justify-between gap-4">
-      <div>
+  <div class="space-y-5">
+    <!-- Page Header - 헤더에 검색창 통합 -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
         <h1 class="text-xl font-bold text-foreground">팀원 관리</h1>
-        <p class="text-sm text-muted-foreground">총 {{ members.length }}명 · 활동 중 {{ activeCount }}명</p>
+        <span 
+          v-if="members.length > 0"
+          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+        >
+          {{ activeCount }}명 활동 중
+        </span>
       </div>
-      <Button variant="default" @click="openAddModal">
-        <Icon name="PlusIcon" :size="16" />
-        팀원 추가
-      </Button>
+      <div class="flex items-center gap-3">
+        <!-- 검색창 -->
+        <div class="relative w-full sm:w-56">
+          <Icon name="MagnifyingGlassIcon" :size="14" class="absolute left-2.5 top-2.5 text-muted-foreground z-10" />
+          <Input
+            v-model="searchTerm"
+            placeholder="이름 검색..."
+            class="w-full pl-8 h-9"
+          />
+        </div>
+        <!-- 추가 버튼 -->
+        <Button variant="default" @click="openAddModal" class="shrink-0">
+          <Icon name="PlusIcon" :size="16" />
+          <span class="hidden sm:inline">팀원 추가</span>
+        </Button>
+      </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Left: Member List -->
-      <div class="lg:col-span-2 space-y-4">
-        <!-- Search -->
-        <div class="flex justify-end p-1">
-          <div class="relative w-full sm:w-64">
-            <Icon name="MagnifyingGlassIcon" :size="14" class="absolute left-2.5 top-2.5 text-muted-foreground z-10" />
-            <Input
-              v-model="searchTerm"
-              placeholder="이름 검색..."
-              class="w-full pl-8"
-            />
-          </div>
-        </div>
+    <!-- 기수별 분포 - Compact 배지 형태 -->
+    <div 
+      v-if="generationStats.sorted.length > 0 || generationStats.unknown > 0"
+      class="flex items-center gap-2 flex-wrap"
+    >
+      <span class="text-xs font-medium text-[var(--color-label-tertiary)] mr-1">기수별:</span>
+      <button
+        v-for="([gen, count], idx) in generationStats.sorted"
+        :key="gen"
+        :class="clsx(
+          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
+          idx === 0 
+            ? 'bg-[var(--color-accent)]/15 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/25' 
+            : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)] hover:bg-[var(--color-surface-elevated)]/80'
+        )"
+        @click="searchTerm = String(gen)"
+      >
+        <span>{{ gen }}기</span>
+        <span :class="clsx(
+          'px-1.5 py-0.5 rounded text-[10px] font-bold',
+          idx === 0 ? 'bg-[var(--color-accent)]/20' : 'bg-black/5 dark:bg-white/10'
+        )">{{ count }}</span>
+      </button>
+      <button
+        v-if="generationStats.unknown > 0"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--color-surface-elevated)] text-[var(--color-label-tertiary)] hover:bg-[var(--color-surface-elevated)]/80 transition-colors"
+        @click="searchTerm = ''"
+      >
+        <span>기타</span>
+        <span class="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-[10px] font-bold">{{ generationStats.unknown }}</span>
+      </button>
+      <!-- 전체 보기 버튼 (검색 중일 때) -->
+      <button
+        v-if="searchTerm"
+        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 transition-colors"
+        @click="searchTerm = ''"
+      >
+        <Icon name="XMarkIcon" :size="12" />
+        <span>필터 해제</span>
+      </button>
+    </div>
 
-        <!-- Member Table (shadcn Data Table) -->
-        <div class="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
-          <Table>
-            <TableHeader class="bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)]">
-              <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="border-0 hover:bg-transparent">
-                <TableHead v-for="header in headerGroup.headers" :key="header.id" :class="clsx('text-xs font-semibold text-[var(--color-label-tertiary)] uppercase tracking-wider h-10', header.column.id === 'generation' ? 'text-center' : '')">
-                  <FlexRender
-                    v-if="!header.isPlaceholder"
-                    :render="header.column.columnDef.header"
-                    :props="header.getContext()"
-                  />
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <template v-if="table.getRowModel().rows?.length">
-                <TableRow
-                  v-for="row in table.getRowModel().rows"
-                  :key="row.id"
-                  :data-state="row.getIsSelected() ? 'selected' : undefined"
-                  :class="clsx(
-                    'group transition-colors hover:bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)] last:border-0',
-                    !row.original.active && 'opacity-60'
-                  )"
-                >
-                  <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" class="py-2.5">
-                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                  </TableCell>
-                </TableRow>
-              </template>
-              <TableRow v-else>
-                <TableCell colspan="4" class="h-24 text-center py-12">
-                   <div class="flex flex-col items-center justify-center gap-2">
-                    <div class="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center">
-                      <Icon name="UserMinusIcon" :size="20" class="text-[var(--color-label-tertiary)]" />
-                    </div>
-                    <p class="text-sm text-[var(--color-label-secondary)]">
-                      {{ searchTerm ? '검색 결과가 없습니다' : '조건에 맞는 팀원이 없습니다' }}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      <!-- Right: Sidebar - Stitch Style -->
-      <div class="space-y-4">
-        <!-- Generation Distribution - Simple -->
-        <Card>
-          <CardContent class="p-4">
-            <h3 class="text-sm font-semibold text-foreground mb-4">기수별 분포</h3>
-            <div class="space-y-3">
-              <div
-                v-for="([gen, count], idx) in generationStats.sorted"
-                :key="gen"
-                class="flex items-center gap-3"
-              >
-                <div class="w-8 text-sm text-muted-foreground text-right">{{ gen }}기</div>
-                <div class="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    :class="`h-full rounded-full ${idx === 0 ? 'bg-primary' : 'bg-muted-foreground/30'}`"
-                    :style="{ width: `${(count / maxGenCount) * 100}%` }"
+    <!-- Member Table - 전체 너비 사용 -->
+    <div class="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
+      <Table>
+        <TableHeader class="bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)]">
+          <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="border-0 hover:bg-transparent">
+            <TableHead v-for="header in headerGroup.headers" :key="header.id" :class="clsx('text-xs font-semibold text-[var(--color-label-tertiary)] uppercase tracking-wider h-10', header.column.id === 'generation' ? 'text-center' : '')">
+              <FlexRender
+                v-if="!header.isPlaceholder"
+                :render="header.column.columnDef.header"
+                :props="header.getContext()"
+              />
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <template v-if="table.getRowModel().rows?.length">
+            <TableRow
+              v-for="row in table.getRowModel().rows"
+              :key="row.original.name"
+              :data-state="row.getIsSelected() ? 'selected' : undefined"
+              :class="clsx(
+                'group hover:bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)] last:border-0',
+                !row.original.active && 'opacity-60'
+              )"
+            >
+              <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" class="py-2.5">
+                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+              </TableCell>
+            </TableRow>
+          </template>
+          <TableRow v-else>
+            <TableCell colspan="4" class="h-48 text-center p-0">
+              <div class="h-full flex flex-col items-center justify-center gap-4 empty-state-pattern">
+                <!-- 아이콘 with 그라디언트 배경 -->
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-accent)]/20 to-[var(--color-accent)]/5 flex items-center justify-center shadow-sm">
+                  <Icon 
+                    :name="searchTerm ? 'MagnifyingGlassIcon' : 'UserGroupIcon'" 
+                    :size="28" 
+                    class="text-[var(--color-accent)]" 
                   />
                 </div>
-                <div class="w-4 text-sm font-medium text-foreground text-right">{{ count }}</div>
+                <!-- 텍스트 -->
+                <div class="space-y-1">
+                  <p class="text-base font-medium text-[var(--color-label-primary)]">
+                    {{ searchTerm ? '검색 결과가 없습니다' : '아직 팀원이 없어요' }}
+                  </p>
+                  <p class="text-sm text-[var(--color-label-tertiary)]">
+                    {{ searchTerm ? '다른 검색어로 시도해보세요' : '첫 번째 팀원을 추가해보세요!' }}
+                  </p>
+                </div>
+                <!-- CTA 버튼 (검색 중이 아닐 때만) -->
+                <Button 
+                  v-if="!searchTerm"
+                  variant="default"
+                  size="sm"
+                  @click="openAddModal"
+                  class="mt-2"
+                >
+                  <Icon name="PlusIcon" :size="14" />
+                  팀원 추가하기
+                </Button>
               </div>
-              <div
-                v-if="generationStats.unknown > 0"
-                class="flex items-center gap-3 text-sm pt-2 border-t border-border"
-              >
-                <div class="w-8 text-muted-foreground text-right">-</div>
-                <div class="flex-1 text-muted-foreground">기수 미확인</div>
-                <div class="w-4 text-right text-muted-foreground">{{ generationStats.unknown }}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- Activity Feed -->
-        <ActivityFeed
-          title="변경 내역"
-          :filter="['member']"
-          emptyMessage="최근 변경 사항 없음"
-        />
-      </div>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
 
     <!-- Add/Edit Modal -->

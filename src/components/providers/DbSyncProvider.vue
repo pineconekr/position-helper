@@ -3,27 +3,45 @@
  * DbSyncProvider.vue - 비동기 DB 동기화 (논블로킹)
  * 
  * LCP 최적화: 초기화 중에도 children을 렌더링하여 페이지 표시를 차단하지 않음
- * 초기화 중에는 오버레이 로딩 인디케이터만 표시
+ * 인증 상태 확인 후에만 DB 동기화 시도
  */
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
-import { initSchema } from '@/api/db'
+import { useAuthStore } from '@/stores/auth'
 
 const assignmentStore = useAssignmentStore()
+const authStore = useAuthStore()
 const isInitialized = ref(false)
 
-onMounted(async () => {
-  try {
-    // 1. Schema 초기화 (테이블이 없으면 생성)
-    await initSchema()
+async function syncData() {
+  if (!authStore.isAuthenticated) {
+    isInitialized.value = true
+    return
+  }
 
-    // 2. 데이터 불러오기
+  try {
+    // 인증된 상태에서만 데이터 불러오기
     await assignmentStore.loadFromDb()
   } catch (error) {
-    console.error('Failed to initialize DB sync:', error)
+    console.error('Failed to sync DB:', error)
     // 에러가 나도 우선 로컬 데이터로 작동하게 함
   } finally {
     isInitialized.value = true
+  }
+}
+
+onMounted(() => {
+  // 인증 상태 확인 후 동기화
+  if (!authStore.isLoading) {
+    syncData()
+  }
+})
+
+// 인증 상태 변경 시 동기화 재시도
+watch(() => authStore.isAuthenticated, (newVal) => {
+  if (newVal) {
+    isInitialized.value = false
+    syncData()
   }
 })
 </script>
@@ -35,7 +53,7 @@ onMounted(async () => {
   <!-- 초기화 중일 때만 오버레이 표시 -->
   <Teleport to="body">
     <div
-      v-if="!isInitialized"
+      v-if="!isInitialized && authStore.isAuthenticated"
       class="fixed inset-0 bg-[var(--color-canvas)]/80 backdrop-blur-sm flex items-center justify-center z-[9999] transition-opacity"
       style="pointer-events: none"
     >

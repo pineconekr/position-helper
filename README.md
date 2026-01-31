@@ -1,65 +1,46 @@
-# Position Helper (포지션 헬퍼)
+# 고등부 영상팀 포지션 배정 도우미 📸
 
-📸 **고등부 영상팀 포지션 배정 도우미**
+> **"매주 포지션 짜다가 눈 빠질 것 같아서 주말에 Antigravity 갈아넣어서 만든 프로젝트"**
 
-Vue 3 + Vite + TypeScript based application for managing volunteer team assignments, checking rotation rules, and visualizing participation statistics.
+매주 엑셀 시트랑 온에어 카톡방 보면서 "아, 이 친구 저번 주에 자막 했었나?" "얘는 왜 3주 연속 메인 카메라지?" 고민하다가 머리 터질 것 같아서 만들었습니다.
+요즘 antigravity로 바이브 코딩하는게 유행이라길래 저도 한번 해봤습니다.
+주 목적은 팀원들이 포지션을 공평하게 가져가고, 결과적으로 영상팀 인원 모두가 올라운더가 되게 하려는 것입니다.
 
-## ✨ Key Features
+## 이게 뭔데?
 
-- **Smart Assignment Grid**: Interactive drag-and-drop interface for weekly role scheduling.
-- **Rotation Warnings**: Real-time alerts for consecutive assignments or role fatigue.
-- **Statistics Dashboard**: 📊 **[NEW]** Visualize member workload and role distribution using Apache ECharts.
-- **Member Management**: Easily add/remove members and manage active status.
-- **Stitch Dark Mode**: "Igeootte" dark mode design system integration.
-- **History Tracking**: Undo/Redo capability for assignment actions.
+그냥 **포지션 배정 자동화/보조 툴**입니다. 근데 이제 **예쁜 디자인**과 **다크모드**를 곁들인.
 
-## 🛠️ Tech Stack
+### 주요 기능
 
-- **Framework**: [Vue 3](https://vuejs.org/) (Composition API)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **State Management**: [Pinia](https://pinia.vuejs.org/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **UI Components**: Shadcn Vue + Headless UI
-- **Visualization**: [Apache ECharts](https://echarts.apache.org/)
+1.  **드래그 앤 드롭 배정**: 엑셀 칸 채우기 그만. 그냥 이름 끌어다가 넣으세요.
+2.  **자동 경고 시스템**:
+    *   "어? 얘 저번 주도 스위처였는데?" → **경고 뜸**
+    *   "얘는 3주 연속 배정인데 좀 쉬게 해주지?" → **경고 뜸**
+    *   완벽한 로테이션을 위한 AI(인 척하는 알고리즘)의 조언.
+3.  **통계 대시보드 (New!)**:
+    *   누가 제일 많이 수고하고 있는지 그래프로 보여줍니다.
+    *   한 역할만 계속하는 '고인물' 방지 가능.
 
-## 🚀 Getting Started
+## 실행 방법
 
-### Prerequisites
-- Node.js 18+
-- npm to pnpm
-
-### Installation
+컴퓨터에 Node.js만 깔려있으면 됩니다.
 
 ```bash
-# Clone the repository
-git clone [repo-url]
-
-# Install dependencies
+# 1. 설치
 npm install
-```
 
-### Development
-
-```bash
-# Start dev server (localhost:3000)
+# 2. 프론트엔드만 실행 (포트 3000)
 npm run dev
+
+# 3. Netlify Functions 포함 실행 (포트 8888) - 인증/DB 기능 테스트 시 필수!
+npm run dev:netlify
 ```
 
-### Build
+**⚠️ 주의**: 로그인, DB 저장 등의 기능을 테스트하려면 반드시 `npm run dev:netlify`로 실행해야 합니다.
+- 프론트엔드 + Netlify Functions가 함께 실행됩니다.
+- **접속 주소: `http://localhost:8888`** (3000번 아님!)
 
-```bash
-npm run build
-```
 
-## 📂 Documentation
+## 기여
 
-- **[Architecture Overview](docs/CODEMAPS/INDEX.md)** - System design and structure.
-- **[Frontend Map](docs/CODEMAPS/frontend.md)** - Detailed component and state breakdown.
-- **[Design System](DESIGN_SYSTEM.md)** - Colors, typography, and UI guidelines.
-
-## 🤝 Contributing
-
-1.  Check the `src/features` directory for modular logic.
-2.  Use `npm run type-check` before committing.
-3.  Follow the [Stitch Design System](DESIGN_SYSTEM.md).
+버그 제보 환영합니다. 기능 추가 요청은 갠톡으로 해주세요...

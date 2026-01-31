@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * AssignmentSummary.vue - Vue 3 버전
- * 이번 주 배정 현황 요약
+ * AssignmentSummary.vue - 이번 주 배정 현황 (Compact 리디자인)
  */
 import { computed } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import Icon from '@/components/ui/Icon.vue'
+import { ROLE_CONFIG } from '@/shared/constants/config'
+import { formatKoreanDate } from '@/shared/utils/date'
 import clsx from 'clsx'
 
 const store = useAssignmentStore()
@@ -16,30 +16,23 @@ const draft = computed(() => store.currentDraft)
 const app = computed(() => store.app)
 const currentWeekDate = computed(() => store.currentWeekDate)
 
-// 배정된 멤버 수 계산
-const assignedCount = computed(() => {
-  const assigned = new Set<string>()
-  if (!draft.value) return 0
-  
-  const parts = [draft.value.part1, draft.value.part2]
-  parts.forEach(p => {
-    if (p.SW) assigned.add(p.SW)
-    if (p['자막']) assigned.add(p['자막'])
-    if (p['고정']) assigned.add(p['고정'])
-    if (p['스케치']) assigned.add(p['스케치'])
-    p['사이드'].forEach(n => { if (n) assigned.add(n) })
-  })
-  
-  return assigned.size
+// 불참자 목록
+const absences = computed(() => {
+  return app.value.weeks[currentWeekDate.value]?.absences ?? []
 })
 
-// 불참자 수
-const absentCount = computed(() => {
-  return app.value.weeks[currentWeekDate.value]?.absences?.length ?? 0
+// 총 활동 인원
+const totalActiveMembers = computed(() => {
+  return app.value.members.filter(m => m.active).length
 })
 
-// 총 슬롯 수
-const totalSlots = 12 // (SW + 자막 + 고정 + 스케치 + 사이드×2) × 2부
+// 가용 인원 (활동 인원 - 불참자)
+const availableCount = computed(() => {
+  return totalActiveMembers.value - absences.value.length
+})
+
+// 총 슬롯 수 (상수에서 가져옴)
+const totalSlots = ROLE_CONFIG.TOTAL_SLOTS_PER_WEEK
 
 // 채워진 슬롯 수
 const filledSlots = computed(() => {
@@ -60,59 +53,94 @@ const filledSlots = computed(() => {
 
 const progress = computed(() => Math.round((filledSlots.value / totalSlots) * 100))
 
-// 날짜 포맷
-const formattedDate = computed(() => {
-  const date = new Date(currentWeekDate.value)
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  return `${month}월 ${day}일`
+// 날짜 포맷 (유틸리티 함수 사용)
+const formattedDate = computed(() => formatKoreanDate(currentWeekDate.value))
+
+// 진행률에 따른 그라데이션 색상 (Tailwind 통일)
+const progressColorClass = computed(() => {
+  if (progress.value === 100) return 'from-emerald-500 to-emerald-400'
+  if (progress.value >= 50) return 'from-indigo-500 to-indigo-400'
+  return 'from-amber-500 to-amber-400'
+})
+
+// 불참자 요약 텍스트
+const absenceSummary = computed(() => {
+  if (absences.value.length === 0) return null
+  
+  // 최대 2명까지 이름+사유 표시
+  const maxShow = 2
+  const shown = absences.value.slice(0, maxShow).map(a => {
+    const reason = a.reason?.trim()
+    return reason ? `${a.name}(${reason})` : a.name
+  })
+  
+  const remaining = absences.value.length - maxShow
+  if (remaining > 0) {
+    return `${shown.join(', ')} 외 ${remaining}명`
+  }
+  return shown.join(', ')
 })
 </script>
 
 <template>
-  <Card>
-    <CardContent class="p-4 space-y-4">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <Icon name="CalendarDaysIcon" :size="18" class="text-[var(--color-accent)]" />
-        <h3 class="text-sm font-semibold text-[var(--color-label-primary)]">이번 주 배정 현황</h3>
-      </div>
-      <Badge variant="accent">{{ formattedDate }}</Badge>
-    </div>
+  <Card class="card-hover overflow-hidden">
+    <CardContent class="p-5">
+      <!-- 메인 콘텐츠 -->
+      <div class="space-y-4">
+        <!-- 날짜 헤더 -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-indigo-500 flex items-center justify-center shadow-sm">
+            <Icon name="CalendarDaysIcon" :size="18" class="text-white" />
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-[var(--color-label-primary)]">{{ formattedDate }}</h3>
+            <p class="text-xs text-[var(--color-label-tertiary)]">배정 현황</p>
+          </div>
+        </div>
 
-    <!-- Progress bar -->
-    <div class="space-y-2">
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-[var(--color-label-secondary)]">배정 진행률</span>
-        <span class="font-medium text-[var(--color-label-primary)]">{{ filledSlots }}/{{ totalSlots }}</span>
-      </div>
-      <div class="h-2 bg-[var(--color-surface)] rounded-full overflow-hidden">
-        <div 
-          :class="clsx(
-            'h-full transition-all duration-300 rounded-full',
-            progress === 100 ? 'bg-[var(--color-success)]' : 'bg-[var(--color-accent)]'
-          )"
-          :style="{ width: `${progress}%` }"
-        />
-      </div>
-    </div>
+        <!-- 진행률 바 (더 크게) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-[var(--color-label-secondary)]">진행률</span>
+            <span class="text-sm font-bold">
+              <span class="text-lg stat-number" :class="progress === 100 ? 'text-emerald-500' : 'text-[var(--color-accent)]'">{{ filledSlots }}</span>
+              <span class="text-[var(--color-label-tertiary)]">/{{ totalSlots }}</span>
+              <span class="text-[var(--color-label-tertiary)] ml-1">({{ progress }}%)</span>
+            </span>
+          </div>
+          <div class="h-3 bg-[var(--color-surface-elevated)] rounded-full overflow-hidden shadow-inner">
+            <div 
+              :class="clsx('h-full rounded-full bg-gradient-to-r transition-all duration-500', progressColorClass)"
+              :style="{ width: `${progress}%` }"
+            />
+          </div>
+        </div>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-3 gap-2 text-center">
-      <div class="p-2 rounded-[var(--radius-sm)] bg-[var(--color-surface)]">
-        <div class="text-lg font-bold text-[var(--color-accent)]">{{ assignedCount }}</div>
-        <div class="text-xs text-[var(--color-label-tertiary)]">배정된 팀원</div>
+        <!-- 가용/불참 인원 요약 -->
+        <div class="flex items-start gap-4 pt-1">
+          <!-- 가용 인원 -->
+          <div class="flex items-center gap-1.5">
+            <div class="w-2 h-2 rounded-full bg-emerald-500" />
+            <span class="text-sm font-medium text-[var(--color-label-primary)]">
+              가용 <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ availableCount }}명</span>
+            </span>
+          </div>
+
+          <!-- 불참 인원 -->
+          <div v-if="absences.length > 0" class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-full bg-rose-500" />
+              <span class="text-sm font-medium text-[var(--color-label-primary)]">
+                불참 <span class="font-bold text-rose-600 dark:text-rose-400">{{ absences.length }}명</span>
+              </span>
+            </div>
+            <!-- 불참자 상세 (이름+사유) -->
+            <p class="text-xs text-[var(--color-label-tertiary)] mt-0.5 ml-3.5 truncate">
+              {{ absenceSummary }}
+            </p>
+          </div>
+        </div>
       </div>
-      <div class="p-2 rounded-[var(--radius-sm)] bg-[var(--color-surface)]">
-        <div class="text-lg font-bold text-[var(--color-success)]">{{ progress }}%</div>
-        <div class="text-xs text-[var(--color-label-tertiary)]">완료율</div>
-      </div>
-      <div class="p-2 rounded-[var(--radius-sm)] bg-[var(--color-surface)]">
-        <div class="text-lg font-bold text-[var(--color-danger)]">{{ absentCount }}</div>
-        <div class="text-xs text-[var(--color-label-tertiary)]">불참자</div>
-      </div>
-    </div>
     </CardContent>
   </Card>
 </template>

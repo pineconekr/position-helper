@@ -32,8 +32,8 @@
     --accent: #e0e7ff;
     --accent-foreground: #2b4bee;
     --destructive: #ef4444;
-    --border: #e5e7eb;
-    --input: #e5e7eb;
+    --border: #d1d5db;
+    --input: #c9cdd5;
     --ring: #2b4bee;
     --chart-1: #2b4bee;
     --chart-2: #10b981;
@@ -670,8 +670,8 @@
     --accent: #1e3a8a;
     --accent-foreground: #5b6cf9;
     --destructive: #f87171;
-    --border: #374151;
-    --input: #374151;
+    --border: #4b5563;
+    --input: #52596b;
     --ring: #5b6cf9;
     --chart-1: #5b6cf9;
     --chart-2: #34d399;
@@ -691,6 +691,108 @@
 /* 
   ---break---
 */
+
+/* ══════════════════════════════════════════════════════════════
+   UI POLISH UTILITIES - Premium SaaS Look & Feel
+   ══════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+    /* 그라디언트 텍스트 */
+    .text-gradient-primary {
+        background: linear-gradient(135deg, var(--color-accent), #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .text-gradient-success {
+        background: linear-gradient(135deg, var(--color-success), #34d399);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* 프리미엄 카드 호버 효과 */
+    .card-hover {
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 10px 25px -5px rgba(0, 0, 0, 0.1),
+            0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+    .dark .card-hover:hover {
+        box-shadow: 
+            0 10px 25px -5px rgba(0, 0, 0, 0.3),
+            0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    }
+
+    /* 강조 숫자 스타일 (현황판용) */
+    .stat-number {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+    }
+    .stat-number-large {
+        font-size: 2.5rem;
+        line-height: 1;
+        font-weight: 800;
+    }
+
+    /* 빈 상태 배경 패턴 */
+    .empty-state-pattern {
+        background-image: 
+            radial-gradient(circle at 1px 1px, var(--color-border-subtle) 1px, transparent 0);
+        background-size: 24px 24px;
+    }
+
+    /* 글로우 효과 (선택된 요소용) */
+    .glow-accent {
+        box-shadow: 0 0 20px rgba(43, 75, 238, 0.3);
+    }
+    .dark .glow-accent {
+        box-shadow: 0 0 20px rgba(91, 108, 249, 0.4);
+    }
+
+    /* 배지 강조 효과 */
+    .badge-glow {
+        animation: badge-pulse 2s ease-in-out infinite;
+    }
+
+    /* 진행률 바 애니메이션 */
+    .progress-bar {
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* 아이콘 배경 (현황판 카드용) */
+    .icon-bg {
+        background: linear-gradient(135deg, var(--color-accent-soft), transparent);
+        border-radius: 50%;
+    }
+    .icon-bg-success {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), transparent);
+    }
+    .icon-bg-warning {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), transparent);
+    }
+    .icon-bg-danger {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), transparent);
+    }
+
+    /* 입체감 있는 카드 테두리 */
+    .border-gradient {
+        border: 1px solid transparent;
+        background: 
+            linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+            linear-gradient(135deg, var(--color-border-subtle), var(--color-accent-soft)) border-box;
+    }
+}
+
+@keyframes badge-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
 
 @layer base {
   * {

@@ -74,25 +74,25 @@ async function handleResetData() {
           :key="option.value"
           @click="themeStore.setTheme(option.value)"
           :class="clsx(
-            'card-interactive relative flex flex-col gap-3 p-4 rounded-xl border-2 text-left',
+            'card-hover relative flex flex-col gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200',
             theme === option.value
-              ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
-              : 'border-[var(--color-border-subtle)]'
+              ? 'border-[var(--color-accent)] bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-accent)]/5 glow-accent'
+              : 'border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]'
           )"
         >
-          <div v-if="theme === option.value" class="absolute top-3 right-3">
+          <div v-if="theme === option.value" class="absolute top-3 right-3 animate-in zoom-in duration-200">
             <Icon name="SolidCheckCircleIcon" :size="20" class="text-[var(--color-accent)]" />
           </div>
           <div :class="clsx(
-            'w-10 h-10 rounded-lg flex items-center justify-center',
+            'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200',
             theme === option.value
-              ? 'bg-[var(--color-accent)]/20'
-              : 'bg-[var(--color-surface)]'
+              ? 'bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/30'
+              : 'bg-[var(--color-surface-elevated)]'
           )">
-            <Icon :name="option.icon" :size="20" :class="theme === option.value ? 'text-[var(--color-accent)]' : 'text-[var(--color-label-secondary)]'" />
+            <Icon :name="option.icon" :size="20" :class="theme === option.value ? 'text-white' : 'text-[var(--color-label-secondary)]'" />
           </div>
           <div>
-            <div class="font-medium text-[var(--color-label-primary)]">{{ option.title }}</div>
+            <div :class="clsx('font-semibold', theme === option.value ? 'text-[var(--color-accent)]' : 'text-[var(--color-label-primary)]')">{{ option.title }}</div>
             <div class="text-sm text-[var(--color-label-secondary)] mt-0.5">{{ option.description }}</div>
           </div>
         </button>
@@ -119,25 +119,25 @@ async function handleResetData() {
           :key="option.value"
           @click="themeStore.setMotionPreference(option.value)"
           :class="clsx(
-            'card-interactive relative flex flex-col gap-3 p-4 rounded-xl border-2 text-left',
+            'card-hover relative flex flex-col gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200',
             motionPreference === option.value
-              ? 'border-purple-500 bg-purple-500/5'
-              : 'border-[var(--color-border-subtle)]'
+              ? 'border-purple-500 bg-gradient-to-br from-purple-500/10 to-purple-500/5 shadow-[0_0_20px_rgba(139,92,246,0.2)]'
+              : 'border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]'
           )"
         >
-          <div v-if="motionPreference === option.value" class="absolute top-3 right-3">
+          <div v-if="motionPreference === option.value" class="absolute top-3 right-3 animate-in zoom-in duration-200">
             <Icon name="SolidCheckCircleIcon" :size="20" class="text-purple-500" />
           </div>
           <div :class="clsx(
-            'w-10 h-10 rounded-lg flex items-center justify-center',
+            'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200',
             motionPreference === option.value
-              ? 'bg-purple-500/20'
-              : 'bg-[var(--color-surface)]'
+              ? 'bg-purple-500 shadow-lg shadow-purple-500/30'
+              : 'bg-[var(--color-surface-elevated)]'
           )">
-            <Icon :name="option.icon" :size="20" :class="motionPreference === option.value ? 'text-purple-500' : 'text-[var(--color-label-secondary)]'" />
+            <Icon :name="option.icon" :size="20" :class="motionPreference === option.value ? 'text-white' : 'text-[var(--color-label-secondary)]'" />
           </div>
           <div>
-            <div class="font-medium text-[var(--color-label-primary)]">{{ option.title }}</div>
+            <div :class="clsx('font-semibold', motionPreference === option.value ? 'text-purple-500' : 'text-[var(--color-label-primary)]')">{{ option.title }}</div>
             <div class="text-sm text-[var(--color-label-secondary)] mt-0.5">{{ option.description }}</div>
           </div>
         </button>
@@ -178,7 +178,7 @@ async function handleResetData() {
     <!-- Footer -->
     <div class="text-center pt-4 pb-8">
       <p class="text-sm text-[var(--color-label-tertiary)]">
-        Position Helper v1.0.0 • Made with ❤️
+        Position Helper v1.0.0
       </p>
     </div>
   </div>
