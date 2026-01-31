@@ -43,4 +43,7 @@ export const ROLE_CONFIG = {
 
     /** 모든 역할 목록 */
     ALL_ROLES: ['SW', '자막', '고정', '사이드', '스케치'] as const,
+
+    /** 주당 총 슬롯 수 (part1 + part2) */
+    TOTAL_SLOTS_PER_WEEK: 12,  // (SW:1 + 자막:1 + 고정:1 + 사이드:2 + 스케치:1) * 2
 } as const
