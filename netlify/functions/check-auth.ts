@@ -1,14 +1,7 @@
 import { jwtVerify } from 'jose'
+import { getSecret } from './utils/auth'
 
 const COOKIE_NAME = 'ph_auth'
-
-function getSecret(): Uint8Array {
-    const password = process.env.ADMIN_PASSWORD
-    if (!password) {
-        throw new Error('FATAL: ADMIN_PASSWORD environment variable is not set')
-    }
-    return new TextEncoder().encode(password)
-}
 
 export default async (req: Request) => {
     const cookieHeader = req.headers.get('cookie')
@@ -36,7 +29,7 @@ export default async (req: Request) => {
     }
 
     try {
-        await jwtVerify(token, getSecret())
+        await jwtVerify(token, getSecret(), { algorithms: ['HS256'] })
         return new Response(JSON.stringify({ authenticated: true }), {
             headers: { 'Content-Type': 'application/json' }
         })

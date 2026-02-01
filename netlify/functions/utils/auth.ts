@@ -2,12 +2,12 @@ import { jwtVerify } from 'jose'
 
 const COOKIE_NAME = 'ph_auth'
 
-function getSecret(): Uint8Array {
-    const password = process.env.ADMIN_PASSWORD
-    if (!password) {
-        throw new Error('FATAL: ADMIN_PASSWORD environment variable is not set')
+export function getSecret(): Uint8Array {
+    const secret = process.env.JWT_SECRET
+    if (!secret) {
+        throw new Error('FATAL: JWT_SECRET environment variable is not set')
     }
-    return new TextEncoder().encode(password)
+    return new TextEncoder().encode(secret)
 }
 
 /**
@@ -36,7 +36,7 @@ export async function verifyAuth(req: Request): Promise<{ valid: boolean; error?
     }
 
     try {
-        await jwtVerify(token, getSecret())
+        await jwtVerify(token, getSecret(), { algorithms: ['HS256'] })
         return { valid: true }
     } catch (e) {
         return { valid: false, error: 'Invalid or expired token' }

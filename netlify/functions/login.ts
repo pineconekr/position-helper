@@ -1,14 +1,8 @@
 import { SignJWT } from 'jose'
 
-const COOKIE_NAME = 'ph_auth'
+import { getSecret } from './utils/auth'
 
-function getSecret(): Uint8Array {
-    const password = process.env.ADMIN_PASSWORD
-    if (!password) {
-        throw new Error('FATAL: ADMIN_PASSWORD environment variable is not set')
-    }
-    return new TextEncoder().encode(password)
-}
+const COOKIE_NAME = 'ph_auth'
 
 // 브루트포스 공격 완화용 지연 함수
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
