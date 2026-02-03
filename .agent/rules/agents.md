@@ -2,7 +2,7 @@
 
 ## Available Agents
 
-Located in `.agent/workflows/`:
+Located in `~/.claude/agents/`:
 
 | Agent | Purpose | When to Use |
 |-------|---------|-------------|

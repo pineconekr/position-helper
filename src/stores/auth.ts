@@ -12,6 +12,15 @@ export const useAuthStore = defineStore('auth', () => {
      */
     async function checkAuth() {
         isLoading.value = true
+
+        // 개발 모드일 경우 인증 패스
+        if (import.meta.env.DEV) {
+            console.log('🚧 Development mode: bypassing auth check')
+            isAuthenticated.value = true
+            isLoading.value = false
+            return
+        }
+
         try {
             const res = await fetch(`${API_BASE}/check-auth`, {
                 credentials: 'include'
@@ -29,6 +38,13 @@ export const useAuthStore = defineStore('auth', () => {
      * 로그인 시도
      */
     async function login(password: string): Promise<{ success: boolean; error?: string }> {
+        // 개발 모드일 경우 로그인 패스
+        if (import.meta.env.DEV) {
+            console.log('🚧 Development mode: bypassing login')
+            isAuthenticated.value = true
+            return { success: true }
+        }
+
         try {
             const res = await fetch(`${API_BASE}/login`, {
                 method: 'POST',

@@ -1,4 +1,4 @@
-# Hooks System (Legacy/Claude-specific - for reference only)
+# Hooks System
 
 ## Hook Types
 

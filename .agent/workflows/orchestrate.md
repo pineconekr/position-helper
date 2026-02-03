@@ -1,176 +1,112 @@
 ---
-description: 복잡한 작업을 위한 순차적 에이전트 워크플로우. 기능 구현, 버그 수정, 리팩토링을 위해 여러 에이전트를 조율합니다.
+description: Automated CLI-based parallel agent execution — spawn subagents via Gemini CLI, coordinate through MCP Memory, monitor progress, and run verification
 ---
 
-# Orchestrate Command
+# MANDATORY RULES — VIOLATION IS FORBIDDEN
 
-Sequential agent workflow for complex tasks.
+- **Response language follows `language` setting in `.agent/config/user-preferences.yaml` if configured.**
+- **NEVER skip steps.** Execute from Step 0 in order. Explicitly report completion of each step before proceeding.
+- **You MUST use MCP tools throughout the entire workflow.** This is NOT optional.
+  - Use code analysis tools (`get_symbols_overview`, `find_symbol`, `find_referencing_symbols`, `search_for_pattern`) for code exploration.
+  - Use memory tools (read/write/edit) for progress tracking.
+  - Memory path: configurable via `memoryConfig.basePath` (default: `.serena/memories`)
+  - Tool names: configurable via `memoryConfig.tools` in `mcp.json`
+  - Do NOT use raw file reads or grep as substitutes. MCP tools are the primary interface.
+- **Read required documents BEFORE starting.**
 
-## Usage
+---
 
-`/orchestrate [workflow-type] [task-description]`
+## Step 0: Preparation (DO NOT SKIP)
 
-## Workflow Types
+1. Read `.agent/skills/workflow-guide/SKILL.md` and confirm Core Rules.
+2. Read `.agent/skills/_shared/context-loading.md` for resource loading strategy.
+3. Read `.agent/skills/_shared/memory-protocol.md` for memory protocol.
 
-### feature
-Full feature implementation workflow:
-```
-planner -> tdd-guide -> code-reviewer -> security-reviewer
-```
+---
 
-### bugfix
-Bug investigation and fix workflow:
-```
-explorer -> tdd-guide -> code-reviewer
-```
+## Step 1: Load or Create Plan
 
-### refactor
-Safe refactoring workflow:
-```
-architect -> code-reviewer -> tdd-guide
-```
+Check if `.agent/plan.json` exists.
 
-### security
-Security-focused review:
-```
-security-reviewer -> code-reviewer -> architect
-```
+- If yes: load it and proceed to Step 2.
+- If no: ask the user to run `/plan` first, or ask them to describe the tasks to execute.
+- **Do NOT proceed without a plan.**
 
-## Execution Pattern
+---
 
-For each agent in the workflow:
+## Step 2: Initialize Session
 
-1. **Invoke agent** with context from previous agent
-2. **Collect output** as structured handoff document
-3. **Pass to next agent** in chain
-4. **Aggregate results** into final report
+// turbo
 
-## Handoff Document Format
+1. 설정 파일 로드:
+   - `.agent/config/user-preferences.yaml` (언어, CLI 매핑)
+2. CLI 매핑 현황 표시:
 
-Between agents, create handoff document:
+   ```
+   📋 CLI 에이전트 매핑
+   ┌──────────┬─────────┐
+   │ Agent    │ CLI     │
+   ├──────────┼─────────┤
+   │ frontend │ gemini  │
+   │ backend  │ gemini  │
+   │ mobile   │ claude  │
+   │ pm       │ claude  │
+   └──────────┴─────────┘
+   ```
 
-```markdown
-## HANDOFF: [previous-agent] -> [next-agent]
+3. Generate session ID (format: `session-YYYYMMDD-HHMMSS`).
+4. Use memory write tool to create `orchestrator-session.md` and `task-board.md` in the memory base path.
+5. Set session status to RUNNING.
 
-### Context
-[Summary of what was done]
+---
 
-### Findings
-[Key discoveries or decisions]
+## Step 3: Spawn Agents by Priority Tier
 
-### Files Modified
-[List of files touched]
+// turbo
+For each priority tier (P0 first, then P1, etc.):
 
-### Open Questions
-[Unresolved items for next agent]
+- Spawn agents using `oh-my-ag agent:spawn {agent_id} {prompt_file} {session_id} {workspace}`.
+- Each agent gets: task description, API contracts, relevant context from `_shared/context-loading.md`.
+- Use memory edit tool to update `task-board.md` with agent status.
 
-### Recommendations
-[Suggested next steps]
-```
+---
 
-## Example: Feature Workflow
+## Step 4: Monitor Progress
 
-```
-/orchestrate feature "Add user authentication"
-```
+Use `oh-my-ag agent:status {session_id} {agent_id}` to check process health.
+Also use memory read tool to poll `progress-{agent}.md` for logic updates.
 
-Executes:
+- Use memory edit tool to update `task-board.md` with turn counts and status changes.
+- Watch for: completion, failures, crashes.
 
-1. **Planner Agent**
-   - Analyzes requirements
-   - Creates implementation plan
-   - Identifies dependencies
-   - Output: `HANDOFF: planner -> tdd-guide`
+---
 
-2. **TDD Guide Agent**
-   - Reads planner handoff
-   - Writes tests first
-   - Implements to pass tests
-   - Output: `HANDOFF: tdd-guide -> code-reviewer`
+## Step 5: Verify Completed Agents
 
-3. **Code Reviewer Agent**
-   - Reviews implementation
-   - Checks for issues
-   - Suggests improvements
-   - Output: `HANDOFF: code-reviewer -> security-reviewer`
-
-4. **Security Reviewer Agent**
-   - Security audit
-   - Vulnerability check
-   - Final approval
-   - Output: Final Report
-
-## Final Report Format
+// turbo
+For each completed agent, run automated verification:
 
 ```
-ORCHESTRATION REPORT
-====================
-Workflow: feature
-Task: Add user authentication
-Agents: planner -> tdd-guide -> code-reviewer -> security-reviewer
-
-SUMMARY
--------
-[One paragraph summary]
-
-AGENT OUTPUTS
--------------
-Planner: [summary]
-TDD Guide: [summary]
-Code Reviewer: [summary]
-Security Reviewer: [summary]
-
-FILES CHANGED
--------------
-[List all files modified]
-
-TEST RESULTS
-------------
-[Test pass/fail summary]
-
-SECURITY STATUS
----------------
-[Security findings]
-
-RECOMMENDATION
---------------
-[SHIP / NEEDS WORK / BLOCKED]
+bash .agent/skills/_shared/verify.sh {agent-type} {workspace}
 ```
 
-## Parallel Execution
+- PASS (exit 0): accept result.
+- FAIL (exit 1): re-spawn with error context (max 2 retries).
 
-For independent checks, run agents in parallel:
+---
 
-```markdown
-### Parallel Phase
-Run simultaneously:
-- code-reviewer (quality)
-- security-reviewer (security)
-- architect (.agent/workflows/architect.md)
+## Step 6: Collect Results
 
-### Merge Results
-Combine outputs into single report
-```
+// turbo
+After all agents complete, use memory read tool to read all `result-{agent}.md` files.
+Compile summary: completed tasks, failed tasks, files changed, remaining issues.
 
-## Arguments
+---
 
-$ARGUMENTS:
-- `feature <description>` - Full feature workflow
-- `bugfix <description>` - Bug fix workflow
-- `refactor <description>` - Refactoring workflow
-- `security <description>` - Security review workflow
-- `custom <agents> <description>` - Custom agent sequence
+## Step 7: Final Report
 
-## Custom Workflow Example
+Present session summary to the user.
 
-```
-/orchestrate custom "architect,tdd-guide,code-reviewer" "Redesign caching layer"
-```
-
-## Tips
-
-1. **Start with planner** for complex features
-2. **Always include code-reviewer** before merge
-3. **Use security-reviewer** for auth/payment/PII
-4. **Keep handoffs concise** - focus on what next agent needs
-5. **Run verification** between agents if needed
+- If any tasks failed after retries, list them with error details.
+- Suggest next steps: manual fix, re-run specific agents, or run `/review` for QA.
+- Use memory write tool to record final results.

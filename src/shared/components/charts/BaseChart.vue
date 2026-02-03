@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart, PieChart, LineChart } from 'echarts/charts'
+import { BarChart, PieChart, LineChart, HeatmapChart, ScatterChart } from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
   LegendComponent,
   TitleComponent,
   DataZoomComponent,
-  ToolboxComponent
+  ToolboxComponent,
+  VisualMapComponent,
+  MarkAreaComponent,
+  MarkLineComponent
 } from 'echarts/components'
 import VChart, { THEME_KEY } from 'vue-echarts'
 import { computed, provide } from 'vue'
@@ -20,12 +23,17 @@ use([
   BarChart,
   PieChart,
   LineChart,
+  HeatmapChart,
+  ScatterChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,
   TitleComponent,
   DataZoomComponent,
-  ToolboxComponent
+  ToolboxComponent,
+  VisualMapComponent,
+  MarkAreaComponent,
+  MarkLineComponent
 ])
 
 const props = defineProps<{

@@ -8,6 +8,7 @@ import { formatDateISO } from '@/shared/utils/date'
 import { computeWarnings } from '@/shared/utils/rules'
 import { useActivityStore, normalizeReason, normalizeText } from './activity'
 import * as api from '@/api/db'
+import { DUMMY_DATA } from '@/shared/data/dummy'
 
 const partLabel = (part: 'part1' | 'part2') => (part === 'part1' ? '1부' : '2부')
 const roleLabel = (role: keyof PartAssignment) => role
@@ -364,6 +365,18 @@ export const useAssignmentStore = defineStore('assignment', () => {
     }
 
     async function loadFromDb() {
+        if (import.meta.env.DEV) {
+            console.log('🚧 Development mode: Loading dummy data')
+            app.value = structuredClone(toRaw(DUMMY_DATA))
+            const date = currentWeekDate.value
+            if (date && DUMMY_DATA.weeks[date]) {
+                const wk = DUMMY_DATA.weeks[date]
+                currentDraft.value = { part1: structuredClone(toRaw(wk.part1)), part2: structuredClone(toRaw(wk.part2)) }
+            }
+            recalcWarnings()
+            return
+        }
+
         try {
             const data = await api.getAllData()
             if (data && (data.members.length > 0 || Object.keys(data.weeks).length > 0)) {
@@ -381,6 +394,10 @@ export const useAssignmentStore = defineStore('assignment', () => {
     }
 
     async function syncToDb() {
+        if (import.meta.env.DEV) {
+            console.log('🚧 Development mode: Skipping DB sync')
+            return
+        }
         try {
             for (const member of app.value.members) {
                 await api.updateMember(member)

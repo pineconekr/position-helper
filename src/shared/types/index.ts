@@ -13,7 +13,7 @@ export type PartAssignment = {
 
 export type Absence = { name: string; reason?: string }
 export type WeekData = { part1: PartAssignment; part2: PartAssignment; absences: Absence[] }
-export type MembersEntry = { name: string; notes?: string; active: boolean }
+export type MembersEntry = { name: string; notes?: string; active: boolean; generation?: number; cohort?: string }
 export type AppData = { weeks: Record<string, WeekData>; members: MembersEntry[] }
 export type CurrentWeekTemplate = { current_week: { part1: PartAssignment; part2: PartAssignment } }
 
@@ -48,7 +48,9 @@ export const ZWeekData = z.object({
 export const ZMembersEntry = z.object({
 	name: NonEmptyString,
 	notes: z.string().optional(),
-	active: z.boolean()
+	active: z.boolean(),
+	generation: z.number().optional(),
+	cohort: z.string().optional()
 })
 
 export const ZAppData = z.object({

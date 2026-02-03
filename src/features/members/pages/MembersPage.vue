@@ -64,7 +64,7 @@ const members = computed(() => store.app.members)
 const membersWithGen = computed(() => 
   members.value.map(m => ({
     ...m,
-    generation: extractCohort(m.name),
+    generation: m.generation ?? extractCohort(m.name) ?? undefined,
     displayName: stripCohort(m.name)
   }))
 )
@@ -289,7 +289,7 @@ function openAddModal() {
   isModalOpen.value = true
 }
 
-function openEditModal(member: MembersEntry) {
+function openEditModal(member: MembersEntry & { displayName?: string }) {
   editingMember.value = member
   isModalOpen.value = true
 }
@@ -301,84 +301,129 @@ function closeModal() {
 </script>
 
 <template>
-  <div class="space-y-5">
-    <!-- Page Header - 헤더에 검색창 통합 -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-foreground">팀원 관리</h1>
-        <span 
-          v-if="members.length > 0"
-          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
-        >
-          {{ activeCount }}명 활동 중
-        </span>
-      </div>
-      <div class="flex items-center gap-3">
-        <!-- 검색창 -->
-        <div class="relative w-full sm:w-56">
-          <Icon name="MagnifyingGlassIcon" :size="14" class="absolute left-2.5 top-2.5 text-muted-foreground z-10" />
-          <Input
-            v-model="searchTerm"
-            placeholder="이름 검색..."
-            class="w-full pl-8 h-9"
-          />
+  <div class="space-y-6">
+    <!-- Page Header with Stats -->
+    <div class="space-y-4">
+      <!-- Title Row -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold tracking-tight text-foreground">팀원 관리</h1>
         </div>
-        <!-- 추가 버튼 -->
-        <Button variant="default" @click="openAddModal" class="shrink-0">
-          <Icon name="PlusIcon" :size="16" />
-          <span class="hidden sm:inline">팀원 추가</span>
-        </Button>
+        <div class="flex items-center gap-3">
+          <!-- 검색창 -->
+          <div class="relative w-full sm:w-56">
+            <Icon name="MagnifyingGlassIcon" :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" aria-hidden="true" />
+            <Input
+              v-model="searchTerm"
+              placeholder="이름 검색..."
+              class="w-full pl-9 h-10"
+              aria-label="팀원 이름 검색"
+            />
+          </div>
+          <!-- 추가 버튼 -->
+          <Button variant="default" @click="openAddModal" class="shrink-0 h-10">
+            <Icon name="PlusIcon" :size="16" aria-hidden="true" />
+            <span class="hidden sm:inline ml-1.5">팀원 추가</span>
+          </Button>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <!-- 전체 팀원 -->
+        <div class="bg-card border border-border rounded-xl p-4 space-y-1">
+          <p class="text-xs font-medium text-muted-foreground">전체 팀원</p>
+          <p class="text-2xl font-bold text-foreground">{{ members.length }}<span class="text-sm font-medium text-muted-foreground ml-1">명</span></p>
+        </div>
+        <!-- 활동 중 -->
+        <div class="bg-card border border-border rounded-xl p-4 space-y-1">
+          <p class="text-xs font-medium text-muted-foreground">활동 중</p>
+          <div class="flex items-baseline gap-2">
+            <p class="text-2xl font-bold text-primary">{{ activeCount }}<span class="text-sm font-medium text-muted-foreground ml-1">명</span></p>
+            <span class="text-xs text-muted-foreground">({{ members.length ? Math.round(activeCount / members.length * 100) : 0 }}%)</span>
+          </div>
+        </div>
+        <!-- 비활동 -->
+        <div class="bg-card border border-border rounded-xl p-4 space-y-1">
+          <p class="text-xs font-medium text-muted-foreground">비활동</p>
+          <p class="text-2xl font-bold text-muted-foreground">{{ members.length - activeCount }}<span class="text-sm font-medium text-muted-foreground ml-1">명</span></p>
+        </div>
+        <!-- 기수 수 -->
+        <div class="bg-card border border-border rounded-xl p-4 space-y-1">
+          <p class="text-xs font-medium text-muted-foreground">등록된 기수</p>
+          <p class="text-2xl font-bold text-foreground">{{ generationStats.sorted.length }}<span class="text-sm font-medium text-muted-foreground ml-1">개</span></p>
+        </div>
       </div>
     </div>
 
-    <!-- 기수별 분포 - Compact 배지 형태 -->
+    <!-- 기수별 분포 - Tag Cloud -->
     <div 
       v-if="generationStats.sorted.length > 0 || generationStats.unknown > 0"
-      class="flex items-center gap-2 flex-wrap"
+      class="bg-card border border-border rounded-xl p-4"
+      role="region"
+      aria-label="기수별 팀원 분포"
     >
-      <span class="text-xs font-medium text-[var(--color-label-tertiary)] mr-1">기수별:</span>
-      <button
-        v-for="([gen, count], idx) in generationStats.sorted"
-        :key="gen"
-        :class="clsx(
-          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-          idx === 0 
-            ? 'bg-[var(--color-accent)]/15 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/25' 
-            : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)] hover:bg-[var(--color-surface-elevated)]/80'
-        )"
-        @click="searchTerm = String(gen)"
-      >
-        <span>{{ gen }}기</span>
-        <span :class="clsx(
-          'px-1.5 py-0.5 rounded text-[10px] font-bold',
-          idx === 0 ? 'bg-[var(--color-accent)]/20' : 'bg-black/5 dark:bg-white/10'
-        )">{{ count }}</span>
-      </button>
-      <button
-        v-if="generationStats.unknown > 0"
-        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--color-surface-elevated)] text-[var(--color-label-tertiary)] hover:bg-[var(--color-surface-elevated)]/80 transition-colors"
-        @click="searchTerm = ''"
-      >
-        <span>기타</span>
-        <span class="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-[10px] font-bold">{{ generationStats.unknown }}</span>
-      </button>
-      <!-- 전체 보기 버튼 (검색 중일 때) -->
-      <button
-        v-if="searchTerm"
-        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 transition-colors"
-        @click="searchTerm = ''"
-      >
-        <Icon name="XMarkIcon" :size="12" />
-        <span>필터 해제</span>
-      </button>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-foreground">기수별 분포</h2>
+        <button
+          v-if="searchTerm"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          @click="searchTerm = ''"
+          aria-label="필터 해제"
+        >
+          <Icon name="XMarkIcon" :size="12" aria-hidden="true" />
+          <span>필터 해제</span>
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-2" role="group" aria-label="기수 필터 버튼">
+        <button
+          v-for="([gen, count], idx) in generationStats.sorted"
+          :key="gen"
+          :class="clsx(
+            'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+            idx === 0 
+              ? 'bg-primary/10 text-primary hover:bg-primary/20 ring-1 ring-primary/20' 
+              : 'bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground'
+          )"
+          @click="searchTerm = String(gen)"
+          :aria-label="`${gen}기 팀원 ${count}명 필터`"
+          :aria-pressed="searchTerm === String(gen)"
+        >
+          <span>{{ gen }}기</span>
+          <span :class="clsx(
+            'px-1.5 py-0.5 rounded text-xs font-bold',
+            idx === 0 ? 'bg-primary/15' : 'bg-background'
+          )">{{ count }}</span>
+        </button>
+        <button
+          v-if="generationStats.unknown > 0"
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          @click="searchTerm = ''"
+          aria-label="기수 미지정 팀원 필터"
+        >
+          <span>기타</span>
+          <span class="px-1.5 py-0.5 rounded bg-background text-xs font-bold">{{ generationStats.unknown }}</span>
+        </button>
+      </div>
     </div>
 
-    <!-- Member Table - 전체 너비 사용 -->
-    <div class="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-[var(--radius-md)] overflow-hidden">
+    <!-- Member Table -->
+    <div 
+      class="bg-card border border-border rounded-xl overflow-hidden"
+      role="region"
+      aria-label="팀원 목록"
+    >
       <Table>
-        <TableHeader class="bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)]">
+        <caption class="sr-only">팀원 목록 테이블 - 기수, 이름, 상태, 관리 작업</caption>
+        <TableHeader class="bg-muted/50 border-b border-border">
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id" class="border-0 hover:bg-transparent">
-            <TableHead v-for="header in headerGroup.headers" :key="header.id" :class="clsx('text-xs font-semibold text-[var(--color-label-tertiary)] uppercase tracking-wider h-10', header.column.id === 'generation' ? 'text-center' : '')">
+            <TableHead 
+              v-for="header in headerGroup.headers" 
+              :key="header.id" 
+              :class="clsx('text-xs font-semibold text-muted-foreground uppercase tracking-wider h-11', header.column.id === 'generation' ? 'text-center' : '')"
+              scope="col"
+            >
               <FlexRender
                 v-if="!header.isPlaceholder"
                 :render="header.column.columnDef.header"
@@ -394,32 +439,33 @@ function closeModal() {
               :key="row.original.name"
               :data-state="row.getIsSelected() ? 'selected' : undefined"
               :class="clsx(
-                'group hover:bg-[var(--color-surface-elevated)] border-b border-[var(--color-border-subtle)] last:border-0',
+                'group hover:bg-muted/30 border-b border-border last:border-0 transition-colors duration-150',
                 !row.original.active && 'opacity-60'
               )"
             >
-              <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" class="py-2.5">
+              <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" class="py-3">
                 <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
               </TableCell>
             </TableRow>
           </template>
           <TableRow v-else>
-            <TableCell colspan="4" class="h-48 text-center p-0">
-              <div class="h-full flex flex-col items-center justify-center gap-4 empty-state-pattern">
+            <TableCell colspan="4" class="h-52 text-center p-0">
+              <div class="h-full flex flex-col items-center justify-center gap-4">
                 <!-- 아이콘 with 그라디언트 배경 -->
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-accent)]/20 to-[var(--color-accent)]/5 flex items-center justify-center shadow-sm">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
                   <Icon 
                     :name="searchTerm ? 'MagnifyingGlassIcon' : 'UserGroupIcon'" 
                     :size="28" 
-                    class="text-[var(--color-accent)]" 
+                    class="text-primary" 
+                    aria-hidden="true"
                   />
                 </div>
                 <!-- 텍스트 -->
-                <div class="space-y-1">
-                  <p class="text-base font-medium text-[var(--color-label-primary)]">
+                <div class="space-y-1.5 text-center">
+                  <p class="text-base font-medium text-foreground">
                     {{ searchTerm ? '검색 결과가 없습니다' : '아직 팀원이 없어요' }}
                   </p>
-                  <p class="text-sm text-[var(--color-label-tertiary)]">
+                  <p class="text-sm text-muted-foreground">
                     {{ searchTerm ? '다른 검색어로 시도해보세요' : '첫 번째 팀원을 추가해보세요!' }}
                   </p>
                 </div>
@@ -431,8 +477,8 @@ function closeModal() {
                   @click="openAddModal"
                   class="mt-2"
                 >
-                  <Icon name="PlusIcon" :size="14" />
-                  팀원 추가하기
+                  <Icon name="PlusIcon" :size="14" aria-hidden="true" />
+                  <span class="ml-1.5">팀원 추가하기</span>
                 </Button>
               </div>
             </TableCell>

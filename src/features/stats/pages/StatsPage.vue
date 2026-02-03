@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import WorkloadChart from '../components/WorkloadChart.vue'
-import RoleBreakdownChart from '../components/RoleBreakdownChart.vue'
+import AssignmentStats from '../components/AssignmentStats.vue'
+import RoleHeatmap from '../components/RoleHeatmap.vue'
+import AbsenceChart from '../components/AbsenceChart.vue'
+import GenerationAnalysis from '../components/GenerationAnalysis.vue'
+import QualityControlChart from '../components/QualityControlChart.vue'
+import AbsenceDeviationChart from '../components/AbsenceDeviationChart.vue'
+import MonthlyAbsenceTrendChart from '../components/MonthlyAbsenceTrendChart.vue'
 import { onMounted } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
 
@@ -19,9 +24,26 @@ onMounted(async () => {
         <p class="text-sm text-[var(--color-label-secondary)]">데이터 기반으로 사역 현황을 분석하고 로테이션 균형을 확인하세요.</p>
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-      <WorkloadChart class="col-span-1 md:col-span-2 lg:col-span-3" />
-      <RoleBreakdownChart class="col-span-1 md:col-span-2 lg:col-span-4" />
+    <!-- 1. Main Stats & Trends -->
+    <div class="grid gap-6 md:grid-cols-2">
+      <AssignmentStats />
+      <QualityControlChart />
     </div>
+
+    <!-- 2. Deep Dive: Member Analysis (Dynamic Height) -->
+    <div class="grid gap-6 md:grid-cols-2">
+        <RoleHeatmap />
+        <AbsenceDeviationChart />
+    </div>
+
+    <!-- 3. Summary & Group Analysis -->
+    <div class="grid gap-6 md:grid-cols-2">
+        <AbsenceChart />
+        <GenerationAnalysis />
+    </div>
+
+    <!-- 4. Monthly Trend (Full Width) -->
+    <MonthlyAbsenceTrendChart />
   </div>
 </template>
+

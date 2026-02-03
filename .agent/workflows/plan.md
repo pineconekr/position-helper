@@ -1,113 +1,71 @@
 ---
-description: 요구사항을 재정리하고, 리스크를 평가하며, 단계별 구현 계획을 생성합니다. 코드 수정 전 사용자 확인을 기다립니다.
+description: PM planning workflow — analyze requirements, select tech stack, decompose into prioritized tasks with dependencies, and define API contracts
 ---
 
-# Plan Command
+# MANDATORY RULES — VIOLATION IS FORBIDDEN
 
-This command invokes the **planner** agent to create a comprehensive implementation plan before writing any code.
+- **Response language follows `language` setting in `.agent/config/user-preferences.yaml` if configured.**
+- **NEVER skip steps.** Execute from Step 1 in order.
+- **You MUST use MCP tools throughout the workflow.**
+  - Use code analysis tools (`get_symbols_overview`, `find_symbol`, `search_for_pattern`) to analyze the existing codebase.
+  - Use memory tools (write/edit) to record planning results.
+  - Memory path: configurable via `memoryConfig.basePath` (default: `.serena/memories`)
+  - Tool names: configurable via `memoryConfig.tools` in `mcp.json`
+  - Do NOT use raw file reads or grep as substitutes.
 
-## What This Command Does
+---
 
-1. **Restate Requirements** - Clarify what needs to be built
-2. **Identify Risks** - Surface potential issues and blockers
-3. **Create Step Plan** - Break down implementation into phases
-4. **Wait for Confirmation** - MUST receive user approval before proceeding
+## Step 1: Gather Requirements
 
-## When to Use
+Ask the user to describe what they want to build. Clarify:
+- Target users
+- Core features (must-have vs nice-to-have)
+- Constraints (tech stack, existing codebase)
+- Deployment target (web, mobile, both)
 
-Use `/plan` when:
-- Starting a new feature
-- Making significant architectural changes
-- Working on complex refactoring
-- Multiple files/components will be affected
-- Requirements are unclear or ambiguous
+---
 
-## How It Works
+## Step 2: Analyze Technical Feasibility
 
-The planner agent will:
+// turbo
+If an existing codebase exists, use MCP code analysis tools to scan:
+- `get_symbols_overview` for project structure and architecture patterns.
+- `find_symbol` and `search_for_pattern` to identify reusable code and what needs to be built.
 
-1. **Analyze the request** and restate requirements in clear terms
-2. **Break down into phases** with specific, actionable steps
-3. **Identify dependencies** between components
-4. **Assess risks** and potential blockers
-5. **Estimate complexity** (High/Medium/Low)
-6. **Present the plan** and WAIT for your explicit confirmation
+---
 
-## Example Usage
+## Step 3: Define API Contracts
 
-```
-User: /plan I need to add real-time notifications when markets resolve
+// turbo
+Design API contracts between frontend/mobile and backend. Per endpoint:
+- Method, path, request/response schemas
+- Auth requirements, error responses
+- Save to `.agent/skills/_shared/api-contracts/`.
 
-Agent (planner):
-# Implementation Plan: Real-Time Market Resolution Notifications
+---
 
-## Requirements Restatement
-- Send notifications to users when markets they're watching resolve
-- Support multiple notification channels (in-app, email, webhook)
-- Ensure notifications are delivered reliably
-- Include market outcome and user's position result
+## Step 4: Decompose into Tasks
 
-## Implementation Phases
+// turbo
+Break down the project into actionable tasks. Each task must have:
+- Assigned agent (frontend/backend/mobile/qa/debug)
+- Title, acceptance criteria
+- Priority (P0-P3), dependencies
 
-### Phase 1: Database Schema
-- Add notifications table with columns: id, user_id, market_id, type, status, created_at
-- Add user_notification_preferences table for channel preferences
-- Create indexes on user_id and market_id for performance
+---
 
-### Phase 2: Notification Service
-- Create notification service in lib/notifications.ts
-- Implement notification queue using BullMQ/Redis
-- Add retry logic for failed deliveries
-- Create notification templates
+## Step 5: Review Plan with User
 
-### Phase 3: Integration Points
-- Hook into market resolution logic (when status changes to "resolved")
-- Query all users with positions in market
-- Enqueue notifications for each user
+Present the full plan: task list, priority tiers, dependency graph, agent assignments.
+**You MUST get user confirmation before proceeding to Step 6.**
 
-### Phase 4: Frontend Components
-- Create NotificationBell component in header
-- Add NotificationList modal
-- Implement real-time updates via Supabase subscriptions
-- Add notification preferences page
+---
 
-## Dependencies
-- Redis (for queue)
-- Email service (SendGrid/Resend)
-- Supabase real-time subscriptions
+## Step 6: Save Plan
 
-## Risks
-- HIGH: Email deliverability (SPF/DKIM required)
-- MEDIUM: Performance with 1000+ users per market
-- MEDIUM: Notification spam if markets resolve frequently
-- LOW: Real-time subscription overhead
+// turbo
+Save the approved plan:
+1. `.agent/plan.json`
+2. Use memory write tool to record plan summary.
 
-## Estimated Complexity: MEDIUM
-- Backend: 4-6 hours
-- Frontend: 3-4 hours
-- Testing: 2-3 hours
-- Total: 9-13 hours
-
-**WAITING FOR CONFIRMATION**: Proceed with this plan? (yes/no/modify)
-```
-
-## Important Notes
-
-**CRITICAL**: The planner agent will **NOT** write any code until you explicitly confirm the plan with "yes" or "proceed" or similar affirmative response.
-
-If you want changes, respond with:
-- "modify: [your changes]"
-- "different approach: [alternative]"
-- "skip phase 2 and do phase 3 first"
-
-## Integration with Other Commands
-
-After planning:
-- Use `/tdd` to implement with test-driven development
-- Use `/build-and-fix` if build errors occur
-- Use `/code-review` to review completed implementation
-
-## Related Agents
-
-This command invokes the `planner` agent located at:
-`.agent/workflows/planner.md`
+The plan is now ready for `/coordinate` or `/orchestrate` to execute.

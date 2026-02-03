@@ -21,24 +21,30 @@
     *   누가 제일 많이 수고하고 있는지 그래프로 보여줍니다.
     *   한 역할만 계속하는 '고인물' 방지 가능.
 
-## 실행 방법
+## 🚨 개발 서버 실행 (필독!)
 
-컴퓨터에 Node.js만 깔려있으면 됩니다.
+**이 프로젝트는 인증 및 DB 연결을 위해 Netlify Functions를 사용합니다.**
+따라서 일반 `npm run dev` 대신 반드시 아래 명령어로 실행해야 정상적으로 로그인하고 기능을 사용할 수 있습니다.
+
+```bash
+# ✅ 올바른 실행 방법 (포트 8888)
+npm run dev:netlify
+```
+
+*   **접속 주소**: [http://localhost:8888](http://localhost:8888)
+*   **주의**: `npm run dev` (포트 3000/5173)으로 실행하면 로그인 및 API 호출이 실패할 수 있습니다.
+
+---
+
+## 설치 및 실행
 
 ```bash
 # 1. 설치
 npm install
 
-# 2. 프론트엔드만 실행 (포트 3000)
-npm run dev
-
-# 3. Netlify Functions 포함 실행 (포트 8888) - 인증/DB 기능 테스트 시 필수!
+# 2. 실행 (Netlify Dev)
 npm run dev:netlify
 ```
-
-**⚠️ 주의**: 로그인, DB 저장 등의 기능을 테스트하려면 반드시 `npm run dev:netlify`로 실행해야 합니다.
-- 프론트엔드 + Netlify Functions가 함께 실행됩니다.
-- **접속 주소: `http://localhost:8888`** (3000번 아님!)
 
 
 ## 기여
