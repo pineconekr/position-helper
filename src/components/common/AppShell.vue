@@ -2,7 +2,9 @@
 import { RouterLink, useRoute } from 'vue-router'
 import clsx from 'clsx'
 import Icon from '@/components/ui/Icon.vue'
+import AppLogo from './AppLogo.vue'
 import ThemeToggle from './ThemeToggle.vue'
+import DbStatusIndicator from './DbStatusIndicator.vue'
 
 const route = useRoute()
 
@@ -29,12 +31,7 @@ function isActive(href: string): boolean {
           class="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
           aria-label="Position Helper 홈으로 이동"
         >
-          <div class="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/25">
-            <Icon name="CameraIcon" :size="18" aria-hidden="true" />
-          </div>
-          <span class="text-lg font-bold tracking-tight text-foreground">
-            Position<span class="text-primary">Helper</span>
-          </span>
+          <AppLogo />
         </RouterLink>
 
         <!-- Desktop Nav - Segmented Control -->
@@ -71,6 +68,7 @@ function isActive(href: string): boolean {
 
         <!-- Actions -->
         <div class="flex items-center gap-2">
+          <DbStatusIndicator />
           <ThemeToggle />
         </div>
       </div>
