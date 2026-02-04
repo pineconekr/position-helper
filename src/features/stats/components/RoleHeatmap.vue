@@ -133,11 +133,11 @@ const chartOption = computed(() => {
             }
         },
         grid: {
-            top: 30,
-            bottom: 60,
-            left: 100,
-            right: 30,
-            containLabel: true
+            top: 40,
+            bottom: 70,
+            left: '15%',  // 비율 기반으로 균형 조정
+            right: '5%',
+            containLabel: false
         },
         xAxis: {
             type: 'category',
@@ -152,7 +152,7 @@ const chartOption = computed(() => {
             splitArea: { show: true },
             axisLabel: { 
                 color: textColor,
-                width: 90,
+                fontSize: 11,
                 overflow: 'truncate',
                 interval: 0
             },
@@ -165,7 +165,9 @@ const chartOption = computed(() => {
             calculable: true,
             orient: 'horizontal',
             left: 'center',
-            bottom: 0,
+            bottom: 10,
+            itemWidth: 12,
+            itemHeight: 120,
             text: ['100%', '0%'],
             // YlGnBu - 현업 표준 Sequential 팔레트 (노랑 → 초록 → 파랑)
             inRange: {
@@ -173,7 +175,7 @@ const chartOption = computed(() => {
                     ? ['#1a1c2c', '#2d4a3e', '#1e6091', '#168aad', '#76c893']
                     : ['#ffffd9', '#c7e9b4', '#7fcdbb', '#41b6c4', '#225ea8']
             },
-            textStyle: { color: textColor }
+            textStyle: { color: textColor, fontSize: 10 }
         },
         series: [{
             name: 'Role Distribution',

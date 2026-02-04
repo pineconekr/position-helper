@@ -84,7 +84,13 @@ const chartOption = computed(() => {
       },
       formatter: (params: any) => {
         const { name, count, normalized } = params.data
-        const status = normalized > 0.5 ? '⚠️ 과다' : (normalized < -0.5 ? '✅ 성실' : '➖ 보통')
+        // HTML 기반 상태 표시 (이모지 대신)
+        const statusConfig = normalized > 0.5 
+          ? { color: '#f59e0b', label: '과다' }
+          : (normalized < -0.5 
+            ? { color: '#22c55e', label: '성실' }
+            : { color: '#94a3b8', label: '보통' })
+        const statusHtml = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statusConfig.color};margin-right:6px;"></span>${statusConfig.label}`
         return `
           <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">${name}</div>
           <div style="display: flex; justify-content: space-between; gap: 24px; margin-bottom: 4px;">
@@ -96,7 +102,7 @@ const chartOption = computed(() => {
             <span style="font-weight: 600;">${normalized.toFixed(2)}</span>
           </div>
           <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${c.isDark ? '#475569' : '#e2e8f0'}; font-size: 12px;">
-            ${status}
+            ${statusHtml}
           </div>
         `
       }
