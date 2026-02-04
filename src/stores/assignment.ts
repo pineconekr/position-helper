@@ -145,6 +145,27 @@ export const useAssignmentStore = defineStore('assignment', () => {
         syncToDb()
     }
 
+    function setMembersActive(names: string[], active: boolean) {
+        let count = 0
+        names.forEach(name => {
+            const member = app.value.members.find(m => m.name === name)
+            if (member && member.active !== active) {
+                member.active = active
+                count++
+            }
+        })
+
+        if (count > 0) {
+            activityStore.addActivity({
+                type: 'member',
+                title: `${count}명 상태 변경`,
+                description: `${count}명 ${active ? '활성화' : '비활성화'}`,
+                meta: { action: 'bulk-active', count, active }
+            })
+            syncToDb()
+        }
+    }
+
     function loadWeekToDraft(date: string) {
         const wk = app.value.weeks[date] ?? { part1: emptyPart(), part2: emptyPart(), absences: [] }
         currentWeekDate.value = date
@@ -432,6 +453,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
         setWeekDate,
         setMembers,
         toggleMemberActive,
+        setMembersActive,
         loadWeekToDraft,
         assignRole,
         moveRole,

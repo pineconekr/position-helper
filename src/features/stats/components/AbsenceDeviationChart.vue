@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import BaseChart from '@/shared/components/charts/BaseChart.vue'
 import { useStats } from '../composables/useStats'
 import { useThemeStore } from '@/stores/theme'
+import { escapeHtml } from '@/shared/utils/text'
 
 const { stats } = useStats()
 const themeStore = useThemeStore()
@@ -84,6 +85,9 @@ const chartOption = computed(() => {
       },
       formatter: (params: any) => {
         const { name, count, normalized } = params.data
+        const gen = stats.value.memberGenerations[name]
+        const genLabel = gen ? ` <span style="opacity: 0.6; font-weight: 400;">(${gen}기)</span>` : ''
+        const safeName = escapeHtml(name)
         // HTML 기반 상태 표시 (이모지 대신)
         const statusConfig = normalized > 0.5 
           ? { color: '#f59e0b', label: '과다' }
@@ -92,7 +96,7 @@ const chartOption = computed(() => {
             : { color: '#94a3b8', label: '보통' })
         const statusHtml = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statusConfig.color};margin-right:6px;"></span>${statusConfig.label}`
         return `
-          <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">${name}</div>
+          <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">${safeName}${genLabel}</div>
           <div style="display: flex; justify-content: space-between; gap: 24px; margin-bottom: 4px;">
             <span style="opacity: 0.7;">불참 횟수</span>
             <span style="font-weight: 600;">${count}회</span>

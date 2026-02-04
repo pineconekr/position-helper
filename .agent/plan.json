@@ -1,37 +1,71 @@
 {
-    "project": "Data Management Dashboard",
-    "version": "1.1.0",
-    "description": "Comprehensive internal tool for data management, editing, backups, and health checks.",
-    "status": "Deployment Paused (Netlify Limit Exceeded)",
-    "tech_stack": {
-        "framework": "Vue 3",
-        "state_management": "Pinia",
-        "ui_library": "shadcn-vue",
-        "backend": "Netlify Functions + Neon DB"
-    },
-    "features": [
-        {
-            "name": "Raw Data Editor (Completed)",
-            "details": "Direct JSON editing for Weeks data with DB sync. Removed redundant Member editor.",
-            "status": "done"
-        },
-        {
-            "name": "Advanced Import/Export (Completed)",
-            "details": "3-step import flow (Select -> Preview -> Confirm). Auto-backup before applying. Batch API implemented to prevent rate limits.",
-            "status": "done"
-        },
-        {
-            "name": "Health Check (Completed)",
-            "details": "Scan and fix data integrity issues. Factory reset with dummy data.",
-            "status": "done"
-        },
-        {
-            "name": "Data Consistency (Completed)",
-            "details": "Fixed issue where loadFromDb overwrote imported data in Stats view.",
-            "status": "done"
-        }
+    "feature": "Git History Cleanup via Interactive Rebase",
+    "goals": [
+        "Squash iterative/WIP commits into atomic feature commits",
+        "Ensure 'Atomic Commit' principles (one feature, one commit)",
+        "Clean up history since v1.0 release",
+        "Preserve current uncommitted work safely"
     ],
-    "known_issues": [
-        "Netlify build limit exceeded - deployment paused until reset or upgrade."
+    "tasks": [
+        {
+            "id": "1",
+            "title": "Safety Backup & Stash",
+            "description": "Create a backup branch `backup/pre-rebase` and stash uncommitted changes to ensure no data loss.",
+            "agent": "orchestrator",
+            "priority": "P0",
+            "dependencies": []
+        },
+        {
+            "id": "2",
+            "title": "Reset to v1.0 Base",
+            "description": "Perform `git reset --soft 36289d8` (release v1.0) to stage all subsequent changes.",
+            "agent": "orchestrator",
+            "priority": "P0",
+            "dependencies": [
+                "1"
+            ]
+        },
+        {
+            "id": "3",
+            "title": "Atomic Commit: Admin Import System",
+            "description": "Group all Admin Import/Export & Data Editor changes into one or two atomic commits (e.g., `feat(admin): overhaul data import system`).",
+            "agent": "orchestrator",
+            "priority": "P1",
+            "dependencies": [
+                "2"
+            ]
+        },
+        {
+            "id": "4",
+            "title": "Atomic Commit: Statistics & API",
+            "description": "Group Stats enhancements (Bullet Chart, Heatmap) and related API optimizations into purely functional commits.",
+            "agent": "orchestrator",
+            "priority": "P1",
+            "dependencies": [
+                "2"
+            ]
+        },
+        {
+            "id": "5",
+            "title": "Atomic Commit: UI & Polish",
+            "description": "Group UI changes (Logo, Icons, Dark Mode tweaks) into a dedicated style/UI commit.",
+            "agent": "orchestrator",
+            "priority": "P1",
+            "dependencies": [
+                "2"
+            ]
+        },
+        {
+            "id": "6",
+            "title": "Restore Environment",
+            "description": "Pop the stash to restore uncommitted work and verify the new history.",
+            "agent": "orchestrator",
+            "priority": "P0",
+            "dependencies": [
+                "3",
+                "4",
+                "5"
+            ]
+        }
     ]
 }

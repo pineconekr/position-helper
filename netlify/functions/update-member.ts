@@ -20,9 +20,12 @@ export default async (req: Request) => {
   const sql = neon(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL!)
 
   await sql`
-    INSERT INTO members (name, active, notes)
-    VALUES (${member.name}, ${member.active}, ${member.notes || ''})
-    ON CONFLICT (name) DO UPDATE SET active = EXCLUDED.active, notes = EXCLUDED.notes
+    INSERT INTO members (name, active, notes, generation)
+    VALUES (${member.name}, ${member.active}, ${member.notes || ''}, ${member.generation ?? null})
+    ON CONFLICT (name) DO UPDATE SET 
+      active = EXCLUDED.active, 
+      notes = EXCLUDED.notes,
+      generation = EXCLUDED.generation
   `
 
   return new Response(JSON.stringify({ success: true }), {

@@ -15,22 +15,21 @@ const SLOT_ROLES = RoleKeys
 const partLabel = (part: 'part1' | 'part2') => (part === 'part1' ? '1부' : '2부')
 
 /**
- * Remove cohort number from name (e.g. "12기 홍길동" -> "홍길동")
- * Also converts BLANK_ROLE_VALUE to "공란" for display
+ * 표시용 이름 변환
+ * - BLANK_ROLE_VALUE → '공란'
+ * - 그 외 → 그대로 반환 (새 자료구조에서는 이름이 이미 정규화됨)
  */
-export function stripCohort(name: string): string {
+export function displayName(name: string): string {
 	if (!name) return name
 	if (name === BLANK_ROLE_VALUE) return '공란'
-	return name.replace(/^\d+\s+/, '')
+	return name
 }
 
 /**
- * Extract cohort number from name (e.g. "12기 홍길동" -> 12)
+ * @deprecated Use displayName() instead.
+ * Kept for backward compatibility.
  */
-export function extractCohort(name: string): number | null {
-	const match = name.match(/^(\d+)\s+/)
-	return match ? parseInt(match[1], 10) : null
-}
+export const stripCohort = displayName
 
 export function listSlots(): SlotDescriptor[] {
 	const slots: SlotDescriptor[] = []

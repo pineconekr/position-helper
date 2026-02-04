@@ -14,7 +14,8 @@ export default async (req: Request) => {
 
     const sql = neon(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL!)
 
-    const members = await sql`SELECT * FROM members ORDER BY name`
+    // generation 컬럼 포함하여 조회
+    const members = await sql`SELECT name, active, notes, generation FROM members ORDER BY name`
     const weeks = await sql`SELECT week_date::text as week_date, data FROM weeks ORDER BY week_date`
 
     return new Response(JSON.stringify({ members, weeks }), {

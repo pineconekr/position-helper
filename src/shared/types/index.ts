@@ -13,7 +13,21 @@ export type PartAssignment = {
 
 export type Absence = { name: string; reason?: string }
 export type WeekData = { part1: PartAssignment; part2: PartAssignment; absences: Absence[] }
-export type MembersEntry = { name: string; notes?: string; active: boolean; generation?: number; cohort?: string }
+
+/**
+ * 멤버 정보 (정규화된 구조)
+ * - name: 순수 이름 (기수 제외)
+ * - generation: 기수 숫자 (필수 - 정렬/필터용)
+ * - active: 활동 여부
+ * - notes: 메모
+ */
+export type MembersEntry = {
+	name: string
+	generation: number
+	active: boolean
+	notes?: string
+}
+
 export type AppData = { weeks: Record<string, WeekData>; members: MembersEntry[] }
 export type CurrentWeekTemplate = { current_week: { part1: PartAssignment; part2: PartAssignment } }
 
@@ -47,10 +61,9 @@ export const ZWeekData = z.object({
 
 export const ZMembersEntry = z.object({
 	name: NonEmptyString,
-	notes: z.string().optional(),
+	generation: z.number(),
 	active: z.boolean(),
-	generation: z.number().optional(),
-	cohort: z.string().optional()
+	notes: z.string().optional()
 })
 
 export const ZAppData = z.object({

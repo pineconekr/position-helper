@@ -46,4 +46,3 @@ onMounted(async () => {
     <MonthlyAbsenceTrendChart />
   </div>
 </template>
-

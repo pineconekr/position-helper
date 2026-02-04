@@ -46,11 +46,8 @@ defineProps<{
 
     <!-- Logotype -->
     <div v-if="!collapsed" class="flex flex-col justify-center h-8">
-      <span class="text-[15px] font-bold tracking-tight text-foreground leading-none">
+      <span class="text-lg font-bold tracking-tight text-foreground leading-none">
         Position Helper
-      </span>
-      <span class="text-[10px] font-medium text-muted-foreground tracking-wide mt-0.5">
-        WORKSPACE
       </span>
     </div>
   </div>

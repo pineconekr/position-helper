@@ -3,7 +3,7 @@ import { RouterView } from 'vue-router'
 import AppShell from './components/common/AppShell.vue'
 import { Toaster } from '@/components/ui/sonner'
 import DbSyncProvider from './components/providers/DbSyncProvider.vue'
-import ConfirmDialogProvider from './components/common/ConfirmDialogProvider.vue'
+import ModalProvider from '@/shared/components/ModalProvider.vue'
 import { useThemeStore } from './stores/theme'
 import { onMounted, watch } from 'vue'
 
@@ -40,6 +40,6 @@ watch(() => themeStore.effectiveTheme, (newTheme) => {
     </AppShell>
   </DbSyncProvider>
   <Toaster />
-  <ConfirmDialogProvider />
+  <ModalProvider />
 </template>
 

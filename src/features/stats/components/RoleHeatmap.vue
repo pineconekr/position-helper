@@ -4,10 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import BaseChart from '@/shared/components/charts/BaseChart.vue'
 import { useAssignmentStore } from '@/stores/assignment'
 import { useThemeStore } from '@/stores/theme'
+import { useStats } from '../composables/useStats'
 import { RoleKeys, type RoleKey } from '@/shared/types'
+import { escapeHtml } from '@/shared/utils/text'
 
 const store = useAssignmentStore()
 const themeStore = useThemeStore()
+const { stats } = useStats()
 
 // 출석 대비 역할 비율 계산 (old_stats_view.tsx의 memberRoleHeatmap 로직 이식)
 const memberRoleHeatmap = computed(() => {
@@ -128,8 +131,13 @@ const chartOption = computed(() => {
                 const [xIdx, yIdx, ratio, roleCount, attendance] = params.value
                 const role = heatmapData.roles[xIdx]
                 const name = heatmapData.members[yIdx]
+                const gen = stats.value.memberGenerations[name]
+                const genLabel = gen ? ` (${gen}기)` : ''
                 const pct = ratio !== null ? (ratio * 100).toFixed(0) : '-'
-                return `<strong>${name}</strong> · ${role}<br/>비율: <b>${pct}%</b><br/>배정: ${roleCount}회 / 출석: ${attendance}주`
+                
+                const safeName = escapeHtml(name)
+                const safeRole = escapeHtml(role)
+                return `<strong>${safeName}</strong>${genLabel} · ${safeRole}<br/>비율: <b>${pct}%</b><br/>배정: ${roleCount}회 / 출석: ${attendance}주`
             }
         },
         grid: {

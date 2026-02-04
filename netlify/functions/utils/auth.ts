@@ -15,6 +15,12 @@ export function getSecret(): Uint8Array {
  * @returns { valid: true } 또는 { valid: false, error: string }
  */
 export async function verifyAuth(req: Request): Promise<{ valid: boolean; error?: string }> {
+    // Netlify Dev 환경에서만 인증 바이패스 (환경 변수는 위조 불가)
+    if (process.env.NETLIFY_DEV === 'true') {
+        console.log('🚧 Netlify Dev mode: bypassing auth')
+        return { valid: true }
+    }
+
     const cookieHeader = req.headers.get('cookie')
 
     if (!cookieHeader) {

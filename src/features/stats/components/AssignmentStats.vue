@@ -59,8 +59,10 @@ const chartOption = computed(() => {
         formatter: (params: any) => {
           const d = params[0]
           const rank = data.findIndex(i => i.name === d.name) + 1
+          const gen = stats.value.memberGenerations[d.name]
+          const genLabel = gen ? `${gen}기` : ''
           return `
-            <div style="font-weight: 600; margin-bottom: 8px;">${d.name}</div>
+            <div style="font-weight: 600; margin-bottom: 8px;">${d.name} ${genLabel ? `<span style="opacity: 0.6; font-weight: 400;">(${genLabel})</span>` : ''}</div>
             <div style="display: flex; justify-content: space-between; gap: 20px; margin: 4px 0;">
               <span style="opacity: 0.7;">순위</span>
               <span style="font-weight: 600;">#${rank}</span>

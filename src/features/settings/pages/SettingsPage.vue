@@ -1,214 +1,153 @@
 <script setup lang="ts">
 /**
- * SettingsPage.vue - 설정 페이지
+ * SettingsPage.vue
+ * Bento Grid Style - Visual & Interactive
  */
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
-import { useConfirmDialog } from '@/composables/useConfirmDialog'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import Icon from '@/components/ui/Icon.vue'
-import type { ThemePreference, MotionPreference } from '@/shared/types'
 import clsx from 'clsx'
 
+const router = useRouter()
+const authStore = useAuthStore()
 const themeStore = useThemeStore()
-const { confirm } = useConfirmDialog()
 
-const theme = computed(() => themeStore.theme)
-const motionPreference = computed(() => themeStore.motionPreference || 'system')
+// 테마 토글
+const isDarkMode = computed(() => themeStore.effectiveTheme === 'dark')
 
-const themeOptions: Array<{ value: ThemePreference; title: string; description: string; icon: string }> = [
-  { value: 'system', icon: 'ComputerDesktopIcon', title: '시스템 설정', description: '운영체제에 따라 자동 변경' },
-  { value: 'light', icon: 'SunIcon', title: '라이트 모드', description: '밝은 환경에 적합' },
-  { value: 'dark', icon: 'MoonIcon', title: '다크 모드', description: '눈의 피로 감소' }
-]
-
-const motionOptions: Array<{ value: MotionPreference; title: string; description: string; icon: string }> = [
-  { value: 'system', icon: 'ComputerDesktopIcon', title: '시스템 설정', description: '운영체제 설정에 따라 자동으로 조절' },
-  { value: 'allow', icon: 'SparklesIcon', title: '애니메이션 켜기', description: '부드러운 전환 효과 활성화' },
-  { value: 'reduce', icon: 'BoltSlashIcon', title: '애니메이션 끄기', description: '빠른 반응 속도 우선' }
-]
-
-async function handleResetData() {
-  const confirmed = await confirm({
-    title: '데이터 초기화',
-    description: '정말 모든 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-    confirmText: '초기화',
-    cancelText: '취소',
-    variant: 'destructive'
-  })
-  
-  if (confirmed) {
-    localStorage.clear()
-    window.location.reload()
-  }
+function toggleTheme() {
+  themeStore.setTheme(isDarkMode.value ? 'light' : 'dark')
 }
+
+// 애니메이션 (themeStore 사용)
+const animationsEnabled = computed(() => themeStore.effectiveMotion === 'allow')
+
+function toggleAnimations() {
+  const newValue = animationsEnabled.value ? 'reduce' : 'allow'
+  themeStore.setMotionPreference(newValue)
+}
+
+// 로그아웃
+async function handleLogout() {
+  await authStore.logout()
+  router.push('/login')
+}
+
+// 앱 정보
+const appVersion = computed(() => import.meta.env.VITE_APP_VERSION || '0.2.0')
 </script>
 
 <template>
-  <div class="space-y-8">
-    <!-- Page Header -->
-    <div>
-      <h1 class="text-2xl font-bold text-[var(--color-label-primary)]">설정</h1>
-      <p class="mt-1 text-sm text-[var(--color-label-secondary)]">
-        앱의 테마, 화면 효과, 그리고 데이터를 관리합니다.
-      </p>
+  <div class="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight text-foreground">설정</h1>
+      <p class="text-muted-foreground mt-2 text-lg">작업 환경을 커스터마이징하세요.</p>
     </div>
 
-    <!-- Theme Section -->
-    <Card>
-      <CardContent class="p-4">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-10 h-10 rounded-lg bg-[var(--color-accent)]/10 flex items-center justify-center">
-          <Icon name="SwatchIcon" :size="20" class="text-[var(--color-accent)]" />
-        </div>
-        <div>
-          <h2 class="text-base font-semibold text-[var(--color-label-primary)]">테마</h2>
-          <p class="text-sm text-[var(--color-label-secondary)]">화면의 색상 모드를 선택하세요</p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <button
-          v-for="option in themeOptions"
-          :key="option.value"
-          @click="themeStore.setTheme(option.value)"
-          :class="clsx(
-            'card-hover relative flex flex-col gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200',
-            theme === option.value
-              ? 'border-[var(--color-accent)] bg-gradient-to-br from-[var(--color-accent)]/10 to-[var(--color-accent)]/5 glow-accent'
-              : 'border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]'
-          )"
-        >
-          <div v-if="theme === option.value" class="absolute top-3 right-3 animate-in zoom-in duration-200">
-            <Icon name="SolidCheckCircleIcon" :size="20" class="text-[var(--color-accent)]" />
-          </div>
-          <div :class="clsx(
-            'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200',
-            theme === option.value
-              ? 'bg-[var(--color-accent)] shadow-lg shadow-[var(--color-accent)]/30'
-              : 'bg-[var(--color-surface-elevated)]'
-          )">
-            <Icon :name="option.icon" :size="20" :class="theme === option.value ? 'text-white' : 'text-[var(--color-label-secondary)]'" />
+    <!-- Bento Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[minmax(180px,auto)]">
+      
+      <!-- 1. Theme Card (Large, Interactive) -->
+      <div 
+        @click="toggleTheme"
+        :class="clsx(
+          'md:col-span-2 relative overflow-hidden rounded-3xl p-6 cursor-pointer transition-all duration-300 group',
+          'bg-gradient-to-br from-background to-muted border border-border/50 hover:shadow-lg hover:border-primary/50'
+        )"
+      >
+        <div class="relative z-10 h-full flex flex-col justify-between">
+          <div class="flex justify-between items-start">
+            <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <Icon :name="isDarkMode ? 'MoonIcon' : 'SunIcon'" :size="24" class="text-primary" />
+            </div>
+            <span class="px-3 py-1 rounded-full bg-background/50 backdrop-blur text-xs font-semibold border border-border/50">
+              {{ isDarkMode ? '다크 모드' : '라이트 모드' }}
+            </span>
           </div>
           <div>
-            <div :class="clsx('font-semibold', theme === option.value ? 'text-[var(--color-accent)]' : 'text-[var(--color-label-primary)]')">{{ option.title }}</div>
-            <div class="text-sm text-[var(--color-label-secondary)] mt-0.5">{{ option.description }}</div>
+            <h3 class="text-xl font-bold text-foreground mb-1">화면 테마</h3>
+            <p class="text-sm text-muted-foreground">눈이 편안한 모드로 전환하려면 클릭하세요.</p>
           </div>
-        </button>
+        </div>
+        <!-- Decorative Background Circle -->
+        <div class="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-primary/5 group-hover:bg-primary/10 transition-colors blur-3xl" />
       </div>
-      </CardContent>
-    </Card>
 
-    <!-- Motion Section -->
-    <Card>
-      <CardContent class="p-4">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-          <Icon name="SparklesIcon" :size="20" class="text-purple-500" />
+      <!-- 2. Account Card -->
+      <div class="relative overflow-hidden rounded-3xl p-6 bg-background border border-border/50 flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+          <div class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+            <Icon name="UserIcon" :size="24" class="text-blue-500" />
+          </div>
+          <button 
+            @click="handleLogout"
+            class="text-xs font-medium text-muted-foreground hover:text-red-500 transition-colors"
+          >
+            로그아웃
+          </button>
         </div>
         <div>
-          <h2 class="text-base font-semibold text-[var(--color-label-primary)]">화면 효과</h2>
-          <p class="text-sm text-[var(--color-label-secondary)]">애니메이션 및 전환 효과를 설정하세요</p>
+          <h3 class="text-lg font-bold text-foreground mb-1">관리자</h3>
+          <p class="text-xs text-muted-foreground">현재 로그인됨</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <button
-          v-for="option in motionOptions"
-          :key="option.value"
-          @click="themeStore.setMotionPreference(option.value)"
-          :class="clsx(
-            'card-hover relative flex flex-col gap-3 p-4 rounded-xl border-2 text-left transition-all duration-200',
-            motionPreference === option.value
-              ? 'border-purple-500 bg-gradient-to-br from-purple-500/10 to-purple-500/5 shadow-[0_0_20px_rgba(139,92,246,0.2)]'
-              : 'border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]'
-          )"
-        >
-          <div v-if="motionPreference === option.value" class="absolute top-3 right-3 animate-in zoom-in duration-200">
-            <Icon name="SolidCheckCircleIcon" :size="20" class="text-purple-500" />
+      <!-- 3. Animation Toggle -->
+      <div 
+        @click="toggleAnimations"
+        class="relative overflow-hidden rounded-3xl p-6 bg-background border border-border/50 cursor-pointer hover:border-purple-500/50 transition-colors group"
+      >
+        <div class="flex justify-between items-start mb-auto">
+          <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+            <Icon name="SparklesIcon" :size="24" class="text-purple-500" />
           </div>
-          <div :class="clsx(
-            'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200',
-            motionPreference === option.value
-              ? 'bg-purple-500 shadow-lg shadow-purple-500/30'
-              : 'bg-[var(--color-surface-elevated)]'
-          )">
-            <Icon :name="option.icon" :size="20" :class="motionPreference === option.value ? 'text-white' : 'text-[var(--color-label-secondary)]'" />
-          </div>
-          <div>
-            <div :class="clsx('font-semibold', motionPreference === option.value ? 'text-purple-500' : 'text-[var(--color-label-primary)]')">{{ option.title }}</div>
-            <div class="text-sm text-[var(--color-label-secondary)] mt-0.5">{{ option.description }}</div>
-          </div>
-        </button>
-      </div>
-    </CardContent>
-    </Card>
-
-
-    <!-- Data Management Section -->
-    <Card>
-      <CardContent class="p-4">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-            <Icon name="CircleStackIcon" :size="20" class="text-green-600" />
-          </div>
-          <div>
-            <h2 class="text-base font-semibold text-[var(--color-label-primary)]">데이터 관리</h2>
-            <p class="text-sm text-[var(--color-label-secondary)]">데이터 조회, 수정, 백업 및 복구를 수행합니다</p>
+          <div :class="[
+            'w-10 h-6 rounded-full transition-colors duration-200 relative',
+            animationsEnabled ? 'bg-purple-500' : 'bg-muted'
+          ]">
+            <span :class="[
+              'absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200',
+              animationsEnabled ? 'translate-x-4' : 'translate-x-0'
+            ]" />
           </div>
         </div>
-
-        <div class="p-4 bg-muted/30 rounded-xl border border-border flex items-center justify-between">
-          <div>
-             <div class="font-medium text-foreground">고급 데이터 관리자</div>
-             <div class="text-sm text-muted-foreground mt-0.5">
-               로우 데이터 조회, 기간별 내보내기, 병합 가져오기 등
-             </div>
-          </div>
-          <Button variant="outline" @click="$router.push('/settings/data')">
-            <Icon name="WrenchScrewdriverIcon" :size="16" class="mr-2" />
-            관리 도구 열기
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-
-    <!-- Danger Zone -->
-    <Card class="border-[var(--color-danger)]/20">
-      <CardContent class="p-4">
-      <!-- Danger Header -->
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-10 h-10 rounded-lg bg-[var(--color-danger)]/10 flex items-center justify-center">
-          <Icon name="ExclamationTriangleIcon" :size="20" class="text-[var(--color-danger)]" />
-        </div>
-        <div>
-          <h2 class="text-base font-semibold text-[var(--color-label-primary)]">위험 영역</h2>
-          <p class="text-sm text-[var(--color-label-secondary)]">되돌릴 수 없는 작업입니다</p>
+        <div class="mt-8">
+          <h3 class="text-lg font-bold text-foreground mb-1">애니메이션</h3>
+          <p class="text-xs text-muted-foreground">부드러운 화면 전환 효과</p>
         </div>
       </div>
 
-      <!-- Danger Action -->
-      <div class="flex flex-wrap items-center justify-between gap-4 p-4 bg-[var(--color-danger)]/5 rounded-xl border border-[var(--color-danger)]/20">
-        <div>
-          <div class="font-medium text-[var(--color-label-primary)]">데이터 초기화</div>
-          <div class="text-sm text-[var(--color-label-secondary)] mt-0.5">
-            모든 설정, 팀원 목록, 활동 기록을 영구 삭제합니다
+      <!-- 4. Data Management (Wide) -->
+      <div 
+        @click="router.push('/settings/data')"
+        class="md:col-span-2 relative overflow-hidden rounded-3xl p-6 bg-background border border-border/50 cursor-pointer hover:border-emerald-500/50 transition-colors group"
+      >
+        <div class="flex items-center gap-6 h-full">
+          <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+            <Icon name="CloudArrowDownIcon" :size="32" class="text-emerald-500" />
           </div>
+          <div class="flex-1">
+            <h3 class="text-xl font-bold text-foreground mb-2">데이터 관리</h3>
+            <p class="text-sm text-muted-foreground line-clamp-2">
+              데이터를 JSON 파일로 백업하거나, 기존 백업 파일을 불러와 복원할 수 있습니다.
+            </p>
+          </div>
+          <Icon name="ArrowRightIcon" :size="24" class="text-muted-foreground/30 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
         </div>
-        <Button variant="destructive" size="lg" @click="handleResetData">
-          <Icon name="TrashIcon" class="mr-2" :size="18" />
-          모든 데이터 삭제
-        </Button>
       </div>
-    </CardContent>
-    </Card>
 
-    <!-- Footer -->
-    <div class="text-center pt-4 pb-8">
-      <p class="text-sm text-[var(--color-label-tertiary)]">
-        Position Helper v1.0.0
-      </p>
+      <!-- 5. App Info -->
+      <div class="relative overflow-hidden rounded-3xl p-6 bg-muted/30 border border-border/50 flex flex-col justify-center items-center text-center">
+        <div class="mb-3">
+          <span class="text-2xl font-black text-foreground/20">v{{ appVersion }}</span>
+        </div>
+        <p class="text-xs font-medium text-foreground">Position Helper</p>
+        <p class="text-[10px] text-muted-foreground mt-1">Made by Pinecone</p>
+      </div>
+
     </div>
   </div>
 </template>

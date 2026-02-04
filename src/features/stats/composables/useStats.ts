@@ -1,7 +1,6 @@
 import { computed } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
 import { RoleKeys } from '@/shared/types'
-import { extractCohort } from '@/shared/utils/assignment'
 
 // --- Helper Functions for Statistics ---
 function getPercentile(arr: number[], p: number): number {
@@ -48,8 +47,8 @@ export const useStats = () => {
             }
             absenceCounts[m.name] = 0
 
-            // generation 필드 우선, 없으면 이름에서 추출
-            const gen = m.generation ?? extractCohort(m.name)
+            // generation 필드 직접 사용 (Mothership에서 정규화됨)
+            const gen = m.generation
             memberGenMap.set(m.name, gen)
             if (gen) {
                 if (!genStats[gen]) genStats[gen] = { count: 0, totalAssignments: 0, totalAbsences: 0 }
@@ -57,7 +56,7 @@ export const useStats = () => {
             }
         })
 
-        const getGeneration = (name: string): number | null => memberGenMap.get(name) ?? extractCohort(name)
+        const getGeneration = (name: string): number | null => memberGenMap.get(name) ?? null
 
         const weeklyTrend: { date: string, absenceCount: number }[] = []
 
@@ -226,6 +225,12 @@ export const useStats = () => {
                 }
             })
 
+        // 이름-기수 매핑 (Object 형태로 반환)
+        const memberGenerations: Record<string, number | null> = {}
+        memberGenMap.forEach((gen, name) => {
+            memberGenerations[name] = gen
+        })
+
         return {
             workloadRanking,
             roleCounts,
@@ -234,7 +239,8 @@ export const useStats = () => {
             weeklyTrend: weeklyTrend.sort((a, b) => a.date.localeCompare(b.date)),
             generationAnalysis,
             absenceDeviation, // New
-            weeklyFairness // New
+            weeklyFairness, // New
+            memberGenerations // 툴팁에서 기수 표시용
         }
     })
 

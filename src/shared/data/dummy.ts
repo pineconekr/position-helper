@@ -2,18 +2,18 @@ import type { AppData } from '@/shared/types'
 
 export const DUMMY_DATA: AppData = {
     members: [
-        { name: '김철수', active: true, notes: '', generation: 1, cohort: '1기' },
-        { name: '이영희', active: true, notes: '', generation: 1, cohort: '1기' },
-        { name: '박민수', active: true, notes: '', generation: 2, cohort: '2기' },
-        { name: '최지우', active: true, notes: '', generation: 2, cohort: '2기' },
-        { name: '정수민', active: true, notes: '', generation: 3, cohort: '3기' },
-        { name: '강현우', active: true, notes: '', generation: 3, cohort: '3기' },
-        { name: '윤서연', active: true, notes: '', generation: 4, cohort: '4기' },
-        { name: '장준호', active: true, notes: '', generation: 4, cohort: '4기' },
-        { name: '임도현', active: true, notes: '', generation: 5, cohort: '5기' },
-        { name: '송하은', active: true, notes: '', generation: 5, cohort: '5기' },
-        { name: '홍길동', active: true, notes: '휴식 중', generation: 1, cohort: '1기' },
-        { name: '김아무개', active: false, notes: '군입대', generation: 2, cohort: '2기' },
+        { name: '김철수', active: true, notes: '', generation: 1 },
+        { name: '이영희', active: true, notes: '', generation: 1 },
+        { name: '박민수', active: true, notes: '', generation: 2 },
+        { name: '최지우', active: true, notes: '', generation: 2 },
+        { name: '정수민', active: true, notes: '', generation: 3 },
+        { name: '강현우', active: true, notes: '', generation: 3 },
+        { name: '윤서연', active: true, notes: '', generation: 4 },
+        { name: '장준호', active: true, notes: '', generation: 4 },
+        { name: '임도현', active: true, notes: '', generation: 5 },
+        { name: '송하은', active: true, notes: '', generation: 5 },
+        { name: '홍길동', active: true, notes: '휴식 중', generation: 1 },
+        { name: '김아무개', active: false, notes: '군입대', generation: 2 },
     ],
     weeks: {
         '2024-01-07': {

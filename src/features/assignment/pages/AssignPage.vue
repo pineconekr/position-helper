@@ -8,7 +8,7 @@
 import { computed } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
 import { useToast } from '@/composables/useToast'
-import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import { modal } from '@/shared/composables/useModal'
 import { analyzeDraft, slotToLabel } from '@/shared/utils/assignment'
 import { Button } from '@/components/ui/button'
 import Icon from '@/components/ui/Icon.vue'
@@ -17,7 +17,6 @@ import AssignmentBoard from '../components/AssignmentBoard.vue'
 // Store & Composables
 const assignmentStore = useAssignmentStore()
 const { toast } = useToast()
-const { confirm } = useConfirmDialog()
 
 // Computed
 const draft = computed(() => assignmentStore.currentDraft)
@@ -30,14 +29,14 @@ async function handleFinalize() {
   const extraSlots = emptySlots.length > 3 ? ` 외 ${emptySlots.length - 3}개` : ''
 
   if (emptySlots.length > 0) {
-    const description = [
+    const message = [
       previewSlots ? `미배정: ${previewSlots}${extraSlots}` : '',
       '배정을 마치지 않고도 확정할 수 있습니다. 계속 진행할까요?'
     ].filter(Boolean).join('\n')
     
-    const confirmed = await confirm({
+    const confirmed = await modal.confirm({
       title: `미배정 역할 ${emptySlots.length}개`,
-      description,
+      message,
       confirmText: '계속 진행',
       cancelText: '돌아가기',
       variant: 'warning'
@@ -49,9 +48,9 @@ async function handleFinalize() {
   }
 
   if (warnings.value.length > 0) {
-    const confirmed = await confirm({
+    const confirmed = await modal.confirm({
       title: `경고 ${warnings.value.length}건`,
-      description: '경고 사항이 남아 있습니다. 현재 상태로 확정할까요?',
+      message: '경고 사항이 남아 있습니다. 현재 상태로 확정할까요?',
       confirmText: '확정하기',
       cancelText: '취소',
       variant: 'warning'

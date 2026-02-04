@@ -67,3 +67,8 @@ venv/
 # Local Netlify folder
 .netlify
 positiondatalog/
+
+# Report files
+QA_REPORT_SESSION.md
+commits.txt
+status.txt

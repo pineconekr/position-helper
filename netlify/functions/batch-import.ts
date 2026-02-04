@@ -9,7 +9,7 @@ import { verifyAuth, unauthorizedResponse } from './utils/auth'
  */
 
 // 입력 데이터 검증
-function validateMembers(members: unknown): members is Array<{ name: string; active?: boolean; notes?: string; generation?: string }> {
+function validateMembers(members: unknown): members is Array<{ name: string; active?: boolean; notes?: string; generation?: number }> {
     if (!Array.isArray(members)) return false
     return members.every(m =>
         typeof m === 'object' && m !== null &&
@@ -56,12 +56,15 @@ export default async (req: Request) => {
         let membersImported = 0
         let weeksImported = 0
 
-        // Members 일괄 저장 (UPSERT)
+        // Members 일괄 저장 (UPSERT) - generation을 INTEGER로 저장
         if (members && Array.isArray(members)) {
             for (const member of members) {
+                // generation이 숫자가 아니면 null로 처리
+                const gen = typeof member.generation === 'number' ? member.generation : null
+
                 await sql`
                     INSERT INTO members (name, active, notes, generation)
-                    VALUES (${member.name}, ${member.active ?? true}, ${member.notes ?? ''}, ${member.generation ?? null})
+                    VALUES (${member.name}, ${member.active ?? true}, ${member.notes ?? ''}, ${gen})
                     ON CONFLICT (name) DO UPDATE SET 
                         active = EXCLUDED.active,
                         notes = EXCLUDED.notes,

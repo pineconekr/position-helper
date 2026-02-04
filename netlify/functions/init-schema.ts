@@ -10,13 +10,21 @@ export default async (req: Request) => {
 
   const sql = neon(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL!)
 
+  // Members 테이블 (generation 컬럼 포함)
   await sql`
     CREATE TABLE IF NOT EXISTS members (
       name TEXT PRIMARY KEY,
       active BOOLEAN DEFAULT true,
-      notes TEXT
+      notes TEXT,
+      generation INTEGER
     );
   `
+
+  // 기존 테이블에 generation 컬럼이 없으면 추가
+  await sql`
+    ALTER TABLE members ADD COLUMN IF NOT EXISTS generation INTEGER;
+  `
+
   await sql`
     CREATE TABLE IF NOT EXISTS weeks (
       week_date DATE PRIMARY KEY,

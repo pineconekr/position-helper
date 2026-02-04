@@ -34,9 +34,9 @@ function isActive(href: string): boolean {
           <AppLogo />
         </RouterLink>
 
-        <!-- Desktop Nav - Segmented Control -->
+        <!-- Desktop Nav - Transparent Tabs -->
         <nav 
-          class="hidden md:flex items-center bg-muted/80 dark:bg-muted/50 p-1 rounded-xl shadow-inner"
+          class="hidden md:flex items-center gap-1"
           role="navigation"
           aria-label="메인 네비게이션"
         >
@@ -46,11 +46,11 @@ function isActive(href: string): boolean {
             :to="link.href"
             :aria-current="isActive(link.href) ? 'page' : undefined"
             :class="clsx(
-              'relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+              'relative flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
               isActive(link.href)
-                ? 'bg-background dark:bg-card text-foreground shadow-sm ring-1 ring-border/50'
-                : 'text-muted-foreground hover:text-foreground hover:bg-background/50 dark:hover:bg-card/30'
+                ? 'bg-primary/10 text-primary'  // 활성 상태: Primary tint 배경
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             )"
           >
             <Icon 
@@ -58,7 +58,7 @@ function isActive(href: string): boolean {
               :size="16" 
               :class="clsx(
                 'transition-colors duration-200',
-                isActive(link.href) ? 'text-primary' : ''
+                isActive(link.href) ? 'text-primary' : 'opacity-70 group-hover:opacity-100'
               )" 
               aria-hidden="true"
             />
