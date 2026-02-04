@@ -145,6 +145,35 @@ async function handleResetData() {
     </CardContent>
     </Card>
 
+
+    <!-- Data Management Section -->
+    <Card>
+      <CardContent class="p-4">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+            <Icon name="CircleStackIcon" :size="20" class="text-green-600" />
+          </div>
+          <div>
+            <h2 class="text-base font-semibold text-[var(--color-label-primary)]">데이터 관리</h2>
+            <p class="text-sm text-[var(--color-label-secondary)]">데이터 조회, 수정, 백업 및 복구를 수행합니다</p>
+          </div>
+        </div>
+
+        <div class="p-4 bg-muted/30 rounded-xl border border-border flex items-center justify-between">
+          <div>
+             <div class="font-medium text-foreground">고급 데이터 관리자</div>
+             <div class="text-sm text-muted-foreground mt-0.5">
+               로우 데이터 조회, 기간별 내보내기, 병합 가져오기 등
+             </div>
+          </div>
+          <Button variant="outline" @click="$router.push('/settings/data')">
+            <Icon name="WrenchScrewdriverIcon" :size="16" class="mr-2" />
+            관리 도구 열기
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+
     <!-- Danger Zone -->
     <Card class="border-[var(--color-danger)]/20">
       <CardContent class="p-4">

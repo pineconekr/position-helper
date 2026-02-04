@@ -3,13 +3,13 @@
  * AssignPage.vue - 배정 페이지
  * 
  * 드래그앤드롭을 통한 역할 배정 메인 페이지
+ * Import/Export는 설정 → 데이터 관리에서 수행
  */
 import { computed } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
 import { useToast } from '@/composables/useToast'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { analyzeDraft, slotToLabel } from '@/shared/utils/assignment'
-import { saveJsonFile, openJsonFile } from '@/shared/utils/json'
 import { Button } from '@/components/ui/button'
 import Icon from '@/components/ui/Icon.vue'
 import AssignmentBoard from '../components/AssignmentBoard.vue'
@@ -20,74 +20,10 @@ const { toast } = useToast()
 const { confirm } = useConfirmDialog()
 
 // Computed
-const currentWeekDate = computed(() => assignmentStore.currentWeekDate)
 const draft = computed(() => assignmentStore.currentDraft)
 const warnings = computed(() => assignmentStore.warnings)
 
-// Helpers
-function buildFileName(dateISO?: string): string {
-  if (!dateISO) return 'Position_data'
-  const [year, month, day] = dateISO.split('-')
-  if (!year || !month || !day) return 'Position_data'
-  const compact = `${year.slice(-2)}${month}${day}`
-  return `${compact}_Position_data`
-}
-
 // Actions
-async function handleImport() {
-  try {
-    const data = await openJsonFile()
-    if (data) {
-      assignmentStore.importData(data)
-      toast({
-        kind: 'success',
-        title: '데이터를 불러왔어요',
-        description: `총 ${Object.keys(data.weeks).length}주 기록과 팀원 ${data.members.length}명이 로드되었습니다.`
-      })
-    } else {
-      toast({
-        kind: 'info',
-        title: '파일이 선택되지 않았어요',
-        description: '작업이 취소되었습니다.'
-      })
-    }
-  } catch (error) {
-    console.error('불러오기 오류:', error)
-    toast({
-      kind: 'error',
-      title: '불러오기 실패',
-      description: '파일 형식이 올바르지 않거나 손상되었습니다.'
-    })
-  }
-}
-
-async function handleExport() {
-  try {
-    const fileName = buildFileName(currentWeekDate.value)
-    const success = await saveJsonFile(assignmentStore.exportData(), fileName)
-    if (success) {
-      toast({
-        kind: 'success',
-        title: 'JSON으로 내보냈어요',
-        description: `파일(downloads/${fileName}.json)이 저장되었습니다.`
-      })
-    } else {
-      toast({
-        kind: 'error',
-        title: '내보내지 못했어요',
-        description: '파일 저장 중 문제가 발생했습니다.'
-      })
-    }
-  } catch (error) {
-    console.error('내보내기 오류:', error)
-    toast({
-      kind: 'error',
-      title: '내보내기 오류',
-      description: '예기치 않은 오류가 발생했습니다.'
-    })
-  }
-}
-
 async function handleFinalize() {
   const { emptySlots } = analyzeDraft(draft.value)
   const previewSlots = emptySlots.slice(0, 3).map((slot) => slotToLabel(slot)).join(', ')
@@ -137,7 +73,7 @@ async function handleFinalize() {
 
 <template>
   <div class="space-y-6">
-    <!-- Action Bar - Stitch Simple Style -->
+    <!-- Action Bar -->
     <div class="flex items-center justify-between gap-4">
       <!-- Left: Page Info -->
       <div>
@@ -147,14 +83,6 @@ async function handleFinalize() {
 
       <!-- Right: Actions -->
       <div class="flex items-center gap-2">
-        <Button variant="ghost" size="sm" @click="handleImport">
-          <Icon name="ArrowUpTrayIcon" :size="16" />
-          <span class="hidden sm:inline ml-1.5">불러오기</span>
-        </Button>
-        <Button variant="ghost" size="sm" @click="handleExport">
-          <Icon name="ArrowDownTrayIcon" :size="16" />
-          <span class="hidden sm:inline ml-1.5">내보내기</span>
-        </Button>
         <Button variant="default" size="sm" @click="handleFinalize">
           <Icon name="CheckIcon" :size="16" />
           확정

@@ -3,17 +3,35 @@ import type { AppData, MembersEntry, WeekData } from '@/shared/types'
 
 const API_BASE = '/.netlify/functions'
 
+// API 응답 타입 정의
+interface DbMemberRow {
+    name: string
+    active: boolean
+    notes: string
+    generation?: string
+}
+
+interface DbWeekRow {
+    week_date: string
+    data: WeekData
+}
+
+interface GetDataResponse {
+    members: DbMemberRow[]
+    weeks: DbWeekRow[]
+}
+
 export async function getAllData(): Promise<AppData> {
     const res = await fetch(`${API_BASE}/get-data`)
     if (!res.ok) {
         throw new Error(`Failed to get data: ${res.status}`)
     }
 
-    const data = await res.json()
+    const data: GetDataResponse = await res.json()
 
     // 응답 형식 변환
     const appData: AppData = {
-        members: data.members.map((m: any) => ({
+        members: data.members.map((m) => ({
             name: m.name,
             active: m.active,
             notes: m.notes
@@ -21,9 +39,9 @@ export async function getAllData(): Promise<AppData> {
         weeks: {}
     }
 
-    data.weeks.forEach((w: any) => {
+    data.weeks.forEach((w) => {
         const dateStr = String(w.week_date)
-        appData.weeks[dateStr] = w.data as WeekData
+        appData.weeks[dateStr] = w.data
     })
 
     return appData
@@ -58,4 +76,23 @@ export async function initSchema(): Promise<void> {
     if (!res.ok) {
         throw new Error(`Failed to init schema: ${res.status}`)
     }
+}
+
+export async function batchImport(data: AppData): Promise<{ members: number; weeks: number }> {
+    const res = await fetch(`${API_BASE}/batch-import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            members: data.members,
+            weeks: data.weeks
+        })
+    })
+
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.details || `Failed to batch import: ${res.status}`)
+    }
+
+    const result = await res.json()
+    return result.imported
 }
