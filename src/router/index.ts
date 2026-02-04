@@ -33,6 +33,12 @@ const router = createRouter({
             name: 'settings',
             component: () => import('@/features/settings/pages/SettingsPage.vue'),
             meta: { requiresAuth: true }
+        },
+        {
+            path: '/settings/data',
+            name: 'admin-data',
+            component: () => import('@/features/admin/pages/AdminDataPage.vue'),
+            meta: { requiresAuth: true }
         }
     ]
 })

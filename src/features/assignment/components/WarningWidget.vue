@@ -279,9 +279,10 @@ function handleWarningClick(warning: Warning) {
       <!-- 전체 경고 없을 때 요약 -->
       <div 
         v-if="totalWarnings === 0 && activeFilter === 'all'"
-        class="text-xs text-[var(--color-label-tertiary)] text-center pt-2 border-t border-[var(--color-border-subtle)]"
+        class="text-xs text-[var(--color-label-tertiary)] text-center pt-2 border-t border-[var(--color-border-subtle)] flex items-center justify-center gap-1"
       >
-        💡 '추천' 탭에서 로테이션 제안을 확인하세요
+        <Icon name="LightBulbIcon" :size="12" class="text-[var(--color-accent)]" />
+        '추천' 탭에서 로테이션 제안을 확인하세요
       </div>
     </CardContent>
   </Card>

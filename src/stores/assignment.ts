@@ -63,6 +63,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
     })
     const warnings = ref<Warning[]>([])
     const draftHistory = ref<DraftHistoryEntry[]>([])
+    const skipNextDbLoad = ref(false) // Import 직후 loadFromDb 방지용
 
     const canUndo = computed(() => draftHistory.value.length > 0)
 
@@ -288,6 +289,9 @@ export const useAssignmentStore = defineStore('assignment', () => {
         currentDraft.value = { part1: emptyPart(), part2: emptyPart() }
         warnings.value = []
 
+        // Import 후 다른 페이지에서 loadFromDb 호출 방지
+        skipNextDbLoad.value = true
+
         const date = currentWeekDate.value
         if (date && data.weeks[date]) {
             loadWeekToDraft(date)
@@ -365,15 +369,10 @@ export const useAssignmentStore = defineStore('assignment', () => {
     }
 
     async function loadFromDb() {
-        if (import.meta.env.DEV) {
-            console.log('🚧 Development mode: Loading dummy data')
-            app.value = structuredClone(toRaw(DUMMY_DATA))
-            const date = currentWeekDate.value
-            if (date && DUMMY_DATA.weeks[date]) {
-                const wk = DUMMY_DATA.weeks[date]
-                currentDraft.value = { part1: structuredClone(toRaw(wk.part1)), part2: structuredClone(toRaw(wk.part2)) }
-            }
-            recalcWarnings()
+        // Import 직후면 DB 로드 스킵 (Import 데이터 유지)
+        if (skipNextDbLoad.value) {
+            console.log('⏭️ Skipping DB load (import in progress)')
+            skipNextDbLoad.value = false
             return
         }
 
@@ -394,10 +393,6 @@ export const useAssignmentStore = defineStore('assignment', () => {
     }
 
     async function syncToDb() {
-        if (import.meta.env.DEV) {
-            console.log('🚧 Development mode: Skipping DB sync')
-            return
-        }
         try {
             for (const member of app.value.members) {
                 await api.updateMember(member)
@@ -409,6 +404,20 @@ export const useAssignmentStore = defineStore('assignment', () => {
         } catch (error) {
             console.error('Failed to sync to DB:', error)
         }
+    }
+
+    /**
+     * 강제로 더미 데이터를 로드합니다 (개발/디버그 목적)
+     */
+    function loadDummyData() {
+        console.log('🧪 Force loading dummy data')
+        app.value = structuredClone(toRaw(DUMMY_DATA))
+        const date = currentWeekDate.value
+        if (date && DUMMY_DATA.weeks[date]) {
+            const wk = DUMMY_DATA.weeks[date]
+            currentDraft.value = { part1: structuredClone(toRaw(wk.part1)), part2: structuredClone(toRaw(wk.part2)) }
+        }
+        recalcWarnings()
     }
 
     return {
@@ -435,6 +444,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
         finalizeCurrentWeek,
         undoLastAssignment,
         loadFromDb,
-        syncToDb
+        syncToDb,
+        loadDummyData
     }
 })

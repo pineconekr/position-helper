@@ -1,0 +1,37 @@
+{
+    "project": "Data Management Dashboard",
+    "version": "1.1.0",
+    "description": "Comprehensive internal tool for data management, editing, backups, and health checks.",
+    "status": "Deployment Paused (Netlify Limit Exceeded)",
+    "tech_stack": {
+        "framework": "Vue 3",
+        "state_management": "Pinia",
+        "ui_library": "shadcn-vue",
+        "backend": "Netlify Functions + Neon DB"
+    },
+    "features": [
+        {
+            "name": "Raw Data Editor (Completed)",
+            "details": "Direct JSON editing for Weeks data with DB sync. Removed redundant Member editor.",
+            "status": "done"
+        },
+        {
+            "name": "Advanced Import/Export (Completed)",
+            "details": "3-step import flow (Select -> Preview -> Confirm). Auto-backup before applying. Batch API implemented to prevent rate limits.",
+            "status": "done"
+        },
+        {
+            "name": "Health Check (Completed)",
+            "details": "Scan and fix data integrity issues. Factory reset with dummy data.",
+            "status": "done"
+        },
+        {
+            "name": "Data Consistency (Completed)",
+            "details": "Fixed issue where loadFromDb overwrote imported data in Stats view.",
+            "status": "done"
+        }
+    ],
+    "known_issues": [
+        "Netlify build limit exceeded - deployment paused until reset or upgrade."
+    ]
+}
