@@ -28,12 +28,11 @@ export default async (req: Request) => {
                 'Cache-Control': 'no-store'
             }
         })
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
+    } catch (_error: unknown) {
         return new Response(JSON.stringify({
             status: 'error',
             db: 'disconnected',
-            error: message,
+            error: 'Database unavailable',
             latency: Date.now() - start
         }), {
             status: 503,

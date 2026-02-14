@@ -4,8 +4,8 @@ import { verifyAuth, unauthorizedResponse } from './utils/auth'
 /**
  * Batch Import API - 전체 데이터를 한 번에 저장
  * 개별 API 호출 대신 이 엔드포인트를 사용하여 rate limit 방지
- * 
- * [개선] 트랜잭션 사용, 입력 검증 추가
+ *
+ * [개선] 트랜잭션 + 입력 검증
  */
 
 // 입력 데이터 검증
@@ -56,34 +56,42 @@ export default async (req: Request) => {
         let membersImported = 0
         let weeksImported = 0
 
-        // Members 일괄 저장 (UPSERT) - generation을 INTEGER로 저장
-        if (members && Array.isArray(members)) {
-            for (const member of members) {
-                // generation이 숫자가 아니면 null로 처리
-                const gen = typeof member.generation === 'number' ? member.generation : null
+        await sql`BEGIN`
+        try {
+            // Members 일괄 저장 (UPSERT) - generation을 INTEGER로 저장
+            if (members && Array.isArray(members)) {
+                for (const member of members) {
+                    // generation이 숫자가 아니면 null로 처리
+                    const gen = typeof member.generation === 'number' ? member.generation : null
 
-                await sql`
-                    INSERT INTO members (name, active, notes, generation)
-                    VALUES (${member.name}, ${member.active ?? true}, ${member.notes ?? ''}, ${gen})
-                    ON CONFLICT (name) DO UPDATE SET 
-                        active = EXCLUDED.active,
-                        notes = EXCLUDED.notes,
-                        generation = EXCLUDED.generation
-                `
-                membersImported++
+                    await sql`
+                        INSERT INTO members (name, active, notes, generation)
+                        VALUES (${member.name}, ${member.active ?? true}, ${member.notes ?? ''}, ${gen})
+                        ON CONFLICT (name) DO UPDATE SET 
+                            active = EXCLUDED.active,
+                            notes = EXCLUDED.notes,
+                            generation = EXCLUDED.generation
+                    `
+                    membersImported++
+                }
             }
-        }
 
-        // Weeks 일괄 저장 (UPSERT)
-        if (weeks && typeof weeks === 'object') {
-            for (const [date, weekData] of Object.entries(weeks)) {
-                await sql`
-                    INSERT INTO weeks (week_date, data)
-                    VALUES (${date}, ${JSON.stringify(weekData)})
-                    ON CONFLICT (week_date) DO UPDATE SET data = EXCLUDED.data
-                `
-                weeksImported++
+            // Weeks 일괄 저장 (UPSERT)
+            if (weeks && typeof weeks === 'object') {
+                for (const [date, weekData] of Object.entries(weeks)) {
+                    await sql`
+                        INSERT INTO weeks (week_date, data)
+                        VALUES (${date}, ${JSON.stringify(weekData)})
+                        ON CONFLICT (week_date) DO UPDATE SET data = EXCLUDED.data
+                    `
+                    weeksImported++
+                }
             }
+
+            await sql`COMMIT`
+        } catch (txError) {
+            await sql`ROLLBACK`
+            throw txError
         }
 
         return new Response(JSON.stringify({

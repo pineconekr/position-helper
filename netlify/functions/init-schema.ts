@@ -2,6 +2,10 @@ import { neon } from '@neondatabase/serverless'
 import { verifyAuth, unauthorizedResponse } from './utils/auth'
 
 export default async (req: Request) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
+  }
+
   // 인증 확인
   const auth = await verifyAuth(req)
   if (!auth.valid) {
