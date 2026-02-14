@@ -3,8 +3,9 @@
  * AssignmentTable.vue - Vue 3 버전
  * 배정 테이블 with 드래그앤드롭 slots
  */
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
+import { useThemeStore } from '@/stores/theme'
 import { RoleKeys, type RoleKey } from '@/shared/types'
 import { BLANK_ROLE_VALUE, stripCohort } from '@/shared/utils/assignment'
 import { encodeAssignedId, decodeAssignedId, decodeMemberId } from '@/shared/utils/dndIds'
@@ -18,9 +19,10 @@ type SlotKey = `${PartKey}-${RoleKey}` | `${PartKey}-${RoleKey}-${0 | 1}`
 interface Props {
   selectedMember?: string | null
   previewScores?: Map<SlotKey, number> | null
+  slotFocus?: { part?: PartKey; role?: RoleKey; index?: 0 | 1 } | null
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'slot-click': [part: PartKey, role: RoleKey, index?: 0 | 1]
@@ -30,6 +32,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useAssignmentStore()
+const themeStore = useThemeStore()
 
 const ROLE_COUNTS: Record<RoleKey, number> = {
   SW: 1,
@@ -40,31 +43,19 @@ const ROLE_COUNTS: Record<RoleKey, number> = {
 }
 
 const ROLE_COLORS: Record<RoleKey, string> = {
-  SW: 'text-violet-600 dark:text-violet-400',
-  자막: 'text-amber-600 dark:text-amber-400',
-  고정: 'text-emerald-600 dark:text-emerald-400',
-  사이드: 'text-sky-600 dark:text-sky-400',
-  스케치: 'text-rose-500 dark:text-rose-400',
+  SW: 'var(--color-role-sw)',
+  자막: 'var(--color-role-caption)',
+  고정: 'var(--color-role-fixed)',
+  사이드: 'var(--color-role-side)',
+  스케치: 'var(--color-role-sketch)',
 }
-
-
-
-// 역할별 그라디언트 (채워진 슬롯 배경)
-const ROLE_BG_CLASSES: Record<RoleKey, string> = {
-  SW: 'bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-900/30 dark:to-violet-800/20',
-  자막: 'bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-900/30 dark:to-amber-800/20',
-  고정: 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-800/20',
-  사이드: 'bg-gradient-to-br from-sky-50 to-sky-100/50 dark:from-sky-900/30 dark:to-sky-800/20',
-  스케치: 'bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-900/30 dark:to-rose-800/20',
-}
-
-// 역할별 테두리 색상
-const ROLE_BORDER_CLASSES: Record<RoleKey, string> = {
-  SW: 'border-violet-200 dark:border-violet-700/50',
-  자막: 'border-amber-200 dark:border-amber-700/50',
-  고정: 'border-emerald-200 dark:border-emerald-700/50',
-  사이드: 'border-sky-200 dark:border-sky-700/50',
-  스케치: 'border-rose-200 dark:border-rose-700/50',
+function getFilledCellStyle(value: string, isSelected: boolean, role?: RoleKey) {
+  if (!role || !value || value === BLANK_ROLE_VALUE || isSelected) return undefined
+  const roleColor = ROLE_COLORS[role]
+  return {
+    background: `linear-gradient(135deg, color-mix(in srgb, ${roleColor} 11%, var(--color-surface-elevated)), color-mix(in srgb, ${roleColor} 5%, var(--color-surface)))`,
+    borderColor: `color-mix(in srgb, ${roleColor} 35%, var(--color-border-subtle))`,
+  }
 }
 
 function getValue(part: PartKey, role: RoleKey, index?: 0 | 1): string {
@@ -88,7 +79,7 @@ function getScoreColor(score: number): string {
   return 'text-[var(--color-danger)]'
 }
 
-function getCellClasses(value: string, isSelected: boolean, isDragging: boolean = false, role?: RoleKey) {
+function getCellClasses(value: string, isSelected: boolean, isDragging: boolean = false) {
   const isEmpty = value === ''
   const isBlank = value === BLANK_ROLE_VALUE
   
@@ -143,10 +134,10 @@ function getCellClasses(value: string, isSelected: boolean, isDragging: boolean 
   // 채워진 슬롯 스타일 (역할별 그라디언트)
   return clsx(
     baseStyles,
-    role ? ROLE_BG_CLASSES[role] : 'bg-[var(--color-surface)]',
+    'bg-[var(--color-surface)]',
     'text-[var(--color-label-primary)]',
     'border',
-    role ? ROLE_BORDER_CLASSES[role] : 'border-[var(--color-border-subtle)]',
+    'border-[var(--color-border-subtle)]',
     'shadow-sm',
     'hover:shadow-md hover:scale-[1.02] hover:z-10',
     'active:scale-100 active:shadow-sm',
@@ -232,36 +223,59 @@ function isSlotDragging(part: PartKey, role: RoleKey, index?: 0 | 1): boolean {
   return draggingSlot.value === getSlotKey(part, role, index)
 }
 
+function isSlotFocused(part: PartKey, role: RoleKey): boolean {
+  if (!props.slotFocus?.role) return false
+  if (props.slotFocus.role !== role) return false
+  if (!props.slotFocus.part) return true
+  return props.slotFocus.part === part
+}
+
+function isFocusedSideIndex(part: PartKey, index: 0 | 1): boolean {
+  if (!props.slotFocus?.role || props.slotFocus.role !== '사이드') return false
+  if (props.slotFocus.part && props.slotFocus.part !== part) return false
+  if (props.slotFocus.index === undefined) return true
+  return props.slotFocus.index === index
+}
+
 const gridCols = 'grid-cols-[4rem_1fr_1fr_1fr_2fr_1fr]'
+const tableThemeKey = computed(() => (themeStore.effectiveTheme === 'dark' ? 'assignment-table-dark' : 'assignment-table-light'))
 
 // 모바일 접근성을 위한 터치 친화적 셀 높이 (WCAG 권장: 최소 48px)
 const cellHeight = 'h-14' // 56px - 터치 친화적
+
+function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1) {
+  const pLabel = part === 'part1' ? '1부' : '2부'
+  const rLabel = role
+  const vLabel = value ? `${value} 배정됨` : '비어 있음'
+  const idxLabel = index !== undefined ? `${index + 1}번 ` : ''
+  return `${pLabel} ${rLabel} ${idxLabel}슬롯, ${vLabel}`
+}
 </script>
 
 <template>
   <!-- 모바일 가로 스크롤 지원: overflow-x-auto로 테이블 스크롤 허용 -->
   <div class="w-full overflow-x-auto">
-    <div class="min-w-[500px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
+    <div :key="tableThemeKey" class="min-w-[500px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
     <!-- Header -->
     <div :class="clsx('grid gap-px bg-[var(--color-border-subtle)] border-b border-[var(--color-border-subtle)]', gridCols)">
-      <div class="bg-[var(--color-surface-elevated)]" />
+      <div class="bg-[var(--color-surface)]" />
       <div
         v-for="role in RoleKeys"
         :key="role"
         :class="clsx(
-          'py-3 px-2 flex flex-col items-center justify-center gap-0.5',
-          ROLE_BG_CLASSES[role]
+          'py-3 px-2 flex flex-col items-center justify-center gap-0.5 bg-[var(--color-surface)]'
         )"
       >
-        <span :class="clsx('text-base font-bold tracking-tight', ROLE_COLORS[role])">
+        <span class="text-base font-bold tracking-tight" :style="{ color: ROLE_COLORS[role] }">
           {{ role }}
         </span>
         <Badge 
           variant="outline" 
           :class="clsx(
             'text-[10px] px-1.5 py-0 rounded-full h-auto min-w-[1.25rem] justify-center',
-            'bg-white/50 dark:bg-black/20 border-0'
+            'border-[var(--color-border-subtle)] text-[var(--color-label-tertiary)]'
           )"
+          :style="{ backgroundColor: `color-mix(in srgb, ${ROLE_COLORS[role]} 10%, var(--color-surface-elevated))` }"
         >
           {{ ROLE_COUNTS[role] }}명
         </Badge>
@@ -290,7 +304,8 @@ const cellHeight = 'h-14' // 56px - 터치 친화적
                 :key="idx"
                 :class="[
                 `relative w-full ${cellHeight} transition-all duration-200 rounded-[var(--radius-md)]`,
-                isSlotDragOver(part, role, idx as 0 | 1) && 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-canvas)] bg-[var(--color-accent)]/10'
+                isSlotDragOver(part, role, idx as 0 | 1) && 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-canvas)] bg-[var(--color-accent)]/10',
+                isFocusedSideIndex(part, idx as 0 | 1) && 'ring-2 ring-[var(--color-accent)]/80 ring-offset-2 ring-offset-[var(--color-canvas)] shadow-md shadow-[var(--color-accent)]/20'
               ]"
               :draggable="!!getValue(part, role, idx as 0 | 1)"
               @dragstart="(e) => handleDragStart(e, part, role, idx as 0 | 1)"
@@ -300,8 +315,14 @@ const cellHeight = 'h-14' // 56px - 터치 친화적
               @drop="(e) => handleDrop(e, part, role, idx as 0 | 1)"
             >
               <div
-                :class="getCellClasses(getValue(part, role, idx as 0 | 1), selectedMember === getValue(part, role, idx as 0 | 1) && getValue(part, role, idx as 0 | 1) !== '', isSlotDragging(part, role, idx as 0 | 1), role)"
+                :class="getCellClasses(getValue(part, role, idx as 0 | 1), selectedMember === getValue(part, role, idx as 0 | 1) && getValue(part, role, idx as 0 | 1) !== '', isSlotDragging(part, role, idx as 0 | 1))"
+                :style="getFilledCellStyle(getValue(part, role, idx as 0 | 1), selectedMember === getValue(part, role, idx as 0 | 1) && getValue(part, role, idx as 0 | 1) !== '', role)"
                 @click="handleSlotClick(part, role, idx as 0 | 1)"
+                role="button"
+                tabindex="0"
+                :aria-label="getAriaLabel(part, role, getValue(part, role, idx as 0 | 1), idx as 0 | 1)"
+                @keydown.enter="handleSlotClick(part, role, idx as 0 | 1)"
+                @keydown.space.prevent="handleSlotClick(part, role, idx as 0 | 1)"
               >
                 <!-- Empty slot: plus icon or preview score -->
                 <template v-if="getValue(part, role, idx as 0 | 1) === ''">
@@ -334,6 +355,7 @@ const cellHeight = 'h-14' // 56px - 터치 친화적
                         : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)] hover:text-[var(--color-danger)]'
                     )"
                     tabindex="-1"
+                    aria-label="배정 해제"
                   >
                     <Icon name="XMarkIcon" :size="10" />
                   </button>
@@ -347,7 +369,8 @@ const cellHeight = 'h-14' // 56px - 터치 친화적
             <div 
               :class="[
               `relative w-full ${cellHeight} transition-all duration-200 rounded-[var(--radius-md)]`,
-              isSlotDragOver(part, role) && 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-canvas)] bg-[var(--color-accent)]/10'
+              isSlotDragOver(part, role) && 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-canvas)] bg-[var(--color-accent)]/10',
+              isSlotFocused(part, role) && 'ring-2 ring-[var(--color-accent)]/80 ring-offset-2 ring-offset-[var(--color-canvas)] shadow-md shadow-[var(--color-accent)]/20'
             ]"
             :draggable="!!getValue(part, role)"
             @dragstart="(e) => handleDragStart(e, part, role)"
@@ -357,8 +380,14 @@ const cellHeight = 'h-14' // 56px - 터치 친화적
             @drop="(e) => handleDrop(e, part, role)"
           >
             <div
-              :class="getCellClasses(getValue(part, role), selectedMember === getValue(part, role) && getValue(part, role) !== '', isSlotDragging(part, role), role)"
+              :class="getCellClasses(getValue(part, role), selectedMember === getValue(part, role) && getValue(part, role) !== '', isSlotDragging(part, role))"
+              :style="getFilledCellStyle(getValue(part, role), selectedMember === getValue(part, role) && getValue(part, role) !== '', role)"
               @click="handleSlotClick(part, role)"
+              role="button"
+              tabindex="0"
+              :aria-label="getAriaLabel(part, role, getValue(part, role))"
+              @keydown.enter="handleSlotClick(part, role)"
+              @keydown.space.prevent="handleSlotClick(part, role)"
             >
               <!-- Empty slot: plus icon or preview score -->
               <template v-if="getValue(part, role) === ''">
@@ -391,6 +420,7 @@ const cellHeight = 'h-14' // 56px - 터치 친화적
                       : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)] hover:text-[var(--color-danger)]'
                   )"
                   tabindex="-1"
+                  aria-label="배정 해제"
                 >
                   <Icon name="XMarkIcon" :size="10" />
                 </button>
