@@ -1,38 +1,45 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import BaseChart from '@/shared/components/charts/BaseChart.vue'
 import { useStats } from '../composables/useStats'
 import { useThemeStore } from '@/stores/theme'
 import { RoleKeys } from '@/shared/types'
+import { getChartSeriesPalette, getChartUiPalette, withAlpha } from '@/shared/utils/chartTheme'
+
+import { escapeHtml } from '@/shared/utils/text'
 
 const { stats } = useStats()
 const themeStore = useThemeStore()
 
 const selectedMember = ref<string>('all')
-
-// 역할별 색상 정의 - 그라데이션 포함
-const ROLE_COLORS: Record<string, { main: string; light: string; gradient: [string, string] }> = {
-  'SW': { main: '#3b82f6', light: 'rgba(59, 130, 246, 0.15)', gradient: ['#60a5fa', '#3b82f6'] },
-  '자막': { main: '#10b981', light: 'rgba(16, 185, 129, 0.15)', gradient: ['#34d399', '#10b981'] },
-  '고정': { main: '#8b5cf6', light: 'rgba(139, 92, 246, 0.15)', gradient: ['#a78bfa', '#8b5cf6'] },
-  '사이드': { main: '#f59e0b', light: 'rgba(245, 158, 11, 0.15)', gradient: ['#fbbf24', '#f59e0b'] },
-  '스케치': { main: '#ec4899', light: 'rgba(236, 72, 153, 0.15)', gradient: ['#f472b6', '#ec4899'] }
-}
+type AxisTooltipParam = { name: string; value: number; seriesName: string; marker: string }
+type ItemTooltipParam = { name: string; value: number }
 
 // 색상 테마
 const colors = computed(() => {
   const isDark = themeStore.effectiveTheme === 'dark'
+  const ui = getChartUiPalette()
+  const series = getChartSeriesPalette()
+  const roleColors = {
+    SW: series.roleSw,
+    자막: series.roleCaption,
+    고정: series.roleFixed,
+    사이드: series.roleSide,
+    스케치: series.roleSketch,
+  } as const
   return {
     isDark,
-    text: isDark ? '#94a3b8' : '#64748b',
-    textStrong: isDark ? '#e2e8f0' : '#334155',
-    grid: isDark ? '#334155' : '#e2e8f0',
-    gridLight: isDark ? '#1e293b' : '#f8fafc',
+    text: ui.text,
+    textStrong: ui.textStrong,
+    grid: ui.grid,
+    gridLight: ui.surface,
+    border: ui.border,
     // 전체 모드 색상
-    barMain: '#3b82f6',
-    barGradient: ['#60a5fa', '#3b82f6'] as [string, string]
+    barMain: series.primary,
+    barGradient: [withAlpha(series.primary, isDark ? 0.75 : 0.6), series.primary] as [string, string],
+    threshold: series.warning,
+    roleColors,
   }
 })
 
@@ -51,18 +58,19 @@ const chartOption = computed(() => {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
-        backgroundColor: c.isDark ? '#1e293b' : '#ffffff',
-        borderColor: c.isDark ? '#475569' : '#e2e8f0',
+        backgroundColor: getChartUiPalette().surface,
+        borderColor: c.border,
         borderWidth: 1,
         padding: [12, 16],
-        textStyle: { color: c.textStrong },
-        formatter: (params: any) => {
+        textStyle: { color: c.textStrong, fontSize: 14 },
+        formatter: (params: AxisTooltipParam[]) => {
           const d = params[0]
+          const safeName = escapeHtml(d.name)
           const rank = data.findIndex(i => i.name === d.name) + 1
           const gen = stats.value.memberGenerations[d.name]
           const genLabel = gen ? `${gen}기` : ''
           return `
-            <div style="font-weight: 600; margin-bottom: 8px;">${d.name} ${genLabel ? `<span style="opacity: 0.6; font-weight: 400;">(${genLabel})</span>` : ''}</div>
+            <div style="font-weight: 600; margin-bottom: 8px;">${safeName} ${genLabel ? `<span style="opacity: 0.6; font-weight: 400;">(${genLabel})</span>` : ''}</div>
             <div style="display: flex; justify-content: space-between; gap: 20px; margin: 4px 0;">
               <span style="opacity: 0.7;">순위</span>
               <span style="font-weight: 600;">#${rank}</span>
@@ -88,7 +96,7 @@ const chartOption = computed(() => {
         axisLine: { lineStyle: { color: c.grid } },
         axisLabel: { 
           color: c.text, 
-          fontSize: 11,
+          fontSize: 13,
           interval: 0, 
           rotate: data.length > 8 ? 45 : 0
         }
@@ -102,7 +110,7 @@ const chartOption = computed(() => {
             opacity: 0.5
           } 
         },
-        axisLabel: { color: c.text }
+        axisLabel: { color: c.text, fontSize: 12 }
       },
       series: [
         {
@@ -123,7 +131,7 @@ const chartOption = computed(() => {
           emphasis: {
             itemStyle: {
               shadowBlur: 10,
-              shadowColor: 'rgba(59, 130, 246, 0.4)'
+              shadowColor: withAlpha(c.barMain, 0.4)
             }
           },
           barMaxWidth: 40,
@@ -132,14 +140,14 @@ const chartOption = computed(() => {
             position: 'top',
             color: c.text,
             fontWeight: 600,
-            fontSize: 11
+            fontSize: 12
           },
           // 평균선
           markLine: avg > 0 ? {
             silent: true,
             symbol: 'none',
             lineStyle: {
-              color: c.isDark ? '#fbbf24' : '#f59e0b',
+              color: c.threshold,
               width: 2,
               type: 'dashed'
             },
@@ -147,8 +155,8 @@ const chartOption = computed(() => {
               show: true,
               position: 'insideEndTop',
               formatter: `평균 ${avg.toFixed(1)}`,
-              color: c.isDark ? '#fbbf24' : '#f59e0b',
-              fontSize: 10,
+              color: c.threshold,
+              fontSize: 11,
               fontWeight: 'bold'
             },
             data: [{ yAxis: avg }]
@@ -169,12 +177,12 @@ const chartOption = computed(() => {
     return {
       tooltip: {
         trigger: 'item',
-        backgroundColor: c.isDark ? '#1e293b' : '#ffffff',
-        borderColor: c.isDark ? '#475569' : '#e2e8f0',
+        backgroundColor: getChartUiPalette().surface,
+        borderColor: c.border,
         borderWidth: 1,
         padding: [12, 16],
-        textStyle: { color: c.textStrong },
-        formatter: (params: any) => {
+        textStyle: { color: c.textStrong, fontSize: 14 },
+        formatter: (params: ItemTooltipParam) => {
           const role = params.name
           const value = params.value
           const total = RoleKeys.reduce((sum, r) => sum + (counts[r] || 0), 0)
@@ -204,9 +212,10 @@ const chartOption = computed(() => {
         data: RoleKeys,
         axisTick: { show: false },
         axisLine: { lineStyle: { color: c.grid } },
-        axisLabel: { 
+        axisLabel: {
           color: c.text,
-          fontWeight: 500
+          fontWeight: 500,
+          fontSize: 12
         }
       },
       yAxis: {
@@ -218,7 +227,7 @@ const chartOption = computed(() => {
             opacity: 0.5
           } 
         },
-        axisLabel: { color: c.text },
+        axisLabel: { color: c.text, fontSize: 12 },
         minInterval: 1
       },
       series: [
@@ -232,8 +241,8 @@ const chartOption = computed(() => {
                 type: 'linear',
                 x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [
-                  { offset: 0, color: ROLE_COLORS[role].gradient[0] },
-                  { offset: 1, color: ROLE_COLORS[role].gradient[1] }
+                  { offset: 0, color: withAlpha(c.roleColors[role], c.isDark ? 0.75 : 0.62) },
+                  { offset: 1, color: c.roleColors[role] }
                 ]
               },
               borderRadius: [6, 6, 0, 0]
@@ -242,7 +251,7 @@ const chartOption = computed(() => {
           emphasis: {
             itemStyle: {
               shadowBlur: 10,
-              shadowColor: 'rgba(0, 0, 0, 0.3)'
+              shadowColor: withAlpha(c.roleColors.스케치, c.isDark ? 0.3 : 0.22)
             }
           },
           barMaxWidth: 50,
@@ -250,7 +259,8 @@ const chartOption = computed(() => {
             show: true,
             position: 'top',
             color: c.text,
-            fontWeight: 600
+            fontWeight: 600,
+            fontSize: 12
           }
         }
       ],
@@ -277,14 +287,14 @@ const selectedTotal = computed(() => {
 </script>
 
 <template>
-  <Card class="h-full overflow-hidden">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+  <div class="h-full px-1 py-1">
+    <div class="flex flex-row items-center justify-between gap-3 pb-1.5">
       <div class="space-y-1">
-        <CardTitle class="text-base font-semibold">직무 배정 통계</CardTitle>
-        <CardDescription>
+        <h4 class="text-2xl font-semibold text-foreground">직무 배정 통계</h4>
+        <p class="text-sm text-muted-foreground">
           <span v-if="selectedMember === 'all'">전체 팀원의 배정 횟수를 확인합니다</span>
           <span v-else>{{ selectedMember }} (총 {{ selectedTotal }}회)</span>
-        </CardDescription>
+        </p>
       </div>
       <div class="w-[140px]">
         <Select v-model="selectedMember">
@@ -303,8 +313,8 @@ const selectedTotal = computed(() => {
           </SelectContent>
         </Select>
       </div>
-    </CardHeader>
-    <CardContent class="pt-0">
+    </div>
+    <div class="pt-0">
       <!-- 역할별 범례 (개인 모드에서만 표시) -->
       <div 
         v-if="selectedMember !== 'all'" 
@@ -313,17 +323,17 @@ const selectedTotal = computed(() => {
         <span 
           v-for="role in RoleKeys" 
           :key="role"
-          class="flex items-center gap-1.5 text-xs font-medium"
+          class="flex items-center gap-1.5 text-sm font-medium"
         >
           <span 
             class="w-3 h-3 rounded-full" 
-            :style="{ backgroundColor: ROLE_COLORS[role].main }"
+            :style="{ backgroundColor: colors.roleColors[role] }"
           ></span>
           <span class="text-[var(--color-label-secondary)]">{{ role }}</span>
         </span>
       </div>
       
-      <div class="h-[320px] w-full">
+      <div class="h-[380px] w-full">
         <BaseChart 
           v-if="stats.workloadRanking.length > 0"
           :options="chartOption" 
@@ -336,6 +346,6 @@ const selectedTotal = computed(() => {
           배정 데이터가 없습니다.
         </div>
       </div>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 </template>
