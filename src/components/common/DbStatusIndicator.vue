@@ -62,17 +62,17 @@ onUnmounted(() => {
 
 const statusConfig = {
     checking: {
-        color: 'bg-yellow-400',
+        color: 'var(--color-warning)',
         pulse: true,
         label: '연결 확인 중...'
     },
     connected: {
-        color: 'bg-emerald-400',
+        color: 'var(--color-success)',
         pulse: false,
         label: 'DB 연결됨'
     },
     disconnected: {
-        color: 'bg-red-400',
+        color: 'var(--color-danger)',
         pulse: true,
         label: 'DB 연결 끊김'
     }
@@ -97,17 +97,13 @@ const statusConfig = {
             <!-- Pulse ring -->
             <span 
               v-if="statusConfig[status].pulse"
-              :class="[
-                'absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping',
-                statusConfig[status].color
-              ]"
+              class="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
+              :style="{ backgroundColor: statusConfig[status].color }"
             />
             <!-- Solid dot -->
             <span 
-              :class="[
-                'relative inline-flex rounded-full h-2.5 w-2.5',
-                statusConfig[status].color
-              ]"
+              class="relative inline-flex h-2.5 w-2.5 rounded-full"
+              :style="{ backgroundColor: statusConfig[status].color }"
             />
           </span>
           

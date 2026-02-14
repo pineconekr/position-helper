@@ -17,11 +17,11 @@ export const badgeVariants = cva(
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         success:
-          "border-transparent bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:bg-emerald-500/25 dark:text-emerald-400 dark:hover:bg-emerald-500/35",
+          "border-transparent text-[var(--color-success)] bg-[color:color-mix(in_srgb,var(--color-success)_16%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--color-success)_24%,transparent)]",
         warning:
-          "border-transparent bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 dark:bg-amber-500/25 dark:text-amber-400 dark:hover:bg-amber-500/35",
+          "border-transparent text-[var(--color-warning)] bg-[color:color-mix(in_srgb,var(--color-warning)_16%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--color-warning)_24%,transparent)]",
         accent:
-          "border-transparent bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 dark:bg-blue-500/25 dark:text-blue-400 dark:hover:bg-blue-500/35",
+          "border-transparent text-[var(--color-accent)] bg-[color:color-mix(in_srgb,var(--color-accent)_16%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--color-accent)_24%,transparent)]",
         neutral:
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
       },

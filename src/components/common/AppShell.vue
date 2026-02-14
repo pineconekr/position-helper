@@ -21,14 +21,14 @@ function isActive(href: string): boolean {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
+  <div class="min-h-screen bg-background text-foreground">
     <!-- Header -->
-    <header class="sticky top-0 z-50 w-full h-16 bg-background/95 backdrop-blur-lg border-b border-border/50 flex items-center">
-      <div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+    <header class="sticky top-0 z-50 h-16 w-full border-b border-border/80 bg-background/92 backdrop-blur-xl">
+      <div class="mx-auto flex w-full max-w-[1440px] items-center justify-between px-4 sm:px-6 lg:px-10">
         <!-- Logo area -->
         <RouterLink 
           to="/" 
-          class="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
+          class="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-2"
           aria-label="Position Helper 홈으로 이동"
         >
           <AppLogo />
@@ -36,7 +36,7 @@ function isActive(href: string): boolean {
 
         <!-- Desktop Nav - Transparent Tabs -->
         <nav 
-          class="hidden md:flex items-center gap-1"
+          class="hidden md:flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/70 px-1.5 py-1"
           role="navigation"
           aria-label="메인 네비게이션"
         >
@@ -46,19 +46,19 @@ function isActive(href: string): boolean {
             :to="link.href"
             :aria-current="isActive(link.href) ? 'page' : undefined"
             :class="clsx(
-              'relative flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+              'group relative flex min-h-[40px] items-center gap-2 rounded-md px-3 py-2 text-[0.95rem] font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1',
               isActive(link.href)
-                ? 'bg-primary/10 text-primary'  // 활성 상태: Primary tint 배경
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                ? 'bg-primary/12 text-foreground'
+                : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
             )"
           >
             <Icon 
               :name="link.icon" 
               :size="16" 
               :class="clsx(
-                'transition-colors duration-200',
-                isActive(link.href) ? 'text-primary' : 'opacity-70 group-hover:opacity-100'
+                'transition-colors',
+                isActive(link.href) ? 'text-primary' : 'opacity-75 group-hover:opacity-100'
               )" 
               aria-hidden="true"
             />
@@ -76,33 +76,33 @@ function isActive(href: string): boolean {
 
     <!-- Mobile Nav -->
     <nav 
-      class="md:hidden sticky top-16 z-40 bg-background/95 backdrop-blur-lg border-b border-border/50 overflow-x-auto scrollbar-hide"
+      class="sticky top-16 z-40 overflow-x-auto border-b border-border/80 bg-background/92 backdrop-blur-xl scrollbar-hide md:hidden"
       role="navigation"
       aria-label="모바일 네비게이션"
     >
-      <div class="flex px-4 py-2.5 gap-2">
+      <div class="flex gap-2 px-4 py-2.5">
         <RouterLink
           v-for="link in navLinks"
           :key="link.href"
           :to="link.href"
           :aria-current="isActive(link.href) ? 'page' : undefined"
           :class="clsx(
-            'flex items-center gap-2 whitespace-nowrap px-4 py-2.5 rounded-xl text-sm font-medium min-h-[44px] transition-all duration-200',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+            'flex min-h-[44px] items-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-[0.95rem] font-medium transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1',
             isActive(link.href)
-              ? 'bg-background dark:bg-card text-foreground shadow-sm ring-1 ring-border/50'
-              : 'text-muted-foreground hover:text-foreground bg-muted/60 dark:bg-muted/40'
+              ? 'bg-primary/14 text-foreground'
+              : 'bg-muted/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
           )"
         >
           <Icon 
             :name="link.icon" 
             :size="16" 
             :class="clsx(
-              'transition-colors duration-200',
-              isActive(link.href) ? 'text-primary' : ''
-            )" 
-            aria-hidden="true"
-          />
+                'transition-colors',
+                isActive(link.href) ? 'text-primary' : ''
+              )" 
+              aria-hidden="true"
+            />
           <span>{{ link.label }}</span>
         </RouterLink>
       </div>
@@ -110,7 +110,7 @@ function isActive(href: string): boolean {
 
     <!-- Main Content -->
     <main 
-      class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8"
+      class="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-6 lg:px-10 lg:py-8"
       role="main"
     >
       <slot />
