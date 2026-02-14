@@ -164,6 +164,8 @@ export const useAssignmentStore = defineStore('assignment', () => {
             })
             syncToDb()
         }
+
+        return count
     }
 
     function loadWeekToDraft(date: string) {
@@ -415,13 +417,9 @@ export const useAssignmentStore = defineStore('assignment', () => {
 
     async function syncToDb() {
         try {
-            for (const member of app.value.members) {
-                await api.updateMember(member)
-            }
-            const date = currentWeekDate.value
-            if (date && app.value.weeks[date]) {
-                await api.saveWeekAssignment(date, app.value.weeks[date])
-            }
+            // N+1 문제 해결을 위해 batchImport 사용 (전체 데이터 한 번에 전송)
+            const payload = exportData()
+            await api.batchImport(payload)
         } catch (error) {
             console.error('Failed to sync to DB:', error)
         }
