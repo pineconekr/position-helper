@@ -12,46 +12,77 @@ function getSystemMotion(): 'allow' | 'reduce' {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduce' : 'allow'
 }
 
-function getEffectiveThemeValue(theme: ThemePreference): 'light' | 'dark' {
-    return theme === 'system' ? getSystemTheme() : theme
-}
-
-function getEffectiveMotionValue(motion: MotionPreference): 'allow' | 'reduce' {
-    return motion === 'system' ? getSystemMotion() : motion
-}
-
 export const useThemeStore = defineStore('theme', () => {
     const theme = ref<ThemePreference>('system')
     const motionPreference = ref<MotionPreference>('allow')
+    const systemTheme = ref<'light' | 'dark'>(getSystemTheme())
+    const systemMotion = ref<'allow' | 'reduce'>(getSystemMotion())
+    let systemThemeMedia: MediaQueryList | null = null
+    let systemMotionMedia: MediaQueryList | null = null
 
-    const effectiveTheme = computed(() => getEffectiveThemeValue(theme.value))
-    const effectiveMotion = computed(() => getEffectiveMotionValue(motionPreference.value))
+    const effectiveTheme = computed(() => (theme.value === 'system' ? systemTheme.value : theme.value))
+    const effectiveMotion = computed(() =>
+        motionPreference.value === 'system' ? systemMotion.value : motionPreference.value
+    )
 
-    function setTheme(t: ThemePreference) {
-        theme.value = t
-        const effective = getEffectiveThemeValue(t)
-        if (effective === 'dark') {
+    function applyThemeClass(mode: 'light' | 'dark') {
+        if (mode === 'dark') {
             document.documentElement.classList.add('dark')
         } else {
             document.documentElement.classList.remove('dark')
         }
     }
 
+    function applyMotionAttribute(mode: 'allow' | 'reduce') {
+        document.documentElement.setAttribute('data-motion', mode)
+    }
+
+    function bindSystemPreferenceListeners() {
+        if (typeof window === 'undefined') return
+        if (!systemThemeMedia) {
+            systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)')
+            systemThemeMedia.addEventListener('change', (event) => {
+                systemTheme.value = event.matches ? 'dark' : 'light'
+                if (theme.value === 'system') {
+                    applyThemeClass(systemTheme.value)
+                }
+            })
+        }
+
+        if (!systemMotionMedia) {
+            systemMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)')
+            systemMotionMedia.addEventListener('change', (event) => {
+                systemMotion.value = event.matches ? 'reduce' : 'allow'
+                if (motionPreference.value === 'system') {
+                    applyMotionAttribute(systemMotion.value)
+                }
+            })
+        }
+    }
+
+    function setTheme(t: ThemePreference) {
+        theme.value = t
+        applyThemeClass(t === 'system' ? systemTheme.value : t)
+    }
+
     function setMotionPreference(value: MotionPreference) {
         motionPreference.value = value
-        const effective = getEffectiveMotionValue(value)
-        document.documentElement.setAttribute('data-motion', effective)
+        applyMotionAttribute(value === 'system' ? systemMotion.value : value)
     }
 
     // 초기화 시 data-motion 속성 설정
     function initMotion() {
-        const effective = getEffectiveMotionValue(motionPreference.value)
-        document.documentElement.setAttribute('data-motion', effective)
+        bindSystemPreferenceListeners()
+        applyMotionAttribute(effectiveMotion.value)
     }
+
+    bindSystemPreferenceListeners()
 
     return {
         theme,
         motionPreference,
+        systemTheme,
+        systemMotion,
         effectiveTheme,
         effectiveMotion,
         setTheme,

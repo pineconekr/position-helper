@@ -50,7 +50,7 @@ function getAnimationClass(animation: 'pulse' | 'shimmer' | 'none'): string {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.2),
+    color-mix(in srgb, var(--foreground) 16%, transparent),
     transparent
   );
   animation: shimmer 2s infinite;

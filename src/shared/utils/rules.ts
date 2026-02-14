@@ -19,6 +19,20 @@ function getLastWeeks(currentDate: string, app: AppData, count: number): Array<{
 
 
 const normalizeName = (value?: string) => (typeof value === 'string' ? value.trim() : '')
+type ScalarRole = Exclude<RoleKey, '사이드'>
+
+function getScalarRoleValue(part: PartAssignment, role: ScalarRole): string {
+	switch (role) {
+		case 'SW':
+			return part.SW
+		case '자막':
+			return part['자막']
+		case '고정':
+			return part['고정']
+		case '스케치':
+			return part['스케치']
+	}
+}
 
 function sameMember(a: string, b: string): boolean {
 	const na = normalizeName(a)
@@ -33,7 +47,7 @@ function wasAssignedInWeek(week: WeekData, role: RoleKey, name: string): boolean
 		return week.part1?.['사이드']?.some((n) => sameMember(n, target)) ||
 			week.part2?.['사이드']?.some((n) => sameMember(n, target)) || false
 	}
-	return sameMember((week.part1 as any)?.[role], target) || sameMember((week.part2 as any)?.[role], target)
+	return sameMember(getScalarRoleValue(week.part1, role), target) || sameMember(getScalarRoleValue(week.part2, role), target)
 }
 
 function isAssignedThisWeek(draft: { part1: PartAssignment; part2: PartAssignment }, role: RoleKey, name: string): boolean {
@@ -43,7 +57,7 @@ function isAssignedThisWeek(draft: { part1: PartAssignment; part2: PartAssignmen
 		return draft.part1['사이드'].some((n) => sameMember(n, target)) ||
 			draft.part2['사이드'].some((n) => sameMember(n, target))
 	}
-	return sameMember((draft.part1 as any)[role], target) || sameMember((draft.part2 as any)[role], target)
+	return sameMember(getScalarRoleValue(draft.part1, role), target) || sameMember(getScalarRoleValue(draft.part2, role), target)
 }
 
 export function computeWarnings(currentDate: string, draft: { part1: PartAssignment; part2: PartAssignment }, app: AppData): Warning[] {
@@ -53,9 +67,7 @@ export function computeWarnings(currentDate: string, draft: { part1: PartAssignm
 	// 1) 최근 N주 내 동일 직무 연속 배정 (경고 병합)
 	if (lastWeeks.length > 0) {
 		const scalarRoles = ['SW', '자막', '고정', '스케치'] as const
-		type ScalarRole = typeof scalarRoles[number]
-		const p1 = draft.part1 as Omit<PartAssignment, '사이드'>
-		const p2 = draft.part2 as Omit<PartAssignment, '사이드'>
+		type ContinuousScalarRole = typeof scalarRoles[number]
 
 		type ContinuousBucket = {
 			part: 'part1' | 'part2'
@@ -77,15 +89,17 @@ export function computeWarnings(currentDate: string, draft: { part1: PartAssignm
 		// 최근 N주 내 모든 주에 대해 체크
 		lastWeeks.forEach((last, index) => {
 			const weekOffset = index + 1 // 1 => 1주 전, 2 => 2주 전 ...
-			const lastP1 = last.data.part1 as Omit<PartAssignment, '사이드'>
-			const lastP2 = last.data.part2 as Omit<PartAssignment, '사이드'>
+			const lastP1 = last.data.part1
+			const lastP2 = last.data.part2
 
-				; (scalarRoles as readonly ScalarRole[]).forEach((role) => {
-					if (sameMember(p1[role], lastP1[role])) {
-						addContinuous('part1', role, p1[role], weekOffset)
+				; (scalarRoles as readonly ContinuousScalarRole[]).forEach((role) => {
+					const currentP1Value = getScalarRoleValue(draft.part1, role)
+					const currentP2Value = getScalarRoleValue(draft.part2, role)
+					if (sameMember(currentP1Value, getScalarRoleValue(lastP1, role))) {
+						addContinuous('part1', role, currentP1Value, weekOffset)
 					}
-					if (sameMember(p2[role], lastP2[role])) {
-						addContinuous('part2', role, p2[role], weekOffset)
+					if (sameMember(currentP2Value, getScalarRoleValue(lastP2, role))) {
+						addContinuous('part2', role, currentP2Value, weekOffset)
 					}
 				})
 
@@ -96,12 +110,12 @@ export function computeWarnings(currentDate: string, draft: { part1: PartAssignm
 			const currentP2Side = draft.part2['사이드'] ?? ['', '']
 
 			currentP1Side.forEach((m) => {
-				if (m && lastP1Side.includes(m)) {
+				if (m && lastP1Side.some((prev) => sameMember(prev, m))) {
 					addContinuous('part1', '사이드', m, weekOffset)
 				}
 			})
 			currentP2Side.forEach((m) => {
-				if (m && lastP2Side.includes(m)) {
+				if (m && lastP2Side.some((prev) => sameMember(prev, m))) {
 					addContinuous('part2', '사이드', m, weekOffset)
 				}
 			})
@@ -142,10 +156,10 @@ export function computeWarnings(currentDate: string, draft: { part1: PartAssignm
 		// SW 수행 가능한 멤버 식별 (전체 이력 기준)
 		const swQualifiedMembers = new Set<string>()
 		Object.values(app.weeks).forEach(weekData => {
-			const p1sw = weekData.part1.SW
-			if (p1sw) swQualifiedMembers.add(normalizeName(p1sw))
-			const p2sw = weekData.part2.SW
-			if (p2sw) swQualifiedMembers.add(normalizeName(p2sw))
+			const p1sw = normalizeName(weekData.part1.SW)
+			if (p1sw) swQualifiedMembers.add(p1sw)
+			const p2sw = normalizeName(weekData.part2.SW)
+			if (p2sw) swQualifiedMembers.add(p2sw)
 		})
 
 		const getWeeksSinceLastAssignment = (name: string, role: RoleKey): number => {
