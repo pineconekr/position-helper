@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import AssignmentStats from '../components/AssignmentStats.vue'
-import RoleHeatmap from '../components/RoleHeatmap.vue'
-import AbsenceChart from '../components/AbsenceChart.vue'
-import GenerationAnalysis from '../components/GenerationAnalysis.vue'
-import QualityControlChart from '../components/QualityControlChart.vue'
-import AbsenceDeviationChart from '../components/AbsenceDeviationChart.vue'
-import MonthlyAbsenceTrendChart from '../components/MonthlyAbsenceTrendChart.vue'
-import { onMounted } from 'vue'
+import { defineAsyncComponent, onMounted } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
+
+const AssignmentStats = defineAsyncComponent(() => import('../components/AssignmentStats.vue'))
+const RoleHeatmap = defineAsyncComponent(() => import('../components/RoleHeatmap.vue'))
+const AbsenceChart = defineAsyncComponent(() => import('../components/AbsenceChart.vue'))
+const GenerationAnalysis = defineAsyncComponent(() => import('../components/GenerationAnalysis.vue'))
+const QualityControlChart = defineAsyncComponent(() => import('../components/QualityControlChart.vue'))
+const AbsenceDeviationChart = defineAsyncComponent(() => import('../components/AbsenceDeviationChart.vue'))
+const MonthlyAbsenceTrendChart = defineAsyncComponent(() => import('../components/MonthlyAbsenceTrendChart.vue'))
 
 const store = useAssignmentStore()
 
@@ -18,31 +19,40 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6 p-6 animate-in fade-in duration-500">
-    <div class="flex flex-col gap-1.5">
-        <h2 class="text-2xl font-bold tracking-tight text-[var(--color-label-primary)]">통계 대시보드</h2>
-        <p class="text-sm text-[var(--color-label-secondary)]">데이터 기반으로 사역 현황을 분석하고 로테이션 균형을 확인하세요.</p>
-    </div>
+  <div class="space-y-5 p-4 sm:p-5 animate-in fade-in duration-500">
+    <header class="space-y-1.5">
+      <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">Stats Report</p>
+      <h2 class="text-2xl font-bold tracking-tight text-[var(--color-label-primary)]">통계 대시보드</h2>
+      <p class="text-sm text-[var(--color-label-secondary)]">핵심 지표와 운영 균형을 한 페이지에서 확인합니다.</p>
+    </header>
 
-    <!-- 1. Main Stats & Trends -->
-    <div class="grid gap-6 md:grid-cols-2">
-      <AssignmentStats />
-      <QualityControlChart />
-    </div>
+    <section class="space-y-2">
+      <div class="flex items-center justify-between border-b border-border/60 pb-1.5">
+        <h3 class="text-lg font-semibold text-foreground">핵심 지표</h3>
+      </div>
+      <div class="grid gap-3 xl:grid-cols-2">
+        <AssignmentStats />
+        <QualityControlChart />
+      </div>
+    </section>
 
-    <!-- 2. Deep Dive: Member Analysis (Dynamic Height) -->
-    <div class="grid gap-6 md:grid-cols-2">
+    <section class="space-y-2">
+      <div class="flex items-center justify-between border-b border-border/60 pb-1.5">
+        <h3 class="text-lg font-semibold text-foreground">운영 균형 분석</h3>
+      </div>
+      <div class="grid gap-3 xl:grid-cols-2">
         <RoleHeatmap />
         <AbsenceDeviationChart />
-    </div>
-
-    <!-- 3. Summary & Group Analysis -->
-    <div class="grid gap-6 md:grid-cols-2">
         <AbsenceChart />
         <GenerationAnalysis />
-    </div>
+      </div>
+    </section>
 
-    <!-- 4. Monthly Trend (Full Width) -->
-    <MonthlyAbsenceTrendChart />
+    <section class="space-y-2">
+      <div class="flex items-center justify-between border-b border-border/60 pb-1.5">
+        <h3 class="text-lg font-semibold text-foreground">월별 추세</h3>
+      </div>
+      <MonthlyAbsenceTrendChart />
+    </section>
   </div>
 </template>

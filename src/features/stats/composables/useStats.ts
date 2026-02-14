@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
-import { RoleKeys } from '@/shared/types'
+import { RoleKeys, type PartAssignment } from '@/shared/types'
 
 // --- Helper Functions for Statistics ---
 function getPercentile(arr: number[], p: number): number {
@@ -22,6 +22,16 @@ function calculateStdDev(arr: number[], mean: number): number {
     if (arr.length <= 1) return 0
     const variance = arr.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / arr.length
     return Math.sqrt(variance)
+}
+
+function createRoleCounter(): Record<string, number> {
+    return {
+        SW: 0,
+        자막: 0,
+        고정: 0,
+        사이드: 0,
+        스케치: 0
+    }
 }
 
 export const useStats = () => {
@@ -57,64 +67,82 @@ export const useStats = () => {
         })
 
         const getGeneration = (name: string): number | null => memberGenMap.get(name) ?? null
+        const ensureMemberCounters = (name: string) => {
+            if (totalCounts[name] === undefined) totalCounts[name] = 0
+            if (roleCounts[name] === undefined) roleCounts[name] = createRoleCounter()
+            if (absenceCounts[name] === undefined) absenceCounts[name] = 0
+        }
 
         const weeklyTrend: { date: string, absenceCount: number }[] = []
+        const weeklyFairness: { date: string; mean: number; cv: number; absenceCount: number }[] = []
+        const sortedWeeks = Object.entries(store.app.weeks).sort((a, b) => a[0].localeCompare(b[0]))
 
         // Process Weeks
-        Object.entries(store.app.weeks).forEach(([date, week]) => {
+        sortedWeeks.forEach(([date, week]) => {
+            const memberCountsInWeek: Record<string, number> = {}
+            const addWeekCount = (name: string) => {
+                const normalized = name.trim()
+                if (!normalized) return
+                memberCountsInWeek[normalized] = (memberCountsInWeek[normalized] || 0) + 1
+            }
+            const addAssignment = (name: string, role: typeof RoleKeys[number]) => {
+                const normalized = name.trim()
+                if (!normalized) return
+
+                ensureMemberCounters(normalized)
+                totalCounts[normalized]++
+                roleCounts[normalized][role]++
+                addWeekCount(normalized)
+
+                const gen = getGeneration(normalized)
+                if (gen && genStats[gen]) {
+                    genStats[gen].totalAssignments++
+                }
+            }
+
             // Absences
             const weekAbsences = week.absences || []
             weeklyTrend.push({ date, absenceCount: weekAbsences.length })
 
             weekAbsences.forEach(ab => {
-                if (ab.name && absenceCounts[ab.name] !== undefined) {
-                    absenceCounts[ab.name]++
+                const normalized = ab.name?.trim()
+                if (normalized) {
+                    ensureMemberCounters(normalized)
+                    absenceCounts[normalized]++
 
-                    const gen = getGeneration(ab.name)
+                    const gen = getGeneration(normalized)
                     if (gen && genStats[gen]) {
                         genStats[gen].totalAbsences++
                     }
                 }
             })
 
-                // Assignments
-                ; (['part1', 'part2'] as const).forEach(partKey => {
-                    const assignment = week[partKey]
-                    RoleKeys.forEach(role => {
-                        if (role === '사이드') {
-                            assignment.사이드.forEach(name => {
-                                if (name && name.trim() !== '') {
-                                    if (totalCounts[name] === undefined) { /* init */
-                                        totalCounts[name] = 0
-                                        roleCounts[name] = { 'SW': 0, '자막': 0, '고정': 0, '사이드': 0, '스케치': 0 }
-                                    }
-                                    totalCounts[name]++
-                                    roleCounts[name]['사이드']++
-
-                                    const gen = getGeneration(name)
-                                    if (gen && genStats[gen]) {
-                                        genStats[gen].totalAssignments++
-                                    }
-                                }
-                            })
-                        } else {
-                            const name = assignment[role] as string
-                            if (name && name.trim() !== '') {
-                                if (totalCounts[name] === undefined) { /* init */
-                                    totalCounts[name] = 0
-                                    roleCounts[name] = { 'SW': 0, '자막': 0, '고정': 0, '사이드': 0, '스케치': 0 }
-                                }
-                                totalCounts[name]++
-                                roleCounts[name][role]++
-
-                                const gen = getGeneration(name)
-                                if (gen && genStats[gen]) {
-                                    genStats[gen].totalAssignments++
-                                }
-                            }
-                        }
-                    })
+            ; (['part1', 'part2'] as const).forEach(partKey => {
+                const assignment: PartAssignment = week[partKey]
+                RoleKeys.forEach(role => {
+                    if (role === '사이드') {
+                        assignment.사이드.forEach(name => addAssignment(name, '사이드'))
+                    } else {
+                        addAssignment(assignment[role], role)
+                    }
                 })
+            })
+
+            const values = Object.values(memberCountsInWeek)
+            if (values.length === 0) {
+                weeklyFairness.push({ date, mean: 0, cv: 0, absenceCount: weekAbsences.length })
+                return
+            }
+
+            const mean = calculateMean(values)
+            const stdDev = calculateStdDev(values, mean)
+            const cv = mean > 0 ? stdDev / mean : 0
+            weeklyFairness.push({
+                date,
+                mean,
+                cv,
+                absenceCount: weekAbsences.length
+            })
         })
 
         // Transform for ECharts
@@ -162,68 +190,15 @@ export const useStats = () => {
         const q3 = getPercentile(absenceValues, 0.75)
         const iqr = q3 - q1
         const safeIqr = iqr === 0 ? 1 : iqr
+        const sortedAbsenceEntries = [...absenceEntries]
+            .sort((a, b) => (b.value - a.value) || a.name.localeCompare(b.name, 'ko'))
 
         const absenceDeviation = {
-            names: absenceEntries.sort((a, b) => (b.value - a.value) || a.name.localeCompare(b.name, 'ko')).map(e => e.name),
-            normalized: absenceEntries.map(e => (e.value - median) / safeIqr),
-            counts: absenceEntries.map(e => e.value),
+            names: sortedAbsenceEntries.map(e => e.name),
+            normalized: sortedAbsenceEntries.map(e => (e.value - median) / safeIqr),
+            counts: sortedAbsenceEntries.map(e => e.value),
             stats: { median, q1, q3, iqr: safeIqr, hasVariation: iqr !== 0 }
         }
-
-        // 6. Weekly Fairness (CV) & Absence Trend
-        const weeklyFairness = Object.entries(store.app.weeks)
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([date, week]) => {
-                const counts: number[] = []
-                const collect = (part: any) => {
-                    if (!part) return
-                    RoleKeys.forEach(role => {
-                        const val = part[role]
-                        if (Array.isArray(val)) val.forEach(v => v && counts.push(1))
-                        else if (val) counts.push(1)
-                    })
-                }
-                collect(week.part1)
-                collect(week.part2)
-
-                // Group by member for this week to calc distribution fairness? 
-                // Wait, CV is usually for "distribution of assignments among members" in that week?
-                // Or is it "variation of assignment counts across members"?
-                // The old code aggregated counts per member for that week.
-                const memberCountsInWeek: Record<string, number> = {}
-                const pushCount = (name: string) => {
-                    if (!name) return
-                    memberCountsInWeek[name] = (memberCountsInWeek[name] || 0) + 1
-                }
-                const scanPart = (part: any) => {
-                    if (!part) return
-                    RoleKeys.forEach(role => {
-                        const val = part[role]
-                        if (role === '사이드') {
-                            (val as string[]).forEach(pushCount)
-                        } else {
-                            pushCount(val as string)
-                        }
-                    })
-                }
-                scanPart(week.part1)
-                scanPart(week.part2)
-
-                const values = Object.values(memberCountsInWeek)
-                // If no assignments, avoid NaN
-                if (values.length === 0) return { date, mean: 0, cv: 0, absenceCount: (week.absences?.length || 0) }
-
-                const mean = calculateMean(values)
-                const stdDev = calculateStdDev(values, mean)
-                const cv = mean > 0 ? stdDev / mean : 0
-
-                return {
-                    date,
-                    mean,
-                    cv,
-                    absenceCount: (week.absences?.length || 0)
-                }
-            })
 
         // 이름-기수 매핑 (Object 형태로 반환)
         const memberGenerations: Record<string, number | null> = {}
@@ -236,10 +211,10 @@ export const useStats = () => {
             roleCounts,
             roleBreakdown: { categories: allMembers, series: seriesByRole },
             absenceRanking,
-            weeklyTrend: weeklyTrend.sort((a, b) => a.date.localeCompare(b.date)),
+            weeklyTrend,
             generationAnalysis,
-            absenceDeviation, // New
-            weeklyFairness, // New
+            absenceDeviation,
+            weeklyFairness,
             memberGenerations // 툴팁에서 기수 표시용
         }
     })

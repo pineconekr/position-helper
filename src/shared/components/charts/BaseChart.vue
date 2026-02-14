@@ -1,38 +1,26 @@
 <script setup lang="ts">
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart, PieChart, LineChart, HeatmapChart, ScatterChart } from 'echarts/charts'
+import { BarChart, LineChart } from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
   LegendComponent,
-  TitleComponent,
-  DataZoomComponent,
-  ToolboxComponent,
-  VisualMapComponent,
-  MarkAreaComponent,
   MarkLineComponent
 } from 'echarts/components'
 import VChart, { THEME_KEY } from 'vue-echarts'
 import { computed, provide } from 'vue'
 import { useThemeStore } from '@/stores/theme'
+import { getChartUiPalette, withAlpha } from '@/shared/utils/chartTheme'
 
 // Register ECharts components
 use([
   CanvasRenderer,
   BarChart,
-  PieChart,
   LineChart,
-  HeatmapChart,
-  ScatterChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,
-  TitleComponent,
-  DataZoomComponent,
-  ToolboxComponent,
-  VisualMapComponent,
-  MarkAreaComponent,
   MarkLineComponent
 ])
 
@@ -47,26 +35,29 @@ const isDark = computed(() => themeStore.effectiveTheme === 'dark')
 // Provide the theme for vue-echarts
 // 'dark' is a built-in theme in ECharts. For light we use default (undefined/null)
 const chartTheme = computed(() => isDark.value ? 'dark' : undefined)
+const chartThemeKey = computed(() => (isDark.value ? 'echart-dark' : 'echart-light'))
 
 provide(THEME_KEY, chartTheme)
 
 // Default styling options to match app design
-const defaultOptions = computed(() => ({
+const defaultOptions = computed(() => {
+  const ui = getChartUiPalette()
+  return {
   backgroundColor: 'transparent',
   textStyle: {
-    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    fontFamily: 'var(--font-sans, "Pretendard Variable", "Noto Sans KR", sans-serif)'
   },
   tooltip: {
-    backgroundColor: isDark.value ? '#1e293b' : '#ffffff',
-    borderColor: isDark.value ? '#334155' : '#e2e8f0',
+    backgroundColor: ui.surface,
+    borderColor: ui.border,
     textStyle: {
-      color: isDark.value ? '#f8fafc' : '#0f172a'
+      color: ui.textStrong
     },
     padding: [8, 12],
     borderRadius: 8,
     borderWidth: 1,
     shadowBlur: 10,
-    shadowColor: 'rgba(0, 0, 0, 0.1)'
+    shadowColor: withAlpha(ui.textStrong, 0.14)
   },
   grid: {
     top: 40,
@@ -75,7 +66,7 @@ const defaultOptions = computed(() => ({
     left: 20,
     containLabel: true
   }
-}))
+}})
 
 const mergedOptions = computed(() => {
   // Deep merge would be better but for now shallow merge of top-level keys
@@ -98,7 +89,7 @@ const mergedOptions = computed(() => {
 
 <template>
   <div :style="{ height: height || '350px', width: '100%' }">
-    <VChart class="chart" :option="mergedOptions" autoresize />
+    <VChart :key="chartThemeKey" class="chart" :option="mergedOptions" autoresize />
   </div>
 </template>
 

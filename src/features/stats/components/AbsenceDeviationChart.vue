@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import BaseChart from '@/shared/components/charts/BaseChart.vue'
+import BaseAdvancedChart from '@/shared/components/charts/BaseAdvancedChart.vue'
 import { useStats } from '../composables/useStats'
 import { useThemeStore } from '@/stores/theme'
 import { escapeHtml } from '@/shared/utils/text'
+import { getChartSeriesPalette, getChartUiPalette, withAlpha } from '@/shared/utils/chartTheme'
+type ScatterTooltipDatum = { name: string; count: number; normalized: number }
+type ScatterTooltipParam = { data: ScatterTooltipDatum }
 
 const { stats } = useStats()
 const themeStore = useThemeStore()
@@ -12,22 +14,26 @@ const themeStore = useThemeStore()
 // 색상 테마 정의
 const colors = computed(() => {
   const isDark = themeStore.effectiveTheme === 'dark'
+  const ui = getChartUiPalette()
+  const series = getChartSeriesPalette()
   return {
     isDark,
-    text: isDark ? '#94a3b8' : '#64748b',
-    textStrong: isDark ? '#e2e8f0' : '#334155',
+    text: ui.text,
+    textStrong: ui.textStrong,
+    border: ui.border,
     // 영역 클라우드 색상 (반투명)
-    zoneExcessive: isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.06)',
-    zoneDiligent: isDark ? 'rgba(34, 197, 94, 0.08)' : 'rgba(34, 197, 94, 0.06)',
-    zoneNeutral: isDark ? 'rgba(100, 116, 139, 0.04)' : 'rgba(100, 116, 139, 0.03)',
+    zoneExcessive: withAlpha(series.danger, isDark ? 0.08 : 0.06),
+    zoneDiligent: withAlpha(series.success, isDark ? 0.08 : 0.06),
+    zoneNeutral: withAlpha(ui.text, isDark ? 0.06 : 0.04),
     // 포인트 색상
-    pointExcessive: '#ef4444',
-    pointDiligent: '#22c55e', 
-    pointNeutral: isDark ? '#64748b' : '#94a3b8',
+    pointExcessive: series.danger,
+    pointDiligent: series.success, 
+    pointNeutral: ui.text,
     // 중앙선
-    medianLine: isDark ? '#fbbf24' : '#f59e0b',
+    medianLine: series.warning,
     // 그리드
-    grid: isDark ? '#334155' : '#e2e8f0'
+    grid: ui.grid,
+    caution: series.warning,
   }
 })
 
@@ -51,10 +57,10 @@ const chartOption = computed(() => {
     let borderColor = c.pointNeutral
     if (norm > 0.5) {
       color = c.pointExcessive
-      borderColor = '#dc2626'
+      borderColor = c.pointExcessive
     } else if (norm < -0.5) {
       color = c.pointDiligent
-      borderColor = '#16a34a'
+      borderColor = c.pointDiligent
     }
     
     return {
@@ -75,25 +81,25 @@ const chartOption = computed(() => {
   return {
     tooltip: {
       trigger: 'item',
-      backgroundColor: c.isDark ? '#1e293b' : '#ffffff',
-      borderColor: c.isDark ? '#475569' : '#e2e8f0',
+      backgroundColor: getChartUiPalette().surface,
+      borderColor: c.border,
       borderWidth: 1,
       padding: [12, 16],
       textStyle: {
         color: c.textStrong,
-        fontSize: 13
+        fontSize: 14
       },
-      formatter: (params: any) => {
+      formatter: (params: ScatterTooltipParam) => {
         const { name, count, normalized } = params.data
         const gen = stats.value.memberGenerations[name]
         const genLabel = gen ? ` <span style="opacity: 0.6; font-weight: 400;">(${gen}기)</span>` : ''
         const safeName = escapeHtml(name)
         // HTML 기반 상태 표시 (이모지 대신)
         const statusConfig = normalized > 0.5 
-          ? { color: '#f59e0b', label: '과다' }
+          ? { color: c.caution, label: '과다' }
           : (normalized < -0.5 
-            ? { color: '#22c55e', label: '성실' }
-            : { color: '#94a3b8', label: '보통' })
+            ? { color: c.pointDiligent, label: '성실' }
+            : { color: c.pointNeutral, label: '보통' })
         const statusHtml = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statusConfig.color};margin-right:6px;"></span>${statusConfig.label}`
         return `
           <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">${safeName}${genLabel}</div>
@@ -105,7 +111,7 @@ const chartOption = computed(() => {
             <span style="opacity: 0.7;">편차 (IQR)</span>
             <span style="font-weight: 600;">${normalized.toFixed(2)}</span>
           </div>
-          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${c.isDark ? '#475569' : '#e2e8f0'}; font-size: 12px;">
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${c.border}; font-size: 12px;">
             ${statusHtml}
           </div>
         `
@@ -125,7 +131,7 @@ const chartOption = computed(() => {
       max: extent,
       axisLabel: { 
         color: c.text,
-        fontSize: 11,
+        fontSize: 13,
         formatter: (val: number) => val.toFixed(1)
       },
       axisLine: { show: false },
@@ -144,7 +150,7 @@ const chartOption = computed(() => {
       data: devStats.names,
       axisLabel: { 
         color: c.text, 
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 500,
         width: 100, 
         overflow: 'truncate'
@@ -207,10 +213,10 @@ const chartOption = computed(() => {
             position: 'start',
             formatter: '중앙값',
             color: c.medianLine,
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 'bold',
             padding: [4, 8],
-            backgroundColor: c.isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(245, 158, 11, 0.12)',
+            backgroundColor: withAlpha(c.medianLine, c.isDark ? 0.15 : 0.12),
             borderRadius: 4
           },
           data: [{ xAxis: 0 }]
@@ -245,7 +251,7 @@ const chartOption = computed(() => {
 const containerHeight = computed(() => {
   const count = stats.value.absenceDeviation.names.length
   // 더 여유로운 간격
-  return Math.max(380, count * 42 + 100) + 'px'
+  return Math.max(430, count * 44 + 110) + 'px'
 })
 
 const medianLabel = computed(() => {
@@ -254,34 +260,34 @@ const medianLabel = computed(() => {
 </script>
 
 <template>
-  <Card class="h-full overflow-hidden">
-    <CardHeader class="pb-2">
+  <div class="h-full overflow-hidden px-1 py-1">
+    <div class="pb-1.5">
       <div class="flex justify-between items-start gap-4">
         <div class="flex-1">
-          <CardTitle class="text-base font-semibold">개인 불참 편차</CardTitle>
-          <CardDescription class="mt-1">
+          <h4 class="text-2xl font-semibold text-foreground">개인 불참 편차</h4>
+          <p class="mt-1 text-sm text-muted-foreground">
             중앙값({{ medianLabel }}회) 대비 편차를 IQR로 분석
-          </CardDescription>
+          </p>
         </div>
         <!-- 범례 -->
-        <div class="flex items-center gap-3 text-xs font-medium">
+        <div class="flex items-center gap-3 text-sm font-medium">
           <span class="flex items-center gap-1.5">
-            <span class="w-3 h-3 rounded-full bg-red-500 shadow-sm shadow-red-500/30"></span>
+            <span class="w-3 h-3 rounded-full shadow-sm" :style="{ backgroundColor: colors.pointExcessive, boxShadow: `0 0 0 1px ${colors.pointExcessive}44` }"></span>
             <span class="text-[var(--color-label-secondary)]">과다</span>
           </span>
           <span class="flex items-center gap-1.5">
-            <span class="w-3 h-3 rounded-full bg-green-500 shadow-sm shadow-green-500/30"></span>
+            <span class="w-3 h-3 rounded-full shadow-sm" :style="{ backgroundColor: colors.pointDiligent, boxShadow: `0 0 0 1px ${colors.pointDiligent}44` }"></span>
             <span class="text-[var(--color-label-secondary)]">성실</span>
           </span>
         </div>
       </div>
-    </CardHeader>
-    <CardContent class="pt-0">
+    </div>
+    <div class="pt-0">
       <div 
         v-if="stats.absenceDeviation.names.length > 0"
         :style="{ height: containerHeight, width: '100%' }"
       >
-        <BaseChart :options="chartOption" height="100%" />
+        <BaseAdvancedChart :options="chartOption" height="100%" />
       </div>
       <div 
         v-else 
@@ -292,12 +298,12 @@ const medianLabel = computed(() => {
       <!-- 하단 축 라벨 -->
       <div 
         v-if="stats.absenceDeviation.names.length > 0"
-        class="flex justify-between items-center px-4 mt-2 text-xs font-medium"
+        class="flex justify-between items-center px-4 mt-2 text-sm font-medium"
       >
-        <span class="text-green-600 dark:text-green-400">← 성실</span>
+        <span :style="{ color: colors.pointDiligent }">← 성실</span>
         <span class="text-[var(--color-label-tertiary)]">IQR 편차</span>
-        <span class="text-red-600 dark:text-red-400">과다 →</span>
+        <span :style="{ color: colors.pointExcessive }">과다 →</span>
       </div>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 </template>

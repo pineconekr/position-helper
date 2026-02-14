@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import BaseChart from '@/shared/components/charts/BaseChart.vue'
 import { useAssignmentStore } from '@/stores/assignment'
 import { useThemeStore } from '@/stores/theme'
-import { RoleKeys } from '@/shared/types'
+import { RoleKeys, type PartAssignment } from '@/shared/types'
+import { getChartSeriesPalette, getChartUiPalette, withAlpha } from '@/shared/utils/chartTheme'
+type AxisTooltipParam = { name: string; value: number; seriesName: string; marker: string }
 
 const store = useAssignmentStore()
 const themeStore = useThemeStore()
@@ -12,19 +13,22 @@ const themeStore = useThemeStore()
 // 색상 테마
 const colors = computed(() => {
   const isDark = themeStore.effectiveTheme === 'dark'
+  const ui = getChartUiPalette()
+  const series = getChartSeriesPalette()
   return {
     isDark,
-    text: isDark ? '#94a3b8' : '#64748b',
-    textStrong: isDark ? '#e2e8f0' : '#334155',
-    grid: isDark ? '#334155' : '#e2e8f0',
-    gridLight: isDark ? '#1e293b' : '#f8fafc',
+    text: ui.text,
+    textStrong: ui.textStrong,
+    grid: ui.grid,
+    gridLight: ui.surface,
+    border: ui.border,
     // 시리즈 색상
-    monthly: '#ef4444',
-    monthlyLight: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.06)',
-    ma3: '#3b82f6',
-    ma3Light: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)',
+    monthly: series.danger,
+    monthlyLight: withAlpha(series.danger, isDark ? 0.12 : 0.06),
+    ma3: series.primary,
+    ma3Light: withAlpha(series.primary, isDark ? 0.15 : 0.08),
     // 임계선
-    threshold: isDark ? '#fbbf24' : '#f59e0b'
+    threshold: series.warning
   }
 })
 
@@ -34,7 +38,7 @@ const monthlyTrend = computed(() => {
     let minIndex = Number.POSITIVE_INFINITY
     let maxIndex = Number.NEGATIVE_INFINITY
     
-    const countSlots = (part: any): number => {
+    const countSlots = (part: PartAssignment): number => {
         if (!part) return 0
         let total = 0
         RoleKeys.forEach(role => {
@@ -111,12 +115,12 @@ const chartOption = computed(() => {
         tooltip: {
             trigger: 'axis',
             axisPointer: { type: 'cross' },
-            backgroundColor: c.isDark ? '#1e293b' : '#ffffff',
-            borderColor: c.isDark ? '#475569' : '#e2e8f0',
+            backgroundColor: getChartUiPalette().surface,
+            borderColor: c.border,
             borderWidth: 1,
             padding: [12, 16],
-            textStyle: { color: c.textStrong },
-            formatter: (params: any[]) => {
+            textStyle: { color: c.textStrong, fontSize: 14 },
+            formatter: (params: AxisTooltipParam[]) => {
                 if (!params || params.length === 0) return ''
                 const date = params[0].name
                 let html = `<div style="font-weight: 600; margin-bottom: 8px;">${date}</div>`
@@ -143,7 +147,7 @@ const chartOption = computed(() => {
         legend: {
             data: ['월별 불참률', '3개월 이동평균'],
             top: 0,
-            textStyle: { color: c.text, fontWeight: 500 },
+            textStyle: { color: c.text, fontWeight: 500, fontSize: 13 },
             icon: 'circle',
             itemWidth: 10,
             itemHeight: 10,
@@ -154,7 +158,7 @@ const chartOption = computed(() => {
             data: data.labels,
             axisLabel: { 
                 color: c.text,
-                fontSize: 11,
+                fontSize: 13,
                 rotate: data.labels.length > 12 ? 45 : 0
             },
             axisLine: { lineStyle: { color: c.grid } },
@@ -165,10 +169,11 @@ const chartOption = computed(() => {
             name: '불참률',
             nameLocation: 'middle',
             nameGap: 45,
-            nameTextStyle: { color: c.text, fontWeight: 'bold' },
+            nameTextStyle: { color: c.text, fontWeight: 'bold', fontSize: 13 },
             min: 0,
             axisLabel: { 
                 color: c.text,
+                fontSize: 13,
                 formatter: (val: number) => `${(val * 100).toFixed(0)}%`
             },
             splitLine: { 
@@ -232,7 +237,7 @@ const chartOption = computed(() => {
                         position: 'insideEndTop',
                         formatter: `평균 ${(avgRate * 100).toFixed(1)}%`,
                         color: c.threshold,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: 'bold'
                     },
                     data: [{ yAxis: avgRate }]
@@ -247,19 +252,19 @@ const chartOption = computed(() => {
 </script>
 
 <template>
-  <Card class="overflow-hidden">
-    <CardHeader class="pb-2">
+  <div class="overflow-hidden px-1 py-1">
+    <div class="pb-1.5">
       <div class="flex justify-between items-start">
         <div>
-          <CardTitle class="text-base font-semibold">월별 불참률 추세</CardTitle>
-          <CardDescription class="mt-1">
+          <h4 class="text-2xl font-semibold text-foreground">월별 불참률 추세</h4>
+          <p class="mt-1 text-sm text-muted-foreground">
             월별 불참률과 3개월 이동평균으로 장기 추세를 분석합니다
-          </CardDescription>
+          </p>
         </div>
       </div>
-    </CardHeader>
-    <CardContent class="pt-0">
-      <div class="h-[320px] w-full">
+    </div>
+    <div class="pt-0">
+      <div class="h-[380px] w-full">
         <BaseChart 
           v-if="monthlyTrend.labels.length > 0" 
           :options="chartOption" 
@@ -272,6 +277,6 @@ const chartOption = computed(() => {
           월별 데이터가 충분하지 않습니다.
         </div>
       </div>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 </template>

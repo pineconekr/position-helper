@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import BaseChart from '@/shared/components/charts/BaseChart.vue'
 import { useStats } from '../composables/useStats'
 import { useThemeStore } from '@/stores/theme'
+import { getChartSeriesPalette, getChartUiPalette, withAlpha } from '@/shared/utils/chartTheme'
+type AxisTooltipParam = { axisValue: string; seriesName: string; value: number; marker: string }
 
 const { stats } = useStats()
 const themeStore = useThemeStore()
@@ -11,19 +12,22 @@ const themeStore = useThemeStore()
 // 색상 테마
 const colors = computed(() => {
   const isDark = themeStore.effectiveTheme === 'dark'
+  const ui = getChartUiPalette()
+  const series = getChartSeriesPalette()
   return {
     isDark,
-    text: isDark ? '#94a3b8' : '#64748b',
-    textStrong: isDark ? '#e2e8f0' : '#334155',
-    grid: isDark ? '#334155' : '#e2e8f0',
+    text: ui.text,
+    textStrong: ui.textStrong,
+    grid: ui.grid,
+    border: ui.border,
     // 시리즈 색상
-    absence: '#ef4444',
-    absenceLight: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.08)',
-    absenceMA: '#f87171',
-    cv: '#f59e0b',
-    cvLight: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.08)',
+    absence: series.danger,
+    absenceLight: withAlpha(series.danger, isDark ? 0.15 : 0.08),
+    absenceMA: withAlpha(series.danger, isDark ? 0.7 : 0.8),
+    cv: series.warning,
+    cvLight: withAlpha(series.warning, isDark ? 0.12 : 0.08),
     // 임계선
-    cvThreshold: isDark ? '#22c55e' : '#16a34a'
+    cvThreshold: series.success
   }
 })
 
@@ -47,12 +51,12 @@ const chartOption = computed(() => {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'cross' },
-      backgroundColor: c.isDark ? '#1e293b' : '#ffffff',
-      borderColor: c.isDark ? '#475569' : '#e2e8f0',
+      backgroundColor: getChartUiPalette().surface,
+      borderColor: c.border,
       borderWidth: 1,
       padding: [12, 16],
-      textStyle: { color: c.textStrong },
-      formatter: (params: any[]) => {
+      textStyle: { color: c.textStrong, fontSize: 14 },
+      formatter: (params: AxisTooltipParam[]) => {
         if (!params || params.length === 0) return ''
         const date = params[0].axisValue
         let html = `<div style="font-weight: 600; margin-bottom: 8px;">${date}</div>`
@@ -81,7 +85,7 @@ const chartOption = computed(() => {
     legend: {
       data: ['불참자 수', '불참 4주 이동평균', '배정 변동계수(CV)'],
       top: 0,
-      textStyle: { color: c.text, fontWeight: 500 },
+      textStyle: { color: c.text, fontWeight: 500, fontSize: 12 },
       icon: 'circle',
       itemWidth: 10,
       itemHeight: 10,
@@ -92,7 +96,7 @@ const chartOption = computed(() => {
       data: weeklyData.map(d => d.date),
       axisLabel: { 
         color: c.text,
-        fontSize: 11,
+        fontSize: 12,
         rotate: weeklyData.length > 8 ? 45 : 0
       },
       axisLine: { lineStyle: { color: c.grid } },
@@ -105,7 +109,7 @@ const chartOption = computed(() => {
         position: 'left',
         nameTextStyle: { color: c.absence, fontWeight: 'bold', padding: [0, 30, 0, 0] },
         alignTicks: true,
-        axisLabel: { color: c.text },
+        axisLabel: { color: c.text, fontSize: 12 },
         splitLine: { 
           lineStyle: { 
             color: c.grid,
@@ -123,6 +127,7 @@ const chartOption = computed(() => {
         alignTicks: true,
         axisLabel: { 
           color: c.cv, 
+          fontSize: 12,
           formatter: (val: number) => val.toFixed(1)
         },
         axisLine: { show: true, lineStyle: { color: c.cv } },
@@ -139,8 +144,8 @@ const chartOption = computed(() => {
             type: 'linear',
             x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: '#f87171' },
-              { offset: 1, color: '#ef4444' }
+              { offset: 0, color: withAlpha(c.absence, c.isDark ? 0.75 : 0.6) },
+              { offset: 1, color: c.absence }
             ]
           },
           borderRadius: [4, 4, 0, 0]
@@ -148,7 +153,7 @@ const chartOption = computed(() => {
         emphasis: {
           itemStyle: {
             shadowBlur: 8,
-            shadowColor: 'rgba(239, 68, 68, 0.4)'
+            shadowColor: withAlpha(c.absence, 0.4)
           }
         },
         barWidth: '40%',
@@ -201,7 +206,7 @@ const chartOption = computed(() => {
             position: 'insideEndTop',
             formatter: '균형 (0.5)',
             color: c.cvThreshold,
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 'bold'
           },
           data: [{ yAxis: cvThreshold }]
@@ -216,22 +221,22 @@ const chartOption = computed(() => {
 </script>
 
 <template>
-  <Card class="h-full overflow-hidden">
-    <CardHeader class="pb-2">
+  <div class="h-full px-1 py-1">
+    <div class="pb-1.5">
       <div class="flex justify-between items-start">
         <div>
-          <CardTitle class="text-base font-semibold">주간 불참 & 공정성 분석</CardTitle>
-          <CardDescription class="mt-1">
+          <h4 class="text-2xl font-semibold text-foreground">주간 불참 & 공정성 분석</h4>
+          <p class="mt-1 text-sm text-muted-foreground">
             주차별 불참 추세와 배정 변동계수(CV) 변화를 비교합니다
-          </CardDescription>
+          </p>
         </div>
-        <div class="text-xs text-[var(--color-label-tertiary)]">
+        <div class="text-sm text-[var(--color-label-tertiary)]">
           CV &lt; 0.5 = 균형
         </div>
       </div>
-    </CardHeader>
-    <CardContent class="pt-0">
-      <div class="h-[350px] w-full">
+    </div>
+    <div class="pt-0">
+      <div class="h-[390px] w-full">
         <BaseChart 
           v-if="stats.weeklyFairness.length > 0"
           :options="chartOption" 
@@ -244,6 +249,6 @@ const chartOption = computed(() => {
           분석할 주간 데이터가 없습니다.
         </div>
       </div>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 </template>

@@ -4,11 +4,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import Icon from '@/components/ui/Icon.vue'
 import { useStats } from '../composables/useStats'
 import { useAssignmentStore } from '@/stores/assignment'
+import type { PartAssignment } from '@/shared/types'
+import { getChartSeriesPalette, withAlpha } from '@/shared/utils/chartTheme'
 
 const { stats } = useStats()
 const store = useAssignmentStore()
 
 const kpiData = computed(() => {
+    const series = getChartSeriesPalette()
     const totalMembers = store.app.members.filter(m => m.active).length
     
     // 평균 배정 횟수
@@ -21,7 +24,7 @@ const kpiData = computed(() => {
     let thisWeekCount = 0
     if (latestWeekKey) {
         const w = store.app.weeks[latestWeekKey]
-        const countPart = (p: any) => {
+        const countPart = (p: PartAssignment) => {
             if (!p) return 0
             let c = 0
             if (p.SW) c++
@@ -44,8 +47,8 @@ const kpiData = computed(() => {
             value: totalMembers,
             unit: '명',
             icon: 'UserGroupIcon',
-            color: 'text-blue-500',
-            bg: 'bg-blue-500/10',
+            iconColor: series.primary,
+            iconBg: withAlpha(series.primary, 0.14),
             desc: '현재 활성 상태인 인원'
         },
         {
@@ -53,8 +56,8 @@ const kpiData = computed(() => {
             value: avgWorkload,
             unit: '회',
             icon: 'ChartBarIcon',
-            color: 'text-emerald-500',
-            bg: 'bg-emerald-500/10',
+            iconColor: series.success,
+            iconBg: withAlpha(series.success, 0.14),
             desc: '1인당 누적 배정 횟수'
         },
         {
@@ -62,8 +65,8 @@ const kpiData = computed(() => {
             value: thisWeekCount,
             unit: '명',
             icon: 'CalendarDaysIcon',
-            color: 'text-violet-500',
-            bg: 'bg-violet-500/10',
+            iconColor: series.secondary,
+            iconBg: withAlpha(series.secondary, 0.14),
             desc: `${latestWeekKey || '-'} 기준`
         },
         {
@@ -71,8 +74,8 @@ const kpiData = computed(() => {
             value: avgAbsence,
             unit: '회',
             icon: 'ExclamationCircleIcon',
-            color: 'text-amber-500',
-            bg: 'bg-amber-500/10',
+            iconColor: series.warning,
+            iconBg: withAlpha(series.warning, 0.14),
             desc: '1인당 누적 불참 횟수'
         }
     ]
@@ -91,7 +94,7 @@ const kpiData = computed(() => {
                 </div>
                 <p class="text-[10px] text-muted-foreground opacity-70">{{ item.desc }}</p>
             </div>
-            <div :class="`p-2.5 rounded-xl ${item.bg} ${item.color}`">
+            <div class="rounded-xl p-2.5" :style="{ backgroundColor: item.iconBg, color: item.iconColor }">
                 <Icon :name="item.icon" :size="20" />
             </div>
         </CardContent>

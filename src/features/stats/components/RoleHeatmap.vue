@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import BaseChart from '@/shared/components/charts/BaseChart.vue'
+import BaseAdvancedChart from '@/shared/components/charts/BaseAdvancedChart.vue'
 import { useAssignmentStore } from '@/stores/assignment'
 import { useThemeStore } from '@/stores/theme'
 import { useStats } from '../composables/useStats'
-import { RoleKeys, type RoleKey } from '@/shared/types'
+import { RoleKeys, type Absence, type PartAssignment, type RoleKey } from '@/shared/types'
 import { escapeHtml } from '@/shared/utils/text'
+import { getChartSeriesPalette, getChartUiPalette, withAlpha } from '@/shared/utils/chartTheme'
 
 const store = useAssignmentStore()
 const themeStore = useThemeStore()
@@ -51,7 +51,7 @@ const memberRoleHeatmap = computed(() => {
                 set.add(role)
             }
             
-            const addPart = (part: any) => {
+            const addPart = (part: PartAssignment) => {
                 if (!part) return
                 RoleKeys.forEach(role => addAssignment(part[role], role))
             }
@@ -60,7 +60,7 @@ const memberRoleHeatmap = computed(() => {
             addPart(week.part2)
             
             // 결석자도 추적
-            week.absences?.forEach((absence: any) => {
+            week.absences?.forEach((absence: Absence) => {
                 if (absence?.name && typeof absence.name === 'string' && absence.name.trim()) {
                     ensureStats(absence.name.trim())
                 }
@@ -107,7 +107,9 @@ const memberRoleHeatmap = computed(() => {
 
 const chartOption = computed(() => {
     const isDark = themeStore.effectiveTheme === 'dark'
-    const textColor = isDark ? '#94a3b8' : '#64748b'
+    const ui = getChartUiPalette()
+    const series = getChartSeriesPalette()
+    const textColor = ui.text
     
     const heatmapData = memberRoleHeatmap.value
     if (!heatmapData.hasData) return {}
@@ -127,6 +129,7 @@ const chartOption = computed(() => {
         tooltip: {
             position: 'top',
             confine: true,
+            textStyle: { color: textColor, fontSize: 13 },
             formatter: (params: { value: [number, number, number | null, number, number] }) => {
                 const [xIdx, yIdx, ratio, roleCount, attendance] = params.value
                 const role = heatmapData.roles[xIdx]
@@ -151,8 +154,8 @@ const chartOption = computed(() => {
             type: 'category',
             data: heatmapData.roles,
             splitArea: { show: true },
-            axisLabel: { color: textColor, interval: 0 },
-            axisLine: { lineStyle: { color: isDark ? '#334155' : '#e2e8f0' } }
+            axisLabel: { color: textColor, interval: 0, fontSize: 13, fontWeight: 600 },
+            axisLine: { lineStyle: { color: ui.border } }
         },
         yAxis: {
             type: 'category',
@@ -160,11 +163,11 @@ const chartOption = computed(() => {
             splitArea: { show: true },
             axisLabel: { 
                 color: textColor,
-                fontSize: 11,
+                fontSize: 13,
                 overflow: 'truncate',
                 interval: 0
             },
-            axisLine: { lineStyle: { color: isDark ? '#334155' : '#e2e8f0' } }
+            axisLine: { lineStyle: { color: ui.border } }
         },
         visualMap: {
             min: 0,
@@ -180,10 +183,22 @@ const chartOption = computed(() => {
             // YlGnBu - 현업 표준 Sequential 팔레트 (노랑 → 초록 → 파랑)
             inRange: {
                 color: isDark 
-                    ? ['#1a1c2c', '#2d4a3e', '#1e6091', '#168aad', '#76c893']
-                    : ['#ffffd9', '#c7e9b4', '#7fcdbb', '#41b6c4', '#225ea8']
+                    ? [
+                        withAlpha(ui.surface, 0.45),
+                        withAlpha(series.success, 0.4),
+                        withAlpha(series.primary, 0.42),
+                        withAlpha(series.info, 0.62),
+                        withAlpha(series.accent, 0.9),
+                      ]
+                    : [
+                        withAlpha(series.warning, 0.08),
+                        withAlpha(series.success, 0.2),
+                        withAlpha(series.info, 0.32),
+                        withAlpha(series.primary, 0.45),
+                        withAlpha(series.accent, 0.65),
+                      ]
             },
-            textStyle: { color: textColor, fontSize: 10 }
+            textStyle: { color: textColor, fontSize: 12 }
         },
         series: [{
             name: 'Role Distribution',
@@ -195,17 +210,17 @@ const chartOption = computed(() => {
                     const ratio = params.value[2]
                     return ratio !== null ? `${(ratio * 100).toFixed(0)}%` : '-'
                 },
-                color: isDark ? '#fff' : '#1e293b',
-                fontSize: 10
+                color: ui.textStrong,
+                fontSize: 12
             },
             itemStyle: {
-                borderColor: isDark ? '#0f172a' : '#fff',
+                borderColor: ui.grid,
                 borderWidth: 1
             },
             emphasis: {
                 itemStyle: {
                     shadowBlur: 10,
-                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    shadowColor: withAlpha(ui.textStrong, 0.3)
                 }
             }
         }]
@@ -214,31 +229,31 @@ const chartOption = computed(() => {
 
 const containerHeight = computed(() => {
     const count = memberRoleHeatmap.value.members.length
-    return Math.max(400, count * 40 + 120) + 'px'
+    return Math.max(460, count * 42 + 130) + 'px'
 })
 </script>
 
 <template>
-  <Card class="h-full">
-    <CardHeader>
-      <CardTitle class="text-base font-medium">팀원/역할 배정 비율 히트맵</CardTitle>
-      <CardDescription>
+  <div class="h-full px-1 py-1">
+    <div class="pb-1.5">
+      <h4 class="text-2xl font-semibold text-foreground">팀원/역할 배정 비율 히트맵</h4>
+      <p class="mt-1 text-sm text-muted-foreground">
         출석 횟수 대비 특정 역할을 얼마나 자주 맡았는지(비율) 시각화합니다.
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
+      </p>
+    </div>
+    <div>
       <div 
         v-if="memberRoleHeatmap.hasData"
         :style="{ height: containerHeight, width: '100%' }"
       >
-        <BaseChart :options="chartOption" height="100%" />
+        <BaseAdvancedChart :options="chartOption" height="100%" />
       </div>
       <div 
         v-else 
         class="h-[300px] flex items-center justify-center text-[var(--color-label-tertiary)] text-sm"
-      >
+        >
         데이터가 없습니다.
       </div>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 </template>
