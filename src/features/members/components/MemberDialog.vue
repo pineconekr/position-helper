@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import type { MembersEntry } from '@/shared/types'
 
 const props = defineProps<{
   open: boolean
-  member?: MembersEntry | null // null means new member
+  member?: MembersEntry | null
 }>()
 
 const emit = defineEmits<{
@@ -25,7 +25,6 @@ const emit = defineEmits<{
   (e: 'save', member: MembersEntry): void
 }>()
 
-// Form state with normalized structure (generation is required number)
 const form = ref<{
   name: string
   generation: number | undefined
@@ -39,9 +38,14 @@ const form = ref<{
 })
 
 const isEditing = ref(false)
+const fieldErrors = ref<{ name?: string; generation?: string }>({})
 
-watch(() => props.open, (isOpen) => {
-  if (isOpen) {
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) return
+
+    fieldErrors.value = {}
     if (props.member) {
       form.value = {
         name: props.member.name,
@@ -50,74 +54,122 @@ watch(() => props.open, (isOpen) => {
         active: props.member.active,
       }
       isEditing.value = true
-    } else {
-      form.value = {
-        name: '',
-        generation: undefined,
-        notes: '',
-        active: true,
-      }
-      isEditing.value = false
+      return
     }
-  }
+
+    form.value = {
+      name: '',
+      generation: undefined,
+      notes: '',
+      active: true,
+    }
+    isEditing.value = false
+  },
+)
+
+const trimmedName = computed(() => form.value.name.trim())
+const normalizedGeneration = computed(() => {
+  const value = form.value.generation
+  if (value === undefined || value === null || Number.isNaN(value)) return undefined
+  return Math.trunc(Number(value))
 })
 
-const handleSave = () => {
-  if (!form.value.name.trim()) return // Simple validation
-  
-  const member: MembersEntry = {
-    name: form.value.name.trim(),
-    generation: form.value.generation ?? 0, // Default to 0 if not set
-    active: form.value.active,
-    notes: form.value.notes || undefined,
+function validateForm(): boolean {
+  const errors: { name?: string; generation?: string } = {}
+
+  if (!trimmedName.value) {
+    errors.name = '이름은 필수입니다.'
+  } else if (trimmedName.value.length < 2) {
+    errors.name = '이름은 2자 이상 입력하세요.'
   }
-  
-  emit('save', member)
+
+  if (normalizedGeneration.value === undefined) {
+    errors.generation = '기수를 입력하세요.'
+  } else if (normalizedGeneration.value < 1 || normalizedGeneration.value > 99) {
+    errors.generation = '기수는 1~99 사이여야 합니다.'
+  }
+
+  fieldErrors.value = errors
+  return Object.keys(errors).length === 0
+}
+
+const isSaveDisabled = computed(() => !trimmedName.value || normalizedGeneration.value === undefined)
+
+function handleSave() {
+  if (!validateForm()) return
+
+  emit('save', {
+    name: trimmedName.value,
+    generation: normalizedGeneration.value as number,
+    active: form.value.active,
+    notes: form.value.notes.trim() || undefined,
+  })
   emit('update:open', false)
 }
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="(val) => emit('update:open', val)">
-    <DialogContent class="sm:max-w-[425px]">
+  <Dialog :open="open" @update:open="(value) => emit('update:open', value)">
+    <DialogContent class="sm:max-w-[520px]">
       <DialogHeader>
-        <DialogTitle>{{ isEditing ? '멤버 수정' : '새 멤버 추가' }}</DialogTitle>
+        <DialogTitle>{{ isEditing ? '멤버 정보 수정' : '새 멤버 추가' }}</DialogTitle>
         <DialogDescription>
-          {{ isEditing ? '멤버 정보를 수정합니다.' : '새로운 멤버를 목록에 추가합니다.' }}
+          이름, 기수, 상태, 메모를 입력해 멤버 프로필을 관리합니다.
         </DialogDescription>
       </DialogHeader>
-      
-      <div class="grid gap-4 py-4">
-        <div class="grid grid-cols-4 items-center gap-4">
-          <Label for="name" class="text-right">이름</Label>
-          <Input id="name" v-model="form.name" class="col-span-3" placeholder="홍길동" autofocus />
+
+      <div class="space-y-4 py-2">
+        <div class="space-y-1.5">
+          <Label for="member-name">이름</Label>
+          <Input
+            id="member-name"
+            v-model="form.name"
+            placeholder="예: 홍길동"
+            autofocus
+          />
+          <p v-if="fieldErrors.name" class="text-xs text-destructive">{{ fieldErrors.name }}</p>
         </div>
-        <div class="grid grid-cols-4 items-center gap-4">
-          <Label for="generation" class="text-right">기수</Label>
-          <Input 
-            id="generation" 
-            type="number" 
-            v-model.number="form.generation" 
-            class="col-span-3" 
-            placeholder="20" 
+
+        <div class="space-y-1.5">
+          <Label for="member-generation">기수</Label>
+          <Input
+            id="member-generation"
+            type="number"
+            v-model.number="form.generation"
+            min="1"
+            max="99"
+            placeholder="예: 20"
+          />
+          <p v-if="fieldErrors.generation" class="text-xs text-destructive">{{ fieldErrors.generation }}</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <Label for="member-notes">메모</Label>
+          <Textarea
+            id="member-notes"
+            v-model="form.notes"
+            placeholder="예: SW 가능, 특정 요일 불가"
+            class="min-h-24"
           />
         </div>
-        <div class="grid grid-cols-4 items-center gap-4">
-          <Label for="active" class="text-right">활동 상태</Label>
-          <div class="flex items-center space-x-2 col-span-3">
-            <Checkbox id="active" :checked="form.active" @update:checked="(v: boolean) => form.active = v" />
-            <span class="text-sm text-muted-foreground">활성 멤버</span>
-          </div>
-        </div>
-        <div class="grid grid-cols-4 items-start gap-4">
-          <Label for="notes" class="text-right mt-2">메모</Label>
-          <Textarea id="notes" v-model="form.notes" class="col-span-3" placeholder="특이사항..." />
+
+        <div class="flex items-center gap-2 rounded-md border border-border/70 bg-muted/20 px-3 py-2.5">
+          <Checkbox
+            id="member-active"
+            :checked="form.active"
+            @update:checked="(value: boolean) => form.active = value"
+          />
+          <Label for="member-active" class="cursor-pointer text-sm">
+            활동 멤버로 관리
+          </Label>
         </div>
       </div>
 
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)">취소</Button>
-        <Button @click="handleSave">{{ isEditing ? '저장' : '추가' }}</Button>
+        <Button :disabled="isSaveDisabled" @click="handleSave">
+          {{ isEditing ? '저장' : '추가' }}
+        </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import Icon from '@/components/ui/Icon.vue'
 import { ROLE_CONFIG } from '@/shared/constants/config'
 import { formatKoreanDate } from '@/shared/utils/date'
-import clsx from 'clsx'
 
 const store = useAssignmentStore()
 
@@ -56,11 +55,10 @@ const progress = computed(() => Math.round((filledSlots.value / totalSlots) * 10
 // 날짜 포맷 (유틸리티 함수 사용)
 const formattedDate = computed(() => formatKoreanDate(currentWeekDate.value))
 
-// 진행률에 따른 그라데이션 색상 (Tailwind 통일)
-const progressColorClass = computed(() => {
-  if (progress.value === 100) return 'from-emerald-500 to-emerald-400'
-  if (progress.value >= 50) return 'from-indigo-500 to-indigo-400'
-  return 'from-amber-500 to-amber-400'
+const progressColor = computed(() => {
+  if (progress.value === 100) return 'var(--color-success)'
+  if (progress.value >= 50) return 'var(--color-accent)'
+  return 'var(--color-warning)'
 })
 
 // 불참자 요약 텍스트
@@ -83,13 +81,13 @@ const absenceSummary = computed(() => {
 </script>
 
 <template>
-  <Card class="card-hover overflow-hidden">
+  <Card class="overflow-hidden">
     <CardContent class="p-5">
       <!-- 메인 콘텐츠 -->
       <div class="space-y-4">
         <!-- 날짜 헤더 -->
         <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-indigo-500 flex items-center justify-center shadow-sm">
+          <div class="flex h-9 w-9 items-center justify-center rounded-xl shadow-sm" :style="{ background: `linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 72%, var(--color-info)))` }">
             <Icon name="CalendarDaysIcon" :size="18" class="text-white" />
           </div>
           <div>
@@ -103,15 +101,15 @@ const absenceSummary = computed(() => {
           <div class="flex items-center justify-between">
             <span class="text-sm text-[var(--color-label-secondary)]">진행률</span>
             <span class="text-sm font-bold">
-              <span class="text-lg stat-number" :class="progress === 100 ? 'text-emerald-500' : 'text-[var(--color-accent)]'">{{ filledSlots }}</span>
+              <span class="text-lg stat-number" :style="{ color: progress === 100 ? 'var(--color-success)' : 'var(--color-accent)' }">{{ filledSlots }}</span>
               <span class="text-[var(--color-label-tertiary)]">/{{ totalSlots }}</span>
               <span class="text-[var(--color-label-tertiary)] ml-1">({{ progress }}%)</span>
             </span>
           </div>
           <div class="h-3 bg-[var(--color-surface-elevated)] rounded-full overflow-hidden shadow-inner">
             <div 
-              :class="clsx('h-full rounded-full bg-gradient-to-r transition-all duration-500', progressColorClass)"
-              :style="{ width: `${progress}%` }"
+              class="h-full rounded-full transition-all duration-500"
+              :style="{ width: `${progress}%`, background: `linear-gradient(90deg, color-mix(in srgb, ${progressColor} 82%, white), ${progressColor})` }"
             />
           </div>
         </div>
@@ -120,18 +118,18 @@ const absenceSummary = computed(() => {
         <div class="flex items-start gap-4 pt-1">
           <!-- 가용 인원 -->
           <div class="flex items-center gap-1.5">
-            <div class="w-2 h-2 rounded-full bg-emerald-500" />
+            <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: 'var(--color-success)' }" />
             <span class="text-sm font-medium text-[var(--color-label-primary)]">
-              가용 <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ availableCount }}명</span>
+              가용 <span class="font-bold" :style="{ color: 'var(--color-success)' }">{{ availableCount }}명</span>
             </span>
           </div>
 
           <!-- 불참 인원 -->
           <div v-if="absences.length > 0" class="flex-1 min-w-0">
             <div class="flex items-center gap-1.5">
-              <div class="w-2 h-2 rounded-full bg-rose-500" />
+              <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: 'var(--color-danger)' }" />
               <span class="text-sm font-medium text-[var(--color-label-primary)]">
-                불참 <span class="font-bold text-rose-600 dark:text-rose-400">{{ absences.length }}명</span>
+                불참 <span class="font-bold" :style="{ color: 'var(--color-danger)' }">{{ absences.length }}명</span>
               </span>
             </div>
             <!-- 불참자 상세 (이름+사유) -->

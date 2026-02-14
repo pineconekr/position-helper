@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * SettingsPage.vue
- * Bento Grid Style - Visual & Interactive
- */
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -14,140 +10,180 @@ const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 
-// 테마 토글
 const isDarkMode = computed(() => themeStore.effectiveTheme === 'dark')
+const animationsEnabled = computed(() => themeStore.effectiveMotion === 'allow')
+const appVersion = computed(() => import.meta.env.VITE_APP_VERSION || '0.2.0')
+
+const themeLabel = computed(() => (isDarkMode.value ? 'Dark' : 'Light'))
+const motionLabel = computed(() => (animationsEnabled.value ? 'On' : 'Reduced'))
 
 function toggleTheme() {
   themeStore.setTheme(isDarkMode.value ? 'light' : 'dark')
 }
 
-// 애니메이션 (themeStore 사용)
-const animationsEnabled = computed(() => themeStore.effectiveMotion === 'allow')
-
 function toggleAnimations() {
-  const newValue = animationsEnabled.value ? 'reduce' : 'allow'
-  themeStore.setMotionPreference(newValue)
+  themeStore.setMotionPreference(animationsEnabled.value ? 'reduce' : 'allow')
 }
 
-// 로그아웃
 async function handleLogout() {
   await authStore.logout()
   router.push('/login')
 }
 
-// 앱 정보
-const appVersion = computed(() => import.meta.env.VITE_APP_VERSION || '0.2.0')
+function openDataSettings() {
+  router.push('/settings/data')
+}
+
+function activateWithKeyboard(event: KeyboardEvent, action: () => void) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    action()
+  }
+}
 </script>
 
 <template>
-  <div class="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold tracking-tight text-foreground">설정</h1>
-      <p class="text-muted-foreground mt-2 text-lg">작업 환경을 커스터마이징하세요.</p>
-    </div>
+  <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <div class="relative">
+      <div class="pointer-events-none absolute inset-0 -z-10 opacity-60">
+        <div class="absolute -top-10 left-1/3 h-44 w-44 rounded-full bg-primary/8 blur-3xl" />
+        <div class="absolute top-24 right-10 h-36 w-36 rounded-full bg-foreground/6 blur-3xl" />
+      </div>
 
-    <!-- Bento Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[minmax(180px,auto)]">
-      
-      <!-- 1. Theme Card (Large, Interactive) -->
-      <div 
-        @click="toggleTheme"
-        :class="clsx(
-          'md:col-span-2 relative overflow-hidden rounded-3xl p-6 cursor-pointer transition-all duration-300 group',
-          'bg-gradient-to-br from-background to-muted border border-border/50 hover:shadow-lg hover:border-primary/50'
-        )"
-      >
-        <div class="relative z-10 h-full flex flex-col justify-between">
-          <div class="flex justify-between items-start">
-            <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <Icon :name="isDarkMode ? 'MoonIcon' : 'SunIcon'" :size="24" class="text-primary" />
+      <div class="mb-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Workspace</p>
+        <h1 class="mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">설정</h1>
+        <p class="mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground">
+          앱 동작 방식과 운영 환경을 조정합니다. 테마, 모션, 데이터 관리가 한 화면에 정리되어 있습니다.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-12 md:auto-rows-[minmax(150px,auto)]">
+        <section
+          role="button"
+          tabindex="0"
+          aria-label="화면 테마 전환"
+          @click="toggleTheme"
+          @keydown="(event) => activateWithKeyboard(event, toggleTheme)"
+          :class="clsx(
+            'group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 transition-all md:col-span-8 md:row-span-2',
+            'hover:-translate-y-0.5 hover:border-border hover:shadow-lg',
+          )"
+        >
+          <div class="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-primary/10 blur-2xl transition-opacity group-hover:opacity-80" />
+          <div class="relative z-10 flex h-full flex-col justify-between gap-6">
+            <div class="flex items-start justify-between">
+              <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-border/70 bg-muted/40">
+                <Icon :name="isDarkMode ? 'MoonIcon' : 'SunIcon'" :size="22" class="text-foreground" />
+              </div>
+              <span class="rounded-full border border-border/70 bg-background px-3 py-1 text-sm font-medium text-foreground/80">
+                {{ themeLabel }}
+              </span>
             </div>
-            <span class="px-3 py-1 rounded-full bg-background/50 backdrop-blur text-xs font-semibold border border-border/50">
-              {{ isDarkMode ? '다크 모드' : '라이트 모드' }}
-            </span>
-          </div>
-          <div>
-            <h3 class="text-xl font-bold text-foreground mb-1">화면 테마</h3>
-            <p class="text-sm text-muted-foreground">눈이 편안한 모드로 전환하려면 클릭하세요.</p>
-          </div>
-        </div>
-        <!-- Decorative Background Circle -->
-        <div class="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-primary/5 group-hover:bg-primary/10 transition-colors blur-3xl" />
-      </div>
 
-      <!-- 2. Account Card -->
-      <div class="relative overflow-hidden rounded-3xl p-6 bg-background border border-border/50 flex flex-col justify-between">
-        <div class="flex justify-between items-start">
-          <div class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
-            <Icon name="UserIcon" :size="24" class="text-blue-500" />
-          </div>
-          <button 
-            @click="handleLogout"
-            class="text-xs font-medium text-muted-foreground hover:text-red-500 transition-colors"
-          >
-            로그아웃
-          </button>
-        </div>
-        <div>
-          <h3 class="text-lg font-bold text-foreground mb-1">관리자</h3>
-          <p class="text-xs text-muted-foreground">현재 로그인됨</p>
-        </div>
-      </div>
+            <div class="space-y-2">
+              <h2 class="text-xl font-semibold text-foreground">화면 테마</h2>
+              <p class="max-w-xl text-sm leading-relaxed text-muted-foreground">
+                라이트/다크 모드를 전환합니다. 시스템 설정을 포함한 전체 화면 대비에 맞춰 자동 적용됩니다.
+              </p>
+            </div>
 
-      <!-- 3. Animation Toggle -->
-      <div 
-        @click="toggleAnimations"
-        class="relative overflow-hidden rounded-3xl p-6 bg-background border border-border/50 cursor-pointer hover:border-purple-500/50 transition-colors group"
-      >
-        <div class="flex justify-between items-start mb-auto">
-          <div class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
-            <Icon name="SparklesIcon" :size="24" class="text-purple-500" />
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-md border border-border/70 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">Current: {{ themeLabel }}</span>
+              <span class="rounded-md border border-border/70 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">Click to toggle</span>
+            </div>
           </div>
-          <div :class="[
-            'w-10 h-6 rounded-full transition-colors duration-200 relative',
-            animationsEnabled ? 'bg-purple-500' : 'bg-muted'
-          ]">
-            <span :class="[
-              'absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200',
-              animationsEnabled ? 'translate-x-4' : 'translate-x-0'
-            ]" />
-          </div>
-        </div>
-        <div class="mt-8">
-          <h3 class="text-lg font-bold text-foreground mb-1">애니메이션</h3>
-          <p class="text-xs text-muted-foreground">부드러운 화면 전환 효과</p>
-        </div>
-      </div>
+        </section>
 
-      <!-- 4. Data Management (Wide) -->
-      <div 
-        @click="router.push('/settings/data')"
-        class="md:col-span-2 relative overflow-hidden rounded-3xl p-6 bg-background border border-border/50 cursor-pointer hover:border-emerald-500/50 transition-colors group"
-      >
-        <div class="flex items-center gap-6 h-full">
-          <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-            <Icon name="CloudArrowDownIcon" :size="32" class="text-emerald-500" />
+        <section class="rounded-2xl border border-border/70 bg-card p-5 md:col-span-4">
+          <div class="flex h-full flex-col justify-between gap-5">
+            <div class="flex items-start justify-between">
+              <div class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border/70 bg-muted/40">
+                <Icon name="UserIcon" :size="18" class="text-foreground" />
+              </div>
+              <button
+                type="button"
+                @click="handleLogout"
+                class="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                로그아웃
+              </button>
+            </div>
+            <div>
+              <p class="text-sm text-muted-foreground">세션</p>
+              <h3 class="mt-1 text-lg font-semibold text-foreground">관리자 계정</h3>
+              <p class="mt-1 text-sm text-muted-foreground">현재 로그인 상태입니다.</p>
+            </div>
           </div>
-          <div class="flex-1">
-            <h3 class="text-xl font-bold text-foreground mb-2">데이터 관리</h3>
-            <p class="text-sm text-muted-foreground line-clamp-2">
-              데이터를 JSON 파일로 백업하거나, 기존 백업 파일을 불러와 복원할 수 있습니다.
-            </p>
+        </section>
+
+        <section
+          role="button"
+          tabindex="0"
+          aria-label="애니메이션 설정 전환"
+          @click="toggleAnimations"
+          @keydown="(event) => activateWithKeyboard(event, toggleAnimations)"
+          class="group rounded-2xl border border-border/70 bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md md:col-span-4"
+        >
+          <div class="flex h-full flex-col justify-between gap-5">
+            <div class="flex items-start justify-between">
+              <div class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border/70 bg-muted/40">
+                <Icon name="SparklesIcon" :size="18" class="text-foreground" />
+              </div>
+              <div :class="[
+                'relative h-6 w-10 rounded-full border transition-colors',
+                animationsEnabled ? 'border-transparent bg-foreground' : 'border-border bg-muted',
+              ]">
+                <span :class="[
+                  'absolute left-1 top-1 h-4 w-4 rounded-full bg-background transition-transform',
+                  animationsEnabled ? 'translate-x-4' : 'translate-x-0',
+                ]" />
+              </div>
+            </div>
+            <div>
+              <p class="text-sm text-muted-foreground">모션</p>
+              <h3 class="mt-1 text-lg font-semibold text-foreground">{{ motionLabel }}</h3>
+              <p class="mt-1 text-sm text-muted-foreground">화면 전환과 인터랙션 애니메이션 강도를 조정합니다.</p>
+            </div>
           </div>
-          <Icon name="ArrowRightIcon" :size="24" class="text-muted-foreground/30 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-        </div>
-      </div>
+        </section>
 
-      <!-- 5. App Info -->
-      <div class="relative overflow-hidden rounded-3xl p-6 bg-muted/30 border border-border/50 flex flex-col justify-center items-center text-center">
-        <div class="mb-3">
-          <span class="text-2xl font-black text-foreground/20">v{{ appVersion }}</span>
-        </div>
-        <p class="text-xs font-medium text-foreground">Position Helper</p>
-        <p class="text-[10px] text-muted-foreground mt-1">Made by Pinecone</p>
-      </div>
+        <section
+          role="button"
+          tabindex="0"
+          aria-label="데이터 관리 화면으로 이동"
+          @click="openDataSettings"
+          @keydown="(event) => activateWithKeyboard(event, openDataSettings)"
+          class="group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-lg md:col-span-8"
+        >
+          <div class="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-primary/8 to-transparent opacity-80" />
+          <div class="relative z-10 flex h-full items-center gap-5">
+            <div class="inline-flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/40">
+              <Icon name="CloudArrowDownIcon" :size="24" class="text-foreground" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-lg font-semibold text-foreground">데이터 관리</h3>
+              <p class="mt-1 text-sm leading-relaxed text-muted-foreground">
+                백업/복원, JSON 입출력, 데이터 점검을 위한 관리 화면으로 이동합니다.
+              </p>
+            </div>
+            <Icon name="ArrowRightIcon" :size="20" class="text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+          </div>
+        </section>
 
+        <section class="rounded-2xl border border-border/70 bg-muted/20 p-5 md:col-span-4">
+          <div class="flex h-full flex-col justify-between">
+            <div>
+              <p class="text-sm text-muted-foreground">앱 버전</p>
+              <p class="mt-1 text-2xl font-semibold tracking-tight text-foreground/85">v{{ appVersion }}</p>
+            </div>
+            <div class="mt-6">
+              <p class="text-sm font-medium text-foreground">Position Helper</p>
+              <p class="mt-1 text-xs text-muted-foreground">Operational Console</p>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 </template>

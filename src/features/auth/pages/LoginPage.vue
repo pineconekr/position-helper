@@ -36,37 +36,45 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-[var(--color-canvas)]">
-    <div class="w-full max-w-xs">
+  <div class="min-h-screen bg-background px-4 py-10 sm:px-6">
+    <div class="mx-auto flex min-h-[70vh] w-full max-w-md items-center justify-center">
+      <div class="w-full rounded-2xl border border-border/80 bg-card p-6 shadow-sm sm:p-8">
       <!-- 타이틀 -->
-      <div class="mb-8">
-        <p class="text-xs uppercase tracking-widest text-[var(--color-label-tertiary)] mb-1">
+      <div class="mb-7">
+        <p class="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Position Helper
         </p>
-        <h1 class="text-lg font-medium text-[var(--color-label-primary)]">
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.9rem]">
           관리자 로그인
         </h1>
+        <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+          관리자 비밀번호를 입력해 대시보드에 접근하세요.
+        </p>
       </div>
 
       <!-- 로그인 폼 -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div>
+          <label for="admin-password" class="mb-1.5 block text-sm font-medium text-foreground">
+            비밀번호
+          </label>
           <Input
+            id="admin-password"
             v-model="password"
             type="password"
-            placeholder="비밀번호"
+            placeholder="비밀번호를 입력하세요"
             :disabled="isSubmitting"
-            class="w-full h-11 bg-[var(--color-surface)] border-[var(--color-border-subtle)] focus:border-[var(--color-accent)] transition-colors"
+            class="h-11 w-full bg-background text-base"
             autocomplete="current-password"
           />
-          <p v-if="error" class="mt-2 text-sm text-destructive">
+          <p v-if="error" class="mt-2 text-sm font-medium text-destructive" role="alert">
             {{ error }}
           </p>
         </div>
 
         <Button
           type="submit"
-          class="w-full h-11"
+          class="h-11 w-full text-sm font-semibold"
           :disabled="isSubmitting"
         >
           {{ isSubmitting ? '확인 중...' : '로그인' }}
@@ -74,9 +82,10 @@ async function handleSubmit() {
       </form>
 
       <!-- 하단 텍스트 -->
-      <p class="mt-6 text-xs text-[var(--color-label-quaternary)]">
+      <p class="mt-5 text-sm leading-relaxed text-muted-foreground">
         비밀번호는 갠톡으로 문의
       </p>
+      </div>
     </div>
   </div>
 </template>

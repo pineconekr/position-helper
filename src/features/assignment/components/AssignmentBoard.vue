@@ -4,7 +4,7 @@
  * 
  * 클릭 또는 드래그로 팀원을 역할에 배정하는 메인 보드
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
 import { useToast } from '@/composables/useToast'
 import { formatDateISO } from '@/shared/utils/date'
@@ -33,6 +33,14 @@ const { toast } = useToast()
 // State
 const selectedMember = ref<string | null>(null)
 const showInactive = ref(false)
+type FocusSlot = { part?: PartKey; role?: RoleKey; index?: 0 | 1 }
+const slotFocus = ref<FocusSlot | null>(null)
+const tableSectionRef = ref<HTMLElement | null>(null)
+const recommendNavigation = ref<{
+  key: string
+  slots: Array<{ part: PartKey; role: RoleKey; index?: 0 | 1 }>
+  index: number
+} | null>(null)
 
 // Computed
 const currentWeekDate = computed(() => assignmentStore.currentWeekDate)
@@ -72,6 +80,13 @@ onUnmounted(() => {
 // Actions
 function handleMemberClick(name: string) {
   selectedMember.value = selectedMember.value === name ? null : name
+  slotFocus.value = null
+  recommendNavigation.value = null
+}
+
+function handleFeedbackSelectMember(name: string) {
+  selectedMember.value = name
+  recommendNavigation.value = null
 }
 
 function handleSlotClick(part: PartKey, role: RoleKey, index?: 0 | 1) {
@@ -99,10 +114,13 @@ function handleSlotClick(part: PartKey, role: RoleKey, index?: 0 | 1) {
 
   assignmentStore.assignRole(part, role, selectedMember.value, index)
   selectedMember.value = null
+  slotFocus.value = null
+  recommendNavigation.value = null
 }
 
 function handleClearSlot(part: PartKey, role: RoleKey, index?: 0 | 1) {
   assignmentStore.clearRole(part, role, index)
+  recommendNavigation.value = null
 }
 
 function handleDrop(part: PartKey, role: RoleKey, memberId: string, index?: 0 | 1) {
@@ -116,6 +134,8 @@ function handleDrop(part: PartKey, role: RoleKey, memberId: string, index?: 0 | 
   if (value === BLANK_ROLE_VALUE) {
     assignmentStore.assignRole(part, role, value, index)
     selectedMember.value = null
+    slotFocus.value = null
+    recommendNavigation.value = null
     return
   }
 
@@ -135,6 +155,8 @@ function handleDrop(part: PartKey, role: RoleKey, memberId: string, index?: 0 | 
 
   assignmentStore.assignRole(part, role, value, index)
   selectedMember.value = null
+  slotFocus.value = null
+  recommendNavigation.value = null
 }
 
 function handleUndo() {
@@ -147,6 +169,8 @@ function handleUndo() {
     return
   }
   assignmentStore.undoLastAssignment()
+  recommendNavigation.value = null
+  slotFocus.value = null
   toast({
     kind: 'success',
     title: '실행 취소',
@@ -171,6 +195,8 @@ function handleSlotSwap(
     : { part: targetPart, role: targetRole }
 
   assignmentStore.moveRole(source, target)
+  recommendNavigation.value = null
+  slotFocus.value = null
   
   toast({
     kind: 'success',
@@ -184,7 +210,103 @@ function handleWeekChange(event: Event) {
   const value = target.value
   if (value) {
     assignmentStore.setWeekDate(value)
+    slotFocus.value = null
+    selectedMember.value = null
+    recommendNavigation.value = null
   }
+}
+
+function scrollToAssignmentTable() {
+  nextTick(() => {
+    tableSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  })
+}
+
+function handleFeedbackInspectTarget(target: { part?: PartKey; role?: RoleKey; name?: string }) {
+  if (target.name) {
+    selectedMember.value = target.name
+  }
+
+  if (target.role) {
+    slotFocus.value = { part: target.part, role: target.role }
+    recommendNavigation.value = null
+    scrollToAssignmentTable()
+  }
+}
+
+function getEmptySlotsForRole(role: RoleKey): Array<{ part: PartKey; role: RoleKey; index?: 0 | 1 }> {
+  const slots: Array<{ part: PartKey; role: RoleKey; index?: 0 | 1 }> = []
+  const parts: PartKey[] = ['part1', 'part2']
+
+  if (role === '사이드') {
+    parts.forEach((part) => {
+      ;([0, 1] as const).forEach((idx) => {
+        if (!draft.value[part]['사이드'][idx]) {
+          slots.push({ part, role, index: idx })
+        }
+      })
+    })
+    return slots
+  }
+
+  parts.forEach((part) => {
+    if (!draft.value[part][role]) {
+      slots.push({ part, role })
+    }
+  })
+
+  return slots
+}
+
+function cycleRecommendedSlot(direction: 1 | -1 = 1) {
+  const nav = recommendNavigation.value
+  if (!nav || nav.slots.length <= 1) return
+
+  const nextIndex = (nav.index + direction + nav.slots.length) % nav.slots.length
+  recommendNavigation.value = {
+    ...nav,
+    index: nextIndex,
+  }
+  const nextSlot = nav.slots[nextIndex]
+  slotFocus.value = { ...nextSlot }
+  scrollToAssignmentTable()
+}
+
+function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
+  selectedMember.value = payload.name
+  const emptySlots = getEmptySlotsForRole(payload.role)
+  const key = `${payload.name}::${payload.role}`
+
+  if (emptySlots.length === 0) {
+    recommendNavigation.value = null
+    slotFocus.value = { role: payload.role }
+    scrollToAssignmentTable()
+    toast({
+      kind: 'info',
+      title: '추천 역할 확인',
+      description: `${payload.role}에 빈 슬롯이 없어 직접 슬롯 조정이 필요합니다.`,
+    })
+    return
+  }
+
+  const previous = recommendNavigation.value
+  const shouldCycle = previous?.key === key && previous.slots.length === emptySlots.length
+  const nextIndex = shouldCycle ? (previous.index + 1) % emptySlots.length : 0
+  const focusSlot = emptySlots[nextIndex]
+
+  recommendNavigation.value = {
+    key,
+    slots: emptySlots,
+    index: nextIndex,
+  }
+  slotFocus.value = { ...focusSlot }
+  scrollToAssignmentTable()
+
+  toast({
+    kind: 'info',
+    title: '추천 적용 준비',
+    description: `${payload.name} 선택됨 · ${payload.role} 슬롯 ${nextIndex + 1}/${emptySlots.length} 안내 중`,
+  })
 }
 
 
@@ -216,13 +338,21 @@ function handleWeekChange(event: Event) {
         </div>
 
         <!-- 배정 테이블 -->
-        <div>
+        <div ref="tableSectionRef">
           <div class="flex items-center justify-between gap-2 mb-2">
             <div class="flex items-center gap-2">
               <span class="text-base font-bold text-[var(--color-label-primary)]">배정</span>
               <span class="text-xs text-[var(--color-label-tertiary)]">
                 드래그하여 배정하세요
               </span>
+              <Badge
+                v-if="recommendNavigation && recommendNavigation.slots.length > 0"
+                variant="outline"
+                size="sm"
+                class="text-[11px]"
+              >
+                추천 슬롯 {{ recommendNavigation.index + 1 }}/{{ recommendNavigation.slots.length }}
+              </Badge>
               <!-- Undo 버튼 -->
               <TooltipProvider>
                 <Tooltip>
@@ -244,9 +374,18 @@ function handleWeekChange(event: Event) {
                 </Tooltip>
               </TooltipProvider>
             </div>
+            <div v-if="recommendNavigation && recommendNavigation.slots.length > 1" class="flex items-center gap-1">
+              <Button size="sm" variant="outline" class="h-7 px-2 text-xs" @click="cycleRecommendedSlot(-1)">
+                이전 슬롯
+              </Button>
+              <Button size="sm" variant="outline" class="h-7 px-2 text-xs" @click="cycleRecommendedSlot(1)">
+                다음 슬롯
+              </Button>
+            </div>
           </div>
           <AssignmentTable
             :selectedMember="selectedMember"
+            :slotFocus="slotFocus"
             @slot-click="handleSlotClick"
             @clear-slot="handleClearSlot"
             @drop="handleDrop"
@@ -295,7 +434,11 @@ function handleWeekChange(event: Event) {
 
     <!-- 사이드 컬럼 (위젯) -->
     <div class="flex-[1_1_300px] max-w-full flex flex-col gap-4">
-      <WarningWidget @select-member="handleMemberClick" />
+      <WarningWidget
+        @select-member="handleFeedbackSelectMember"
+        @inspect-target="handleFeedbackInspectTarget"
+        @recommend-assignment="handleRecommendAssignment"
+      />
       <AbsenceWidget />
 
       <div class="text-[var(--color-label-tertiary)] text-xs leading-relaxed px-1">

@@ -21,6 +21,7 @@ const { toast } = useToast()
 // Computed
 const draft = computed(() => assignmentStore.currentDraft)
 const warnings = computed(() => assignmentStore.warnings)
+const blockingWarnings = computed(() => warnings.value.filter((warning) => warning.level !== 'info'))
 
 // Actions
 async function handleFinalize() {
@@ -47,10 +48,17 @@ async function handleFinalize() {
     }
   }
 
-  if (warnings.value.length > 0) {
+  if (blockingWarnings.value.length > 0) {
+    const errorCount = blockingWarnings.value.filter((warning) => warning.level === 'error').length
+    const warnCount = blockingWarnings.value.filter((warning) => warning.level === 'warn').length
+    const breakdown = [
+      errorCount > 0 ? `긴급 ${errorCount}건` : '',
+      warnCount > 0 ? `주의 ${warnCount}건` : '',
+    ].filter(Boolean).join(', ')
+
     const confirmed = await modal.confirm({
-      title: `경고 ${warnings.value.length}건`,
-      message: '경고 사항이 남아 있습니다. 현재 상태로 확정할까요?',
+      title: `경고 ${blockingWarnings.value.length}건`,
+      message: `${breakdown}\n경고 사항이 남아 있습니다. 현재 상태로 확정할까요?`,
       confirmText: '확정하기',
       cancelText: '취소',
       variant: 'warning'

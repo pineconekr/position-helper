@@ -1,288 +1,333 @@
 <script setup lang="ts">
-/**
- * WarningWidget.vue - 배정 경고 위젯
- * 
- * 연속 배정 경고 및 로테이션 추천을 표시합니다.
- * ASSIGNMENT_RULES.md 기반:
- * - Error: 1주 전 동일 역할 수행 (2주 연속 - 즉시 수정 필요)
- * - Warn: 2주 전 동일 역할 수행 (최근 3주 내 2회 - 주의 필요)
- * - Info: 로테이션 추천 (참고용)
- */
 import { computed, ref } from 'vue'
 import { useAssignmentStore } from '@/stores/assignment'
-import type { Warning, WarningLevel } from '@/shared/types'
+import type { RoleKey, Warning, WarningLevel } from '@/shared/types'
 import { Card, CardContent } from '@/components/ui/card'
 import Icon from '@/components/ui/Icon.vue'
 import clsx from 'clsx'
 
+type PartKey = 'part1' | 'part2'
+type FilterType = 'all' | WarningLevel
+type IssueLevel = Exclude<WarningLevel, 'info'>
+type InspectTarget = { part?: PartKey; role?: RoleKey; name?: string }
+
 const store = useAssignmentStore()
 
-// 필터 상태: 'all' | 'error' | 'warn' | 'info'
-type FilterType = 'all' | WarningLevel
 const activeFilter = ref<FilterType>('all')
-
-// 경고 필터링 (Info 레벨은 기본적으로 숨김 처리 가능)
-const filteredWarnings = computed(() => {
-  const warnings = store.warnings
-  
-  if (activeFilter.value === 'all') {
-    // 'all' 필터에서는 error, warn만 표시 (info는 별도 섹션)
-    return warnings.filter(w => w.level === 'error' || w.level === 'warn')
-  }
-  
-  return warnings.filter(w => w.level === activeFilter.value)
+const collapsedByLevel = ref<Record<IssueLevel, boolean>>({
+  error: false,
+  warn: true,
 })
 
-// 경고 카운트
-const errorCount = computed(() => store.warnings.filter(w => w.level === 'error').length)
-const warnCount = computed(() => store.warnings.filter(w => w.level === 'warn').length)
-const infoCount = computed(() => store.warnings.filter(w => w.level === 'info').length)
-const totalWarnings = computed(() => errorCount.value + warnCount.value)
+const emit = defineEmits<{
+  'select-member': [name: string]
+  'inspect-target': [target: InspectTarget]
+  'recommend-assignment': [payload: { name: string; role: RoleKey }]
+}>()
 
-// 로테이션 추천 (Info 레벨)
-const rotationSuggestions = computed(() => 
-  store.warnings.filter(w => w.level === 'info' && w.rotationCandidates)
-)
-
-// 레벨별 아이콘 및 색상 설정
-const getLevelConfig = (level: WarningLevel) => {
-  const configs = {
-    error: {
-      icon: 'SolidExclamationCircleIcon',
-      accentColor: 'var(--color-danger)',
-      bgColor: 'var(--color-danger)',
-      label: '긴급'
-    },
-    warn: {
-      icon: 'ExclamationTriangleIcon',
-      accentColor: 'var(--color-warning)',
-      bgColor: 'var(--color-warning)',
-      label: '주의'
-    },
-    info: {
-      icon: 'LightBulbIcon',
-      accentColor: 'var(--color-accent)',
-      bgColor: 'var(--color-accent)',
-      label: '추천'
-    }
-  }
-  return configs[level]
+const levelPriority: Record<WarningLevel, number> = {
+  error: 0,
+  warn: 1,
+  info: 2,
 }
 
-// 필터 버튼 설정
+const sortedWarnings = computed(() => {
+  return [...store.warnings].sort((a, b) => {
+    const levelDiff = levelPriority[a.level] - levelPriority[b.level]
+    if (levelDiff !== 0) return levelDiff
+    return a.message.localeCompare(b.message, 'ko')
+  })
+})
+
+const errorWarnings = computed(() => sortedWarnings.value.filter((w) => w.level === 'error'))
+const warnWarnings = computed(() => sortedWarnings.value.filter((w) => w.level === 'warn'))
+const infoInsights = computed(() =>
+  sortedWarnings.value.filter((w) => w.level === 'info' && !w.rotationCandidates?.length),
+)
+const rotationSuggestions = computed(() =>
+  sortedWarnings.value.filter((w) => w.level === 'info' && !!w.rotationCandidates?.length),
+)
+
+const errorCount = computed(() => errorWarnings.value.length)
+const warnCount = computed(() => warnWarnings.value.length)
+const infoCount = computed(() => store.warnings.filter((w) => w.level === 'info').length)
+const totalIssues = computed(() => errorCount.value + warnCount.value)
+
+const summaryText = computed(() => {
+  if (errorCount.value > 0) return '즉시 수정이 필요한 배정이 있습니다.'
+  if (warnCount.value > 0) return '확정 전 점검 권장 항목이 있습니다.'
+  if (infoCount.value > 0) return '참고용 피드백이 있습니다.'
+  return '현재 규칙 기준에서 문제 없습니다.'
+})
+
 const filterButtons: { key: FilterType; label: string; icon: string }[] = [
   { key: 'all', label: '전체', icon: 'Bars3Icon' },
   { key: 'error', label: '긴급', icon: 'SolidExclamationCircleIcon' },
   { key: 'warn', label: '주의', icon: 'ExclamationTriangleIcon' },
-  { key: 'info', label: '추천', icon: 'LightBulbIcon' }
+  { key: 'info', label: '정보', icon: 'LightBulbIcon' },
 ]
 
-const emit = defineEmits<{
-  'select-member': [name: string]
-}>()
+function getLevelConfig(level: WarningLevel) {
+  const configs = {
+    error: {
+      icon: 'SolidExclamationCircleIcon',
+      borderClass: 'border-l-[var(--color-danger)]',
+      badgeClass: 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]',
+      label: '긴급',
+    },
+    warn: {
+      icon: 'ExclamationTriangleIcon',
+      borderClass: 'border-l-[var(--color-warning)]',
+      badgeClass: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]',
+      label: '주의',
+    },
+    info: {
+      icon: 'LightBulbIcon',
+      borderClass: 'border-l-[var(--color-accent)]',
+      badgeClass: 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]',
+      label: '정보',
+    },
+  }
+  return configs[level]
+}
+
+function shouldShowLevel(level: IssueLevel): boolean {
+  if (activeFilter.value === 'all') return true
+  return activeFilter.value === level
+}
+
+function getIssueWarnings(level: IssueLevel): Warning[] {
+  return level === 'error' ? errorWarnings.value : warnWarnings.value
+}
+
+function toggleCollapse(level: IssueLevel) {
+  collapsedByLevel.value[level] = !collapsedByLevel.value[level]
+}
+
+function formatTarget(warning: Warning): string | null {
+  const target = warning.target
+  if (!target) return null
+  const partLabel = target.part ? (target.part === 'part1' ? '1부' : '2부') : ''
+  const roleLabel = target.role ?? ''
+  const nameLabel = target.name ?? ''
+  const left = [partLabel, roleLabel].filter(Boolean).join(' ')
+  const all = [left, nameLabel].filter(Boolean)
+  return all.length > 0 ? all.join(' | ') : null
+}
 
 function handleWarningClick(warning: Warning) {
-  if (warning.target?.name) {
-    emit('select-member', warning.target.name)
+  const target = warning.target
+  if (!target) return
+
+  if (target.name) {
+    emit('select-member', target.name)
   }
+
+  emit('inspect-target', {
+    part: target.part,
+    role: target.role,
+    name: target.name,
+  })
 }
+
+function handleCandidateClick(suggestion: Warning, candidateName: string) {
+  const role = suggestion.target?.role
+  if (!role) {
+    emit('select-member', candidateName)
+    return
+  }
+  emit('recommend-assignment', { name: candidateName, role })
+}
+
+const isInfoEmpty = computed(() => infoInsights.value.length === 0 && rotationSuggestions.value.length === 0)
+const isIssuesEmpty = computed(() => {
+  if (activeFilter.value === 'error') return errorWarnings.value.length === 0
+  if (activeFilter.value === 'warn') return warnWarnings.value.length === 0
+  return totalIssues.value === 0
+})
 </script>
 
 <template>
   <Card>
-    <CardContent class="p-4 space-y-4">
-      <!-- 헤더 -->
-      <div class="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
-        <div class="text-sm font-bold text-[var(--color-label-primary)] flex items-center gap-2">
+    <CardContent class="space-y-4 p-4">
+      <div class="flex items-center justify-between border-b border-[var(--color-border-subtle)] pb-3">
+        <div class="flex items-center gap-2">
           <Icon name="BellIcon" :size="16" class="text-[var(--color-label-tertiary)]" />
-          배정 피드백
+          <div>
+            <p class="text-sm font-semibold text-[var(--color-label-primary)]">배정 피드백</p>
+            <p class="text-xs text-[var(--color-label-tertiary)]">{{ summaryText }}</p>
+          </div>
         </div>
-        
-        <!-- 경고 카운트 뱃지 -->
+
         <div class="flex items-center gap-1.5">
-          <span 
-            v-if="errorCount > 0"
-            class="px-1.5 py-0.5 rounded-[4px] bg-[var(--color-danger)]/10 text-[var(--color-danger)] text-xs font-semibold animate-pulse"
-          >
+          <span v-if="errorCount > 0" class="animate-pulse rounded-[4px] bg-[var(--color-danger)]/10 px-1.5 py-0.5 text-xs font-semibold text-[var(--color-danger)]">
             {{ errorCount }} 긴급
           </span>
-          <span 
-            v-if="warnCount > 0"
-            class="px-1.5 py-0.5 rounded-[4px] bg-[var(--color-warning)]/10 text-[var(--color-warning)] text-xs font-semibold"
-          >
+          <span v-if="warnCount > 0" class="rounded-[4px] bg-[var(--color-warning)]/10 px-1.5 py-0.5 text-xs font-semibold text-[var(--color-warning)]">
             {{ warnCount }} 주의
+          </span>
+          <span v-if="infoCount > 0" class="rounded-[4px] bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-xs font-semibold text-[var(--color-accent)]">
+            {{ infoCount }} 정보
           </span>
         </div>
       </div>
 
-      <!-- 필터 칩 -->
       <div class="flex flex-wrap gap-1.5">
         <button
           v-for="filter in filterButtons"
           :key="filter.key"
           @click="activeFilter = filter.key"
           :class="clsx(
-            'px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-150',
-            'flex items-center gap-1 cursor-pointer select-none',
+            'flex cursor-pointer select-none items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all duration-150',
             activeFilter === filter.key
               ? 'bg-[var(--color-accent)] text-white'
-              : 'bg-[var(--color-surface)] text-[var(--color-label-secondary)] hover:bg-[var(--color-surface-elevated)] active:scale-95'
+              : 'bg-[var(--color-surface)] text-[var(--color-label-secondary)] hover:bg-[var(--color-surface-elevated)] active:scale-95',
           )"
         >
           <Icon :name="filter.icon" :size="12" />
           {{ filter.label }}
-          <span 
-            v-if="filter.key === 'error' && errorCount > 0"
-            class="ml-0.5 text-[10px] opacity-80"
-          >
-            ({{ errorCount }})
-          </span>
-          <span 
-            v-else-if="filter.key === 'warn' && warnCount > 0"
-            class="ml-0.5 text-[10px] opacity-80"
-          >
-            ({{ warnCount }})
-          </span>
-          <span 
-            v-else-if="filter.key === 'info' && infoCount > 0"
-            class="ml-0.5 text-[10px] opacity-80"
-          >
-            ({{ infoCount }})
-          </span>
+          <span v-if="filter.key === 'error' && errorCount > 0" class="ml-0.5 text-[10px] opacity-80">({{ errorCount }})</span>
+          <span v-else-if="filter.key === 'warn' && warnCount > 0" class="ml-0.5 text-[10px] opacity-80">({{ warnCount }})</span>
+          <span v-else-if="filter.key === 'info' && infoCount > 0" class="ml-0.5 text-[10px] opacity-80">({{ infoCount }})</span>
         </button>
       </div>
 
-      <!-- 경고 목록 (Error/Warn) -->
-      <div 
-        v-if="activeFilter !== 'info' && filteredWarnings.length > 0" 
-        class="space-y-2 max-h-[280px] overflow-y-auto scroll-mask-y"
-      >
-        <div
-          v-for="warning in filteredWarnings"
-          :key="warning.id"
-          @click="handleWarningClick(warning)"
-          :class="clsx(
-            'relative flex items-start gap-3 p-3 rounded-[var(--radius-sm)]',
-            'bg-[var(--color-surface)] border-l-[3px]',
-            'transition-all duration-150 hover:bg-[var(--color-surface-elevated)] cursor-pointer active:scale-[0.98]',
-            warning.level === 'error' 
-              ? 'border-l-[var(--color-danger)]' 
-              : 'border-l-[var(--color-warning)]'
-          )"
-        >
-          <!-- 아이콘 -->
-          <div 
-            :class="clsx(
-              'flex-shrink-0 w-7 h-7 rounded-full flex-center',
-              warning.level === 'error' 
-                ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]' 
-                : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
-            )"
-          >
-            <Icon 
-              :name="getLevelConfig(warning.level).icon" 
-              :size="14" 
-              :class="warning.level === 'error' ? 'animate-pulse' : ''"
-            />
-          </div>
+      <div v-if="activeFilter !== 'info'" class="space-y-2">
+        <div v-for="level in (['error', 'warn'] as IssueLevel[])" :key="level" v-show="shouldShowLevel(level)">
+          <template v-if="getIssueWarnings(level).length > 0">
+            <button
+              type="button"
+              class="flex w-full items-center justify-between rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-2.5 py-2 text-left"
+              @click="toggleCollapse(level)"
+            >
+              <div class="flex items-center gap-2">
+                <Icon :name="getLevelConfig(level).icon" :size="14" />
+                <span class="text-xs font-semibold text-[var(--color-label-secondary)]">
+                  {{ getLevelConfig(level).label }} {{ getIssueWarnings(level).length }}건
+                </span>
+              </div>
+              <Icon :name="collapsedByLevel[level] ? 'ChevronDownIcon' : 'ChevronUpIcon'" :size="14" class="text-[var(--color-label-tertiary)]" />
+            </button>
 
-          <!-- 내용 -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-0.5">
-              <span 
+            <div v-if="!collapsedByLevel[level]" class="mt-2 space-y-2 max-h-[260px] overflow-y-auto scroll-mask-y">
+              <div
+                v-for="warning in getIssueWarnings(level)"
+                :key="warning.id"
+                @click="handleWarningClick(warning)"
                 :class="clsx(
-                  'text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-[3px]',
-                  warning.level === 'error' 
-                    ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]' 
-                    : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
+                  'relative flex cursor-pointer items-start gap-3 rounded-[var(--radius-sm)] border-l-[3px] bg-[var(--color-surface)] p-3 transition-all duration-150 hover:bg-[var(--color-surface-elevated)] active:scale-[0.98]',
+                  getLevelConfig(warning.level).borderClass,
                 )"
               >
-                {{ getLevelConfig(warning.level).label }}
-              </span>
-              <span 
-                v-if="warning.target?.name"
-                class="text-xs font-medium text-[var(--color-label-primary)] px-1.5 py-0.5 bg-[var(--color-surface-elevated)] rounded-[3px]"
-              >
-                {{ warning.target.name }}
-              </span>
+                <div
+                  :class="clsx(
+                    'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full',
+                    warning.level === 'error'
+                      ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
+                      : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]',
+                  )"
+                >
+                  <Icon :name="getLevelConfig(warning.level).icon" :size="14" :class="warning.level === 'error' ? 'animate-pulse' : ''" />
+                </div>
+
+                <div class="min-w-0 flex-1">
+                  <div class="mb-0.5 flex items-center gap-2">
+                    <span :class="clsx('rounded-[3px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', getLevelConfig(warning.level).badgeClass)">
+                      {{ getLevelConfig(warning.level).label }}
+                    </span>
+                    <span v-if="formatTarget(warning)" class="rounded-[3px] bg-[var(--color-surface-elevated)] px-1.5 py-0.5 text-xs font-medium text-[var(--color-label-primary)]">
+                      {{ formatTarget(warning) }}
+                    </span>
+                  </div>
+                  <p class="text-sm leading-relaxed text-[var(--color-label-secondary)]">{{ warning.message }}</p>
+                </div>
+              </div>
             </div>
-            <p class="text-sm text-[var(--color-label-secondary)] leading-relaxed">
-              {{ warning.message }}
-            </p>
-          </div>
+          </template>
         </div>
       </div>
 
-      <!-- 로테이션 추천 (Info) -->
-      <div 
-        v-if="activeFilter === 'info' && rotationSuggestions.length > 0" 
-        class="space-y-3 max-h-[280px] overflow-y-auto scroll-mask-y"
-      >
-        <div
-          v-for="suggestion in rotationSuggestions"
-          :key="suggestion.id"
-          class="p-3 rounded-[var(--radius-sm)] bg-[var(--color-surface)] border-l-[3px] border-l-[var(--color-accent)]"
-        >
-          <div class="flex items-center gap-2 mb-2">
-            <div class="w-6 h-6 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex-center">
-              <Icon name="LightBulbIcon" :size="12" />
-            </div>
-            <span class="text-sm font-semibold text-[var(--color-label-primary)]">
-              {{ suggestion.message }}
-            </span>
-          </div>
-          
-          <!-- 추천 후보 목록 -->
-          <div v-if="suggestion.rotationCandidates" class="flex flex-wrap gap-1.5 mt-2">
-            <span
-              v-for="(candidate, index) in suggestion.rotationCandidates"
-              :key="candidate.name"
-              @click="emit('select-member', candidate.name)"
-              :class="clsx(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs',
-                'border border-[var(--color-border-subtle)] cursor-pointer hover:border-[var(--color-accent)] transition-colors active:scale-95',
-                index === 0 
-                  ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-medium border-[var(--color-accent)]/30' 
-                  : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)]'
-              )"
+      <div v-if="activeFilter === 'info'" class="space-y-3">
+        <div v-if="infoInsights.length > 0" class="space-y-2">
+          <p class="px-1 text-xs font-semibold text-[var(--color-label-tertiary)]">관찰 정보</p>
+          <div class="space-y-2 max-h-[180px] overflow-y-auto scroll-mask-y">
+            <div
+              v-for="insight in infoInsights"
+              :key="insight.id"
+              class="cursor-pointer rounded-[var(--radius-sm)] border-l-[3px] border-l-[var(--color-accent)] bg-[var(--color-surface)] p-3 transition-colors hover:bg-[var(--color-surface-elevated)]"
+              @click="handleWarningClick(insight)"
             >
-              {{ candidate.name }}
-              <span class="text-[10px] opacity-70">
-                {{ candidate.weeksSince === Infinity ? '미배정' : `${candidate.weeksSince}주↑` }}
-              </span>
-            </span>
+              <div class="flex items-start gap-2">
+                <div class="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+                  <Icon name="InformationCircleIcon" :size="12" />
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm leading-relaxed text-[var(--color-label-secondary)]">{{ insight.message }}</p>
+                  <p v-if="formatTarget(insight)" class="mt-1 text-xs text-[var(--color-label-tertiary)]">{{ formatTarget(insight) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="rotationSuggestions.length > 0" class="space-y-2">
+          <p class="px-1 text-xs font-semibold text-[var(--color-label-tertiary)]">로테이션 추천</p>
+          <div class="space-y-3 max-h-[260px] overflow-y-auto scroll-mask-y">
+            <div
+              v-for="suggestion in rotationSuggestions"
+              :key="suggestion.id"
+              class="rounded-[var(--radius-sm)] border-l-[3px] border-l-[var(--color-accent)] bg-[var(--color-surface)] p-3"
+            >
+              <div class="mb-2 flex items-center gap-2">
+                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+                  <Icon name="LightBulbIcon" :size="12" />
+                </div>
+                <span class="text-sm font-semibold text-[var(--color-label-primary)]">{{ suggestion.message }}</span>
+              </div>
+
+              <div v-if="suggestion.rotationCandidates" class="mt-2 flex flex-wrap gap-1.5">
+                <button
+                  v-for="(candidate, index) in suggestion.rotationCandidates"
+                  :key="candidate.name"
+                  type="button"
+                  @click="handleCandidateClick(suggestion, candidate.name)"
+                  :class="clsx(
+                    'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors active:scale-95',
+                    'border-[var(--color-border-subtle)] hover:border-[var(--color-accent)]',
+                    index === 0
+                      ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 font-medium text-[var(--color-accent)]'
+                      : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-secondary)]',
+                  )"
+                >
+                  {{ candidate.name }}
+                  <span class="text-[10px] opacity-70">
+                    {{ candidate.weeksSince === Infinity ? '미배정' : `${candidate.weeksSince}주↑` }}
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 빈 상태 -->
-      <div 
-        v-if="(activeFilter !== 'info' && filteredWarnings.length === 0) || 
-              (activeFilter === 'info' && rotationSuggestions.length === 0)"
-        class="py-8 text-center"
-      >
-        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-[var(--color-surface)] flex-center">
-          <Icon 
-            :name="activeFilter === 'info' ? 'LightBulbIcon' : 'SolidCheckCircleIcon'" 
-            :size="24" 
-            class="text-[var(--color-success)]" 
-          />
+      <div v-if="(activeFilter !== 'info' && isIssuesEmpty) || (activeFilter === 'info' && isInfoEmpty)" class="py-8 text-center">
+        <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-surface)]">
+          <Icon :name="activeFilter === 'info' ? 'LightBulbIcon' : 'SolidCheckCircleIcon'" :size="24" class="text-[var(--color-success)]" />
         </div>
         <p class="text-sm text-[var(--color-label-secondary)]">
           {{ activeFilter === 'info' ? '현재 추천 사항이 없습니다.' : '모든 배정이 적절합니다!' }}
         </p>
-        <p v-if="activeFilter !== 'info'" class="text-xs text-[var(--color-label-tertiary)] mt-1">
+        <p v-if="activeFilter !== 'info'" class="mt-1 text-xs text-[var(--color-label-tertiary)]">
           연속 배정 경고가 없습니다
         </p>
       </div>
 
-      <!-- 전체 경고 없을 때 요약 -->
-      <div 
-        v-if="totalWarnings === 0 && activeFilter === 'all'"
-        class="text-xs text-[var(--color-label-tertiary)] text-center pt-2 border-t border-[var(--color-border-subtle)] flex items-center justify-center gap-1"
+      <div
+        v-if="totalIssues === 0 && activeFilter === 'all'"
+        class="flex items-center justify-center gap-1 border-t border-[var(--color-border-subtle)] pt-2 text-center text-xs text-[var(--color-label-tertiary)]"
       >
         <Icon name="LightBulbIcon" :size="12" class="text-[var(--color-accent)]" />
-        '추천' 탭에서 로테이션 제안을 확인하세요
+        '정보' 탭에서 로테이션 제안을 확인하세요
       </div>
     </CardContent>
   </Card>
