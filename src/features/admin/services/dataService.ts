@@ -1,4 +1,4 @@
-import type { AppData, WeekData } from '@/shared/types'
+import { ZMembersEntry, ZWeekData, type AppData, type WeekData } from '@/shared/types'
 import { toRaw } from 'vue'
 
 type MergeStrategy = 'overwrite' | 'merge_incoming' | 'merge_existing'
@@ -7,6 +7,19 @@ export interface ExportOptions {
     includeMembers: boolean
     includeWeeks: boolean
     weekRange?: { start: string; end: string }
+}
+
+export type ImportIssueLevel = 'error' | 'warning'
+export interface ImportValidationIssue {
+    level: ImportIssueLevel
+    field: string
+    message: string
+}
+
+export interface ImportValidationResult {
+    data: Partial<AppData> | null
+    issues: ImportValidationIssue[]
+    hasBlockingError: boolean
 }
 
 /**
@@ -100,4 +113,101 @@ export function downloadJson(data: unknown, filename: string) {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+}
+
+function formatZodIssues(prefix: string, issues: Array<{ path: (string | number)[]; message: string }>): ImportValidationIssue[] {
+    return issues.map((issue) => ({
+        level: 'error',
+        field: `${prefix}${issue.path.length > 0 ? `.${issue.path.join('.')}` : ''}`,
+        message: issue.message
+    }))
+}
+
+export function validateImportPayload(payload: unknown): ImportValidationResult {
+    const issues: ImportValidationIssue[] = []
+
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return {
+            data: null,
+            issues: [{ level: 'error', field: 'root', message: 'JSON 최상위는 객체여야 합니다.' }],
+            hasBlockingError: true
+        }
+    }
+
+    const raw = payload as Record<string, unknown>
+    const hasMembers = Object.prototype.hasOwnProperty.call(raw, 'members')
+    const hasWeeks = Object.prototype.hasOwnProperty.call(raw, 'weeks')
+
+    if (!hasMembers && !hasWeeks) {
+        return {
+            data: null,
+            issues: [{ level: 'error', field: 'root', message: '`members` 또는 `weeks` 필드가 필요합니다.' }],
+            hasBlockingError: true
+        }
+    }
+
+    const normalized: Partial<AppData> = {}
+
+    if (hasMembers) {
+        if (!Array.isArray(raw.members)) {
+            issues.push({ level: 'error', field: 'members', message: '`members`는 배열이어야 합니다.' })
+        } else {
+            const uniqueMembers = new Map<string, AppData['members'][number]>()
+            raw.members.forEach((candidate, idx) => {
+                const parsed = ZMembersEntry.safeParse(candidate)
+                if (!parsed.success) {
+                    issues.push(...formatZodIssues(`members[${idx}]`, parsed.error.issues))
+                    return
+                }
+                const member = {
+                    ...parsed.data,
+                    name: parsed.data.name.trim(),
+                    notes: parsed.data.notes?.trim() || undefined
+                }
+                if (!member.name) {
+                    issues.push({ level: 'error', field: `members[${idx}].name`, message: '이름은 비어 있을 수 없습니다.' })
+                    return
+                }
+                if (uniqueMembers.has(member.name)) {
+                    issues.push({
+                        level: 'warning',
+                        field: `members[${idx}].name`,
+                        message: `중복 멤버 '${member.name}'은 마지막 항목으로 덮어씁니다.`
+                    })
+                }
+                uniqueMembers.set(member.name, member)
+            })
+            normalized.members = Array.from(uniqueMembers.values())
+        }
+    }
+
+    if (hasWeeks) {
+        if (!raw.weeks || typeof raw.weeks !== 'object' || Array.isArray(raw.weeks)) {
+            issues.push({ level: 'error', field: 'weeks', message: '`weeks`는 객체여야 합니다.' })
+        } else {
+            const weekEntries = raw.weeks as Record<string, unknown>
+            const sanitizedWeeks: Record<string, WeekData> = {}
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+            Object.entries(weekEntries).forEach(([date, candidate]) => {
+                if (!dateRegex.test(date)) {
+                    issues.push({ level: 'error', field: `weeks.${date}`, message: '키는 YYYY-MM-DD 형식이어야 합니다.' })
+                    return
+                }
+                const parsed = ZWeekData.safeParse(candidate)
+                if (!parsed.success) {
+                    issues.push(...formatZodIssues(`weeks.${date}`, parsed.error.issues))
+                    return
+                }
+                sanitizedWeeks[date] = parsed.data
+            })
+            normalized.weeks = sanitizedWeeks
+        }
+    }
+
+    const hasBlockingError = issues.some((issue) => issue.level === 'error')
+    return {
+        data: hasBlockingError ? null : normalized,
+        issues,
+        hasBlockingError
+    }
 }
