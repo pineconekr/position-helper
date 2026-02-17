@@ -19,6 +19,12 @@ export interface ParsedMember {
     generation: number | null
 }
 
+type LegacyMemberRecord = Partial<MembersEntry> & Record<string, unknown>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null
+}
+
 /**
  * 레거시 이름 형식 ("20 박예")을 파싱합니다.
  * 새 형식의 데이터는 이 함수 호출이 필요 없습니다.
@@ -80,26 +86,38 @@ export function getGenerationLabel(member: MembersEntry): string | null {
  * 레거시 데이터를 새 형식으로 마이그레이션합니다.
  * "20 박예" -> { name: "박예", generation: 20 }
  */
-export function migrateMember(legacyMember: any): MembersEntry {
-    // 이미 새 형식이면 그대로 반환
-    if (typeof legacyMember.generation === 'number') {
-        return legacyMember as MembersEntry
+export function migrateMember(legacyMember: unknown): MembersEntry {
+    const member: LegacyMemberRecord = isRecord(legacyMember) ? legacyMember : {}
+
+    // 이미 새 형식이면 정규화해서 반환
+    if (
+        typeof member.generation === 'number' &&
+        typeof member.name === 'string' &&
+        typeof member.active === 'boolean'
+    ) {
+        return {
+            name: member.name,
+            generation: member.generation,
+            active: member.active,
+            ...(typeof member.notes === 'string' ? { notes: member.notes } : {})
+        }
     }
 
-    const parsed = parseLegacyName(legacyMember.name)
+    const rawName = typeof member.name === 'string' ? member.name : ''
+    const parsed = parseLegacyName(rawName)
 
     return {
         name: parsed.displayName,
         generation: parsed.generation ?? 0, // 기수 없으면 0 (정렬용)
-        active: legacyMember.active ?? true,
-        notes: legacyMember.notes ?? ''
+        active: typeof member.active === 'boolean' ? member.active : true,
+        notes: typeof member.notes === 'string' ? member.notes : ''
     }
 }
 
 /**
  * 전체 멤버 배열을 마이그레이션합니다.
  */
-export function migrateMembers(legacyMembers: any[]): MembersEntry[] {
+export function migrateMembers(legacyMembers: unknown[]): MembersEntry[] {
     return legacyMembers.map(migrateMember)
 }
 

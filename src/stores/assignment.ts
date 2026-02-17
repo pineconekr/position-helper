@@ -49,6 +49,7 @@ type DraftHistoryEntry = {
 }
 
 const MAX_HISTORY = 20
+const SYNC_DEBOUNCE_MS = 500
 const initial: AppData = { weeks: {}, members: [] }
 
 export const useAssignmentStore = defineStore('assignment', () => {
@@ -64,6 +65,10 @@ export const useAssignmentStore = defineStore('assignment', () => {
     const warnings = ref<Warning[]>([])
     const draftHistory = ref<DraftHistoryEntry[]>([])
     const skipNextDbLoad = ref(false) // Import 직후 loadFromDb 방지용
+    const isSyncing = ref(false)
+    const hasPendingSync = ref(false)
+    let syncTimer: ReturnType<typeof setTimeout> | null = null
+    let syncPromise: Promise<void> | null = null
 
     const canUndo = computed(() => draftHistory.value.length > 0)
 
@@ -127,7 +132,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
                 meta: { action: 'note-update', before: prev?.notes, after: m.notes }
             })
         })
-        syncToDb()
+        void syncToDb()
     }
 
     function toggleMemberActive(name: string) {
@@ -142,7 +147,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
             description: member.active ? '활성화' : '비활성화',
             meta: { action: 'toggle-active', active: member.active }
         })
-        syncToDb()
+        void syncToDb()
     }
 
     function setMembersActive(names: string[], active: boolean) {
@@ -162,7 +167,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
                 description: `${count}명 ${active ? '활성화' : '비활성화'}`,
                 meta: { action: 'bulk-active', count, active }
             })
-            syncToDb()
+            void syncToDb()
         }
 
         return count
@@ -304,7 +309,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
                 meta: { action: 'update', date, absence: a, before: prevMap.get(a.name) }
             })
         })
-        syncToDb()
+        void syncToDb()
     }
 
     function importData(data: AppData) {
@@ -370,7 +375,7 @@ export const useAssignmentStore = defineStore('assignment', () => {
             meta: { date, totalAssigned }
         })
 
-        syncToDb()
+        void syncToDb({ immediate: true })
     }
 
     function undoLastAssignment() {
@@ -415,13 +420,59 @@ export const useAssignmentStore = defineStore('assignment', () => {
         }
     }
 
-    async function syncToDb() {
-        try {
-            // N+1 문제 해결을 위해 batchImport 사용 (전체 데이터 한 번에 전송)
-            const payload = exportData()
-            await api.batchImport(payload)
-        } catch (error) {
-            console.error('Failed to sync to DB:', error)
+    function scheduleSync(immediate = false) {
+        hasPendingSync.value = true
+
+        if (immediate) {
+            if (syncTimer) {
+                clearTimeout(syncTimer)
+                syncTimer = null
+            }
+            void flushSyncQueue()
+            return
+        }
+
+        if (syncTimer) {
+            clearTimeout(syncTimer)
+        }
+        syncTimer = setTimeout(() => {
+            syncTimer = null
+            void flushSyncQueue()
+        }, SYNC_DEBOUNCE_MS)
+    }
+
+    async function flushSyncQueue() {
+        if (syncPromise) return syncPromise
+
+        syncPromise = (async () => {
+            while (hasPendingSync.value) {
+                hasPendingSync.value = false
+                isSyncing.value = true
+                try {
+                    // N+1 문제 해결을 위해 batchImport 사용 (전체 데이터 한 번에 전송)
+                    const payload = exportData()
+                    await api.batchImport(payload)
+                } catch (error) {
+                    console.error('Failed to sync to DB:', error)
+                    // 실패 시 다음 동기화 사이클에서 재시도
+                    hasPendingSync.value = true
+                    break
+                } finally {
+                    isSyncing.value = false
+                }
+            }
+        })().finally(() => {
+            syncPromise = null
+        })
+
+        return syncPromise
+    }
+
+    async function syncToDb(options: { immediate?: boolean } = {}) {
+        const immediate = options.immediate === true
+        scheduleSync(immediate)
+        if (immediate) {
+            await flushSyncQueue()
         }
     }
 

@@ -8,18 +8,45 @@ import { verifyAuth, unauthorizedResponse } from './utils/auth'
  * [개선] 트랜잭션 + 입력 검증
  */
 
-// 입력 데이터 검증
-function validateMembers(members: unknown): members is Array<{ name: string; active?: boolean; notes?: string; generation?: number }> {
-    if (!Array.isArray(members)) return false
-    return members.every(m =>
-        typeof m === 'object' && m !== null &&
-        typeof (m as any).name === 'string' && (m as any).name.trim() !== ''
+type IncomingMember = { name: string; active?: boolean; notes?: string; generation?: number }
+type NormalizedMember = { name: string; active: boolean; notes: string; generation: number | null }
+type NormalizedWeek = { week_date: string; data: unknown }
+
+function isIncomingMember(value: unknown): value is IncomingMember {
+    if (typeof value !== 'object' || value === null) return false
+
+    const member = value as Record<string, unknown>
+    return (
+        typeof member.name === 'string' &&
+        member.name.trim() !== '' &&
+        (member.active === undefined || typeof member.active === 'boolean') &&
+        (member.notes === undefined || typeof member.notes === 'string') &&
+        (member.generation === undefined || typeof member.generation === 'number')
     )
+}
+
+// 입력 데이터 검증
+function validateMembers(members: unknown): members is IncomingMember[] {
+    if (!Array.isArray(members)) return false
+    return members.every(isIncomingMember)
 }
 
 function validateWeeks(weeks: unknown): weeks is Record<string, unknown> {
     if (typeof weeks !== 'object' || weeks === null) return false
     return Object.keys(weeks).every(key => /^\d{4}-\d{2}-\d{2}$/.test(key))
+}
+
+function normalizeMembers(members: IncomingMember[]): NormalizedMember[] {
+    return members.map((member) => ({
+        name: member.name.trim(),
+        active: member.active ?? true,
+        notes: member.notes ?? '',
+        generation: typeof member.generation === 'number' ? member.generation : null
+    }))
+}
+
+function normalizeWeeks(weeks: Record<string, unknown>): NormalizedWeek[] {
+    return Object.entries(weeks).map(([week_date, data]) => ({ week_date, data }))
 }
 
 export default async (req: Request) => {
@@ -53,39 +80,48 @@ export default async (req: Request) => {
     const sql = neon(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL!)
 
     try {
-        let membersImported = 0
-        let weeksImported = 0
+        const normalizedMembers = members && Array.isArray(members) ? normalizeMembers(members) : []
+        const normalizedWeeks = weeks && typeof weeks === 'object' ? normalizeWeeks(weeks) : []
+        const membersImported = normalizedMembers.length
+        const weeksImported = normalizedWeeks.length
 
         await sql`BEGIN`
         try {
-            // Members 일괄 저장 (UPSERT) - generation을 INTEGER로 저장
-            if (members && Array.isArray(members)) {
-                for (const member of members) {
-                    // generation이 숫자가 아니면 null로 처리
-                    const gen = typeof member.generation === 'number' ? member.generation : null
-
-                    await sql`
-                        INSERT INTO members (name, active, notes, generation)
-                        VALUES (${member.name}, ${member.active ?? true}, ${member.notes ?? ''}, ${gen})
-                        ON CONFLICT (name) DO UPDATE SET 
-                            active = EXCLUDED.active,
-                            notes = EXCLUDED.notes,
-                            generation = EXCLUDED.generation
-                    `
-                    membersImported++
-                }
+            // Members 벌크 UPSERT
+            if (normalizedMembers.length > 0) {
+                await sql`
+                    INSERT INTO members (name, active, notes, generation)
+                    SELECT
+                        m.name,
+                        m.active,
+                        m.notes,
+                        m.generation
+                    FROM jsonb_to_recordset(${JSON.stringify(normalizedMembers)}::jsonb) AS m(
+                        name text,
+                        active boolean,
+                        notes text,
+                        generation integer
+                    )
+                    ON CONFLICT (name) DO UPDATE SET
+                        active = EXCLUDED.active,
+                        notes = EXCLUDED.notes,
+                        generation = EXCLUDED.generation
+                `
             }
 
-            // Weeks 일괄 저장 (UPSERT)
-            if (weeks && typeof weeks === 'object') {
-                for (const [date, weekData] of Object.entries(weeks)) {
-                    await sql`
-                        INSERT INTO weeks (week_date, data)
-                        VALUES (${date}, ${JSON.stringify(weekData)})
-                        ON CONFLICT (week_date) DO UPDATE SET data = EXCLUDED.data
-                    `
-                    weeksImported++
-                }
+            // Weeks 벌크 UPSERT
+            if (normalizedWeeks.length > 0) {
+                await sql`
+                    INSERT INTO weeks (week_date, data)
+                    SELECT
+                        w.week_date::date,
+                        w.data::jsonb
+                    FROM jsonb_to_recordset(${JSON.stringify(normalizedWeeks)}::jsonb) AS w(
+                        week_date text,
+                        data jsonb
+                    )
+                    ON CONFLICT (week_date) DO UPDATE SET data = EXCLUDED.data
+                `
             }
 
             await sql`COMMIT`

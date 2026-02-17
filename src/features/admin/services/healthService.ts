@@ -1,4 +1,4 @@
-import type { AppData } from '@/shared/types'
+import type { AppData, PartAssignment } from '@/shared/types'
 
 export interface HealthIssue {
     id: string
@@ -27,12 +27,14 @@ export function scanData(data: AppData): HealthReport {
         // Collect all names in this week
         const assignedNames: string[] = []
 
-        const scanPart = (p: any) => {
-            if (p.SW) assignedNames.push(p.SW)
-            if (p['자막']) assignedNames.push(p['자막'])
-            if (p['고정']) assignedNames.push(p['고정'])
-            if (p['스케치']) assignedNames.push(p['스케치'])
-            if (Array.isArray(p['사이드'])) p['사이드'].forEach((n: string) => n && assignedNames.push(n))
+        const scanPart = (part: PartAssignment) => {
+            if (part.SW) assignedNames.push(part.SW)
+            if (part['자막']) assignedNames.push(part['자막'])
+            if (part['고정']) assignedNames.push(part['고정'])
+            if (part['스케치']) assignedNames.push(part['스케치'])
+            part['사이드'].forEach(name => {
+                if (name) assignedNames.push(name)
+            })
         }
 
         scanPart(weekData.part1)
@@ -84,18 +86,20 @@ export function scanData(data: AppData): HealthReport {
  */
 export function fixOrphans(data: AppData): AppData {
     const memberNames = new Set(data.members.map(m => m.name))
-    const newData = JSON.parse(JSON.stringify(data)) as AppData
+    const newData = structuredClone(data)
 
     Object.keys(newData.weeks).forEach(date => {
         const week = newData.weeks[date]
-        const cleanPart = (p: any) => {
-            if (p.SW && !memberNames.has(p.SW)) p.SW = ''
-            if (p['자막'] && !memberNames.has(p['자막'])) p['자막'] = ''
-            if (p['고정'] && !memberNames.has(p['고정'])) p['고정'] = ''
-            if (p['스케치'] && !memberNames.has(p['스케치'])) p['스케치'] = ''
-            if (Array.isArray(p['사이드'])) {
-                p['사이드'] = p['사이드'].map((n: string) => (!memberNames.has(n) ? '' : n))
-            }
+        const cleanPart = (part: PartAssignment) => {
+            if (part.SW && !memberNames.has(part.SW)) part.SW = ''
+            if (part['자막'] && !memberNames.has(part['자막'])) part['자막'] = ''
+            if (part['고정'] && !memberNames.has(part['고정'])) part['고정'] = ''
+            if (part['스케치'] && !memberNames.has(part['스케치'])) part['스케치'] = ''
+            const [side1, side2] = part['사이드']
+            part['사이드'] = [
+                memberNames.has(side1) ? side1 : '',
+                memberNames.has(side2) ? side2 : ''
+            ]
         }
         cleanPart(week.part1)
         cleanPart(week.part2)

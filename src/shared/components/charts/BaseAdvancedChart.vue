@@ -25,8 +25,13 @@ use([
   MarkLineComponent
 ])
 
+type ChartOptions = Record<string, unknown> & {
+  tooltip?: Record<string, unknown>
+  grid?: Record<string, unknown>
+}
+
 const props = defineProps<{
-  options: any
+  options: ChartOptions
   height?: string
 }>()
 

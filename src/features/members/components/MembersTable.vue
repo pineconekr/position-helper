@@ -4,6 +4,7 @@ import {
   createColumnHelper,
   getCoreRowModel,
   getSortedRowModel,
+  type Column,
   type SortingState,
   useVueTable,
 } from '@tanstack/vue-table'
@@ -48,7 +49,7 @@ const rowSelection = ref({})
 const columnHelper = createColumnHelper<MemberWithStats>()
 
 function renderSortHeader(label: string, ariaLabel: string, hiddenClass = '') {
-  return ({ column }: { column: any }) => {
+  return ({ column }: { column: Column<MemberWithStats, unknown> }) => {
     const sorted = column.getIsSorted()
     const sortIcon = h(Icon, {
       name: sorted === 'asc' ? 'ChevronUpIcon' : (sorted === 'desc' ? 'ChevronDownIcon' : 'ArrowsUpDownIcon'),
