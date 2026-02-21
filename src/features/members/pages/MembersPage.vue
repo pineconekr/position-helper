@@ -135,40 +135,43 @@ function handleBulkActive(names: string[], active: boolean) {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-[1400px] space-y-5 px-1 py-5 sm:space-y-6 sm:py-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-semibold tracking-tight text-foreground">팀원 관리</h1>
-        <p class="mt-1 text-sm text-muted-foreground">배정 운영에 사용되는 멤버 프로필과 상태를 관리합니다.</p>
+  <div class="space-y-4">
+    <section class="surface-panel px-4 py-4 sm:px-6 sm:py-5">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="space-y-1.5">
+          <p class="section-eyebrow">Members</p>
+          <h1 class="section-title">팀원 관리</h1>
+          <p class="section-description">배정 운영에 사용되는 멤버 프로필, 활동 상태, 기본 메모를 관리합니다.</p>
+        </div>
+        <Button @click="handleAdd" class="h-10 w-full px-4 text-sm font-semibold sm:w-auto">
+          <Icon name="UserPlusIcon" :size="16" class="mr-2" />
+          멤버 추가
+        </Button>
       </div>
-      <Button @click="handleAdd" class="h-10 px-4 text-sm font-semibold">
-        <Icon name="UserPlusIcon" :size="16" class="mr-2" />
-        멤버 추가
-      </Button>
-    </div>
+    </section>
 
-    <div class="grid gap-3 sm:grid-cols-3">
-      <Card class="border-border/70">
+    <div class="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+      <Card class="border-border/75 bg-card/92">
         <CardContent class="p-4">
-          <p class="text-xs font-medium text-muted-foreground">전체 멤버</p>
-          <p class="mt-1 text-2xl font-semibold text-foreground">{{ totalCount }}</p>
+          <p class="text-sm font-medium uppercase tracking-[0.08em] text-muted-foreground">전체 멤버</p>
+          <p class="stat-number mt-1 text-2xl text-foreground">{{ totalCount }}</p>
         </CardContent>
       </Card>
-      <Card class="border-border/70">
+      <Card class="border-border/75 bg-card/92">
         <CardContent class="p-4">
-          <p class="text-xs font-medium text-muted-foreground">활동 멤버</p>
-          <p class="mt-1 text-2xl font-semibold text-foreground">{{ activeCount }}</p>
+          <p class="text-sm font-medium uppercase tracking-[0.08em] text-muted-foreground">활동 멤버</p>
+          <p class="stat-number mt-1 text-2xl text-foreground">{{ activeCount }}</p>
         </CardContent>
       </Card>
-      <Card class="border-border/70">
+      <Card class="border-border/75 bg-card/92">
         <CardContent class="p-4">
-          <p class="text-xs font-medium text-muted-foreground">비활동 멤버</p>
-          <p class="mt-1 text-2xl font-semibold text-foreground">{{ inactiveCount }}</p>
+          <p class="text-sm font-medium uppercase tracking-[0.08em] text-muted-foreground">비활동 멤버</p>
+          <p class="stat-number mt-1 text-2xl text-foreground">{{ inactiveCount }}</p>
         </CardContent>
       </Card>
     </div>
 
-    <Card class="border-border/70">
+    <Card class="border-border/75 bg-card/92">
       <CardContent class="space-y-4 p-4">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div class="relative w-full lg:max-w-md">
@@ -180,28 +183,28 @@ function handleBulkActive(names: string[], active: boolean) {
             />
           </div>
 
-          <div class="flex items-center gap-1 rounded-lg border border-border/70 bg-muted/30 p-1">
+          <div class="flex flex-wrap items-center gap-1 rounded-full border border-border/70 bg-muted/40 p-1 sm:flex-nowrap">
             <button
               type="button"
               @click="statusFilter = 'all'"
-              :class="statusFilter === 'all' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-              class="min-w-[66px] rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+              :class="statusFilter === 'all' ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+              class="min-w-[66px] rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
             >
               전체
             </button>
             <button
               type="button"
               @click="statusFilter = 'active'"
-              :class="statusFilter === 'active' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-              class="min-w-[66px] rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+              :class="statusFilter === 'active' ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+              class="min-w-[66px] rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
             >
               활동
             </button>
             <button
               type="button"
               @click="statusFilter = 'inactive'"
-              :class="statusFilter === 'inactive' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
-              class="min-w-[66px] rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+              :class="statusFilter === 'inactive' ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+              class="min-w-[66px] rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
             >
               비활동
             </button>
@@ -224,3 +227,4 @@ function handleBulkActive(names: string[], active: boolean) {
     />
   </div>
 </template>
+

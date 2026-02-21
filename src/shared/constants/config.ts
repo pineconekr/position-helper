@@ -47,3 +47,15 @@ export const ROLE_CONFIG = {
     /** 주당 총 슬롯 수 (part1 + part2) */
     TOTAL_SLOTS_PER_WEEK: 12,  // (SW:1 + 자막:1 + 고정:1 + 사이드:2 + 스케치:1) * 2
 } as const
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stats & Analytics Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const STATS_CONFIG = {
+    /** 배정 변동계수(CV) 균형 기준선 */
+    FAIRNESS_CV_BALANCE_THRESHOLD: 0.5,
+
+    /** 개인 불참 편차(IQR 정규화) 상태 분류 기준 */
+    ABSENCE_DEVIATION_STATUS_THRESHOLD: 0.5,
+} as const

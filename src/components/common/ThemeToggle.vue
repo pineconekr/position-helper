@@ -46,12 +46,7 @@ const nextThemeLabel = computed(() => {
       <TooltipTrigger asChild>
         <button
           @click="cycleTheme"
-          class="
-            p-2 rounded-lg transition-all duration-200
-            text-muted-foreground hover:text-foreground
-            hover:bg-muted/80 dark:hover:bg-muted/50
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
-          "
+          class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-background/80 text-muted-foreground shadow-sm transition-colors duration-150 hover:border-border hover:bg-accent/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           :aria-label="nextThemeLabel"
           role="button"
         >
@@ -61,8 +56,9 @@ const nextThemeLabel = computed(() => {
       </TooltipTrigger>
       <TooltipContent side="bottom" :sideOffset="8">
         <p class="text-sm font-medium">{{ themeLabel }}</p>
-        <p class="text-xs text-muted-foreground">클릭하여 변경</p>
+        <p class="text-sm text-muted-foreground">클릭하여 변경</p>
       </TooltipContent>
     </Tooltip>
   </TooltipProvider>
 </template>
+

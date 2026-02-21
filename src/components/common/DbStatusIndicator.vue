@@ -62,17 +62,17 @@ onUnmounted(() => {
 
 const statusConfig = {
     checking: {
-        color: 'var(--color-warning)',
+        color: '#f59e0b',
         pulse: true,
         label: '연결 확인 중...'
     },
     connected: {
-        color: 'var(--color-success)',
+        color: '#22c55e',
         pulse: false,
         label: 'DB 연결됨'
     },
     disconnected: {
-        color: 'var(--color-danger)',
+        color: '#ef4444',
         pulse: true,
         label: 'DB 연결 끊김'
     }
@@ -87,8 +87,10 @@ const statusConfig = {
           @click="checkConnection"
           :disabled="isChecking"
           :class="[
-            'relative flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors',
-            isChecking ? 'cursor-not-allowed opacity-70 bg-muted/30' : 'cursor-pointer bg-muted/50 hover:bg-muted'
+            'relative inline-flex h-8 items-center gap-1.5 rounded-full border px-2 text-[0.82rem] font-medium transition-colors sm:h-9 sm:gap-2 sm:px-3 sm:text-[0.84rem]',
+            isChecking
+              ? 'cursor-not-allowed border-border/60 bg-background/60 text-muted-foreground opacity-75'
+              : 'cursor-pointer border-border/70 bg-background/80 text-muted-foreground shadow-sm hover:border-border hover:bg-accent/70 hover:text-foreground'
           ]"
           aria-label="데이터베이스 연결 상태"
         >
@@ -109,7 +111,7 @@ const statusConfig = {
           
           <!-- Label (desktop only) -->
           <span 
-            class="hidden sm:inline text-xs font-medium text-muted-foreground"
+            class="hidden sm:inline text-[0.82rem] font-medium"
             aria-live="polite"
             :aria-label="statusConfig[status].label"
           >
@@ -117,7 +119,7 @@ const statusConfig = {
           </span>
         </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" class="text-xs">
+      <TooltipContent side="bottom" class="text-sm">
         <div class="flex flex-col gap-1">
           <span class="font-medium">{{ statusConfig[status].label }}</span>
           <span v-if="latency !== null" class="text-muted-foreground">
@@ -132,3 +134,5 @@ const statusConfig = {
     </Tooltip>
   </TooltipProvider>
 </template>
+
+

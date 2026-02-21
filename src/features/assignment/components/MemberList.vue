@@ -114,9 +114,9 @@ function getItemClasses(item: typeof items.value[0]) {
   const isSelected = props.selectedMember === item.value
 
   return clsx(
-    'px-3 py-1.5 rounded-full border',
+    'px-2.5 py-1 rounded-full border',
     'flex items-center gap-1.5 min-h-[var(--pill-height)]',
-    'text-sm font-medium',
+    'text-[0.82rem] font-medium',
     // 비활성/불참이 아닌 경우 드래그 가능한 요소 스타일 적용
     !item.inactive && !isAbsent && 'draggable-item',
     // 비활성 상태
@@ -152,14 +152,14 @@ const isInline = computed(() => props.variant === 'inline')
 <template>
   <!-- Panel wrapper -->
   <Card v-if="!isInline">
-    <CardContent class="p-3">
-    <div v-if="title" class="text-sm font-semibold mb-2 flex items-center justify-between text-[var(--color-label-secondary)]">
+    <CardContent class="p-2.5">
+    <div v-if="title" class="mb-1.5 flex items-center justify-between text-[0.82rem] font-semibold text-[var(--color-label-secondary)]">
       <span>{{ title }}</span>
       <button
         type="button"
         @click="handleToggleInactive"
         :class="clsx(
-          'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all',
+          'flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.8rem] font-medium transition-all',
           showInactive
             ? 'bg-[var(--color-accent)] text-white shadow-sm'
             : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)] border border-[var(--color-border-subtle)]'
@@ -170,7 +170,7 @@ const isInline = computed(() => props.variant === 'inline')
       </button>
     </div>
 
-    <div :class="`flex gap-2 ${orientation === 'horizontal' ? 'flex-row flex-wrap' : 'flex-col'}`">
+    <div :class="`flex gap-1.5 ${orientation === 'horizontal' ? 'flex-row flex-wrap' : 'flex-col'}`">
       <div
         v-for="(item, idx) in items"
         :key="item.id"
@@ -208,7 +208,7 @@ const isInline = computed(() => props.variant === 'inline')
         </span>
       </div>
 
-      <div v-if="items.length === 0" class="text-xs text-[var(--color-label-tertiary)] py-2">
+      <div v-if="items.length === 0" class="text-sm text-[var(--color-label-tertiary)] py-2">
         팀원을 먼저 추가하세요
       </div>
     </div>
@@ -216,8 +216,8 @@ const isInline = computed(() => props.variant === 'inline')
   </Card>
 
   <!-- Inline variant -->
-  <div v-else class="flex flex-col gap-2">
-    <div :class="`flex gap-2 ${orientation === 'horizontal' ? 'flex-row flex-wrap' : 'flex-col'}`">
+  <div v-else class="flex flex-col gap-1.5">
+    <div :class="`flex gap-1.5 ${orientation === 'horizontal' ? 'flex-row flex-wrap' : 'flex-col'}`">
       <div
         v-for="(item, idx) in items"
         :key="item.id"
@@ -236,3 +236,5 @@ const isInline = computed(() => props.variant === 'inline')
     </div>
   </div>
 </template>
+
+

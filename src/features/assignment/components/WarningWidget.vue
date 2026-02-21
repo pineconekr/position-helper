@@ -149,24 +149,24 @@ const isIssuesEmpty = computed(() => {
 
 <template>
   <Card>
-    <CardContent class="space-y-4 p-4">
-      <div class="flex items-center justify-between border-b border-[var(--color-border-subtle)] pb-3">
+    <CardContent class="space-y-3 p-3.5">
+      <div class="flex items-center justify-between border-b border-[var(--color-border-subtle)] pb-2.5">
         <div class="flex items-center gap-2">
           <Icon name="BellIcon" :size="16" class="text-[var(--color-label-tertiary)]" />
           <div>
-            <p class="text-sm font-semibold text-[var(--color-label-primary)]">배정 피드백</p>
-            <p class="text-xs text-[var(--color-label-tertiary)]">{{ summaryText }}</p>
+            <p class="text-[0.84rem] font-semibold text-[var(--color-label-primary)]">배정 피드백</p>
+            <p class="text-[0.82rem] text-[var(--color-label-tertiary)]">{{ summaryText }}</p>
           </div>
         </div>
 
         <div class="flex items-center gap-1.5">
-          <span v-if="errorCount > 0" class="animate-pulse rounded-[4px] bg-[var(--color-danger)]/10 px-1.5 py-0.5 text-xs font-semibold text-[var(--color-danger)]">
+          <span v-if="errorCount > 0" class="animate-pulse rounded-[4px] bg-[var(--color-danger)]/10 px-1.5 py-0.5 text-sm font-semibold text-[var(--color-danger)]">
             {{ errorCount }} 긴급
           </span>
-          <span v-if="warnCount > 0" class="rounded-[4px] bg-[var(--color-warning)]/10 px-1.5 py-0.5 text-xs font-semibold text-[var(--color-warning)]">
+          <span v-if="warnCount > 0" class="rounded-[4px] bg-[var(--color-warning)]/10 px-1.5 py-0.5 text-sm font-semibold text-[var(--color-warning)]">
             {{ warnCount }} 주의
           </span>
-          <span v-if="infoCount > 0" class="rounded-[4px] bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-xs font-semibold text-[var(--color-accent)]">
+          <span v-if="infoCount > 0" class="rounded-[4px] bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-sm font-semibold text-[var(--color-accent)]">
             {{ infoCount }} 정보
           </span>
         </div>
@@ -178,7 +178,7 @@ const isIssuesEmpty = computed(() => {
           :key="filter.key"
           @click="activeFilter = filter.key"
           :class="clsx(
-            'flex cursor-pointer select-none items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all duration-150',
+            'flex cursor-pointer select-none items-center gap-1 rounded-full px-2 py-0.5 text-[0.82rem] font-medium transition-all duration-150',
             activeFilter === filter.key
               ? 'bg-[var(--color-accent)] text-white'
               : 'bg-[var(--color-surface)] text-[var(--color-label-secondary)] hover:bg-[var(--color-surface-elevated)] active:scale-95',
@@ -197,12 +197,12 @@ const isIssuesEmpty = computed(() => {
           <template v-if="getIssueWarnings(level).length > 0">
             <button
               type="button"
-              class="flex w-full items-center justify-between rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-2.5 py-2 text-left"
+              class="flex w-full items-center justify-between rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-2.5 py-1.5 text-left"
               @click="toggleCollapse(level)"
             >
               <div class="flex items-center gap-2">
                 <Icon :name="getLevelConfig(level).icon" :size="14" />
-                <span class="text-xs font-semibold text-[var(--color-label-secondary)]">
+                <span class="text-[0.82rem] font-semibold text-[var(--color-label-secondary)]">
                   {{ getLevelConfig(level).label }} {{ getIssueWarnings(level).length }}건
                 </span>
               </div>
@@ -215,7 +215,7 @@ const isIssuesEmpty = computed(() => {
                 :key="warning.id"
                 @click="handleWarningClick(warning)"
                 :class="clsx(
-                  'relative flex cursor-pointer items-start gap-3 rounded-[var(--radius-sm)] border-l-[3px] bg-[var(--color-surface)] p-3 transition-all duration-150 hover:bg-[var(--color-surface-elevated)] active:scale-[0.98]',
+                  'relative flex cursor-pointer items-start gap-2.5 rounded-[var(--radius-sm)] border-l-[3px] bg-[var(--color-surface)] p-2.5 transition-all duration-150 hover:bg-[var(--color-surface-elevated)] active:scale-[0.98]',
                   getLevelConfig(warning.level).borderClass,
                 )"
               >
@@ -231,15 +231,15 @@ const isIssuesEmpty = computed(() => {
                 </div>
 
                 <div class="min-w-0 flex-1">
-                  <div class="mb-0.5 flex items-center gap-2">
+                  <div class="mb-0.5 flex items-center gap-1.5">
                     <span :class="clsx('rounded-[3px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', getLevelConfig(warning.level).badgeClass)">
                       {{ getLevelConfig(warning.level).label }}
                     </span>
-                    <span v-if="formatTarget(warning)" class="rounded-[3px] bg-[var(--color-surface-elevated)] px-1.5 py-0.5 text-xs font-medium text-[var(--color-label-primary)]">
+                    <span v-if="formatTarget(warning)" class="rounded-[3px] bg-[var(--color-surface-elevated)] px-1.5 py-0.5 text-sm font-medium text-[var(--color-label-primary)]">
                       {{ formatTarget(warning) }}
                     </span>
                   </div>
-                  <p class="text-sm leading-relaxed text-[var(--color-label-secondary)]">{{ warning.message }}</p>
+                  <p class="text-[0.82rem] leading-relaxed text-[var(--color-label-secondary)]">{{ warning.message }}</p>
                 </div>
               </div>
             </div>
@@ -249,12 +249,12 @@ const isIssuesEmpty = computed(() => {
 
       <div v-if="activeFilter === 'info'" class="space-y-3">
         <div v-if="infoInsights.length > 0" class="space-y-2">
-          <p class="px-1 text-xs font-semibold text-[var(--color-label-tertiary)]">관찰 정보</p>
+          <p class="px-1 text-[0.82rem] font-semibold text-[var(--color-label-tertiary)]">관찰 정보</p>
           <div class="space-y-2 max-h-[180px] overflow-y-auto scroll-mask-y">
             <div
               v-for="insight in infoInsights"
               :key="insight.id"
-              class="cursor-pointer rounded-[var(--radius-sm)] border-l-[3px] border-l-[var(--color-accent)] bg-[var(--color-surface)] p-3 transition-colors hover:bg-[var(--color-surface-elevated)]"
+              class="cursor-pointer rounded-[var(--radius-sm)] border-l-[3px] border-l-[var(--color-accent)] bg-[var(--color-surface)] p-2.5 transition-colors hover:bg-[var(--color-surface-elevated)]"
               @click="handleWarningClick(insight)"
             >
               <div class="flex items-start gap-2">
@@ -262,8 +262,8 @@ const isIssuesEmpty = computed(() => {
                   <Icon name="InformationCircleIcon" :size="12" />
                 </div>
                 <div class="min-w-0">
-                  <p class="text-sm leading-relaxed text-[var(--color-label-secondary)]">{{ insight.message }}</p>
-                  <p v-if="formatTarget(insight)" class="mt-1 text-xs text-[var(--color-label-tertiary)]">{{ formatTarget(insight) }}</p>
+                  <p class="text-[0.82rem] leading-relaxed text-[var(--color-label-secondary)]">{{ insight.message }}</p>
+                  <p v-if="formatTarget(insight)" class="mt-1 text-sm text-[var(--color-label-tertiary)]">{{ formatTarget(insight) }}</p>
                 </div>
               </div>
             </div>
@@ -271,18 +271,18 @@ const isIssuesEmpty = computed(() => {
         </div>
 
         <div v-if="rotationSuggestions.length > 0" class="space-y-2">
-          <p class="px-1 text-xs font-semibold text-[var(--color-label-tertiary)]">로테이션 추천</p>
+          <p class="px-1 text-[0.82rem] font-semibold text-[var(--color-label-tertiary)]">로테이션 추천</p>
           <div class="space-y-3 max-h-[260px] overflow-y-auto scroll-mask-y">
             <div
               v-for="suggestion in rotationSuggestions"
               :key="suggestion.id"
-              class="rounded-[var(--radius-sm)] border-l-[3px] border-l-[var(--color-accent)] bg-[var(--color-surface)] p-3"
+              class="rounded-[var(--radius-sm)] border-l-[3px] border-l-[var(--color-accent)] bg-[var(--color-surface)] p-2.5"
             >
               <div class="mb-2 flex items-center gap-2">
                 <div class="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
                   <Icon name="LightBulbIcon" :size="12" />
                 </div>
-                <span class="text-sm font-semibold text-[var(--color-label-primary)]">{{ suggestion.message }}</span>
+                <span class="text-[0.82rem] font-semibold text-[var(--color-label-primary)]">{{ suggestion.message }}</span>
               </div>
 
               <div v-if="suggestion.rotationCandidates" class="mt-2 flex flex-wrap gap-1.5">
@@ -292,7 +292,7 @@ const isIssuesEmpty = computed(() => {
                   type="button"
                   @click="handleCandidateClick(suggestion, candidate.name)"
                   :class="clsx(
-                    'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors active:scale-95',
+                    'inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-[0.82rem] transition-colors active:scale-95',
                     'border-[var(--color-border-subtle)] hover:border-[var(--color-accent)]',
                     index === 0
                       ? 'border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 font-medium text-[var(--color-accent)]'
@@ -317,14 +317,14 @@ const isIssuesEmpty = computed(() => {
         <p class="text-sm text-[var(--color-label-secondary)]">
           {{ activeFilter === 'info' ? '현재 추천 사항이 없습니다.' : '모든 배정이 적절합니다!' }}
         </p>
-        <p v-if="activeFilter !== 'info'" class="mt-1 text-xs text-[var(--color-label-tertiary)]">
+        <p v-if="activeFilter !== 'info'" class="mt-1 text-sm text-[var(--color-label-tertiary)]">
           연속 배정 경고가 없습니다
         </p>
       </div>
 
       <div
         v-if="totalIssues === 0 && activeFilter === 'all'"
-        class="flex items-center justify-center gap-1 border-t border-[var(--color-border-subtle)] pt-2 text-center text-xs text-[var(--color-label-tertiary)]"
+        class="flex items-center justify-center gap-1 border-t border-[var(--color-border-subtle)] pt-2 text-center text-sm text-[var(--color-label-tertiary)]"
       >
         <Icon name="LightBulbIcon" :size="12" class="text-[var(--color-accent)]" />
         '정보' 탭에서 로테이션 제안을 확인하세요
@@ -332,3 +332,5 @@ const isIssuesEmpty = computed(() => {
     </CardContent>
   </Card>
 </template>
+
+

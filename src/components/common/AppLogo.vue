@@ -1,65 +1,25 @@
 <script setup lang="ts">
-/**
- * AppLogo.vue
- * 
- * Notion/Linear/Vercel 스타일의 기하학적 미니멀리즘 로고.
- * '위치(Position)'와 '정렬(Alignment)'을 상징하는 4분면 심볼 사용.
- */
 defineProps<{
   collapsed?: boolean
 }>()
 </script>
 
 <template>
-  <div class="flex items-center gap-2.5 select-none">
-    <!-- Symbol -->
-    <div class="relative w-8 h-8 flex items-center justify-center">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- 배경/그림자 효과 -->
-        <rect width="32" height="32" rx="8" class="fill-primary/10 dark:fill-white/5" />
-        
-        <!-- 로고 심볼: 4분면 중 특정 위치 강조 -->
-        <g class="transform translate-x-[7px] translate-y-[7px]">
-          <!-- 왼쪽 위: 기본 -->
-          <rect x="0" y="0" width="8" height="8" rx="2" class="fill-foreground/40" />
-          <!-- 왼쪽 아래: 기본 -->
-          <rect x="0" y="10" width="8" height="8" rx="2" class="fill-foreground/40" />
-          <!-- 오른쪽 아래: 기본 -->
-          <rect x="10" y="10" width="8" height="8" rx="2" class="fill-foreground/40" />
-          
-          <!-- 오른쪽 위: 강조 (Position) -->
-          <rect x="10" y="0" width="8" height="8" rx="2" class="fill-primary animate-subtle-pulse" />
-          
-          <!-- Shine Effect (Linear Style) -->
-          <rect x="10" y="0" width="8" height="8" rx="2" fill="url(#shine-gradient)" style="mix-blend-mode: overlay; opacity: 0.5;" />
-        </g>
-        
-        <!-- 그라데이션 정의 -->
-        <defs>
-          <linearGradient id="shine-gradient" x1="0" y1="0" x2="8" y2="8" gradientUnits="userSpaceOnUse">
-            <stop stop-color="white" stop-opacity="0.8"/>
-            <stop offset="1" stop-color="white" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
+  <div class="flex select-none items-center gap-3">
+    <div class="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl border border-border/80 bg-[linear-gradient(150deg,color-mix(in_srgb,var(--color-surface)_78%,white_22%),color-mix(in_srgb,var(--color-canvas-elevated)_86%,transparent))] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.66),0_10px_20px_rgb(15_23_42_/_0.12)] dark:shadow-[inset_0_1px_0_rgb(255_255_255_/_0.1),0_10px_20px_rgb(0_0_0_/_0.42)]">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="3" y="3" width="16" height="16" rx="4.5" stroke="var(--color-label-primary)" stroke-opacity="0.85" stroke-width="1.45" />
+        <path d="M7.2 14.8V7.2H11.4C12.95 7.2 14.05 8.15 14.05 9.55C14.05 10.98 12.95 11.9 11.4 11.9H9.25" stroke="var(--color-label-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M9.25 11.9L14.8 16.2" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="15.4" cy="15.55" r="1.35" fill="var(--color-accent)" />
       </svg>
+      <span class="pointer-events-none absolute -right-2 -top-2 h-5 w-5 rounded-full bg-primary/25 blur-md" />
     </div>
 
-    <!-- Logotype -->
-    <div v-if="!collapsed" class="flex flex-col justify-center h-8">
-      <span class="text-lg font-bold tracking-tight text-foreground leading-none">
-        Position Helper
-      </span>
+    <div v-if="!collapsed" class="flex h-9 flex-col justify-center leading-none">
+      <span class="text-[0.94rem] font-semibold tracking-[-0.018em] text-foreground sm:text-[0.98rem]">Position Helper</span>
+      <span class="mt-1 hidden text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:inline">Control Plane</span>
     </div>
   </div>
 </template>
 
-<style scoped>
-.animate-subtle-pulse {
-  animation: pulse-opacity 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse-opacity {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-</style>

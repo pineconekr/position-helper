@@ -119,7 +119,7 @@ const chartOption = computed(() => {
             borderColor: c.border,
             borderWidth: 1,
             padding: [12, 16],
-            textStyle: { color: c.textStrong, fontSize: 14 },
+            textStyle: { color: c.textStrong, fontSize: 13 },
             formatter: (params: AxisTooltipParam[]) => {
                 if (!params || params.length === 0) return ''
                 const date = params[0].name
@@ -147,7 +147,7 @@ const chartOption = computed(() => {
         legend: {
             data: ['월별 불참률', '3개월 이동평균'],
             top: 0,
-            textStyle: { color: c.text, fontWeight: 500, fontSize: 13 },
+            textStyle: { color: c.text, fontWeight: 500, fontSize: 12 },
             icon: 'circle',
             itemWidth: 10,
             itemHeight: 10,
@@ -158,7 +158,7 @@ const chartOption = computed(() => {
             data: data.labels,
             axisLabel: { 
                 color: c.text,
-                fontSize: 13,
+                fontSize: 12,
                 rotate: data.labels.length > 12 ? 45 : 0
             },
             axisLine: { lineStyle: { color: c.grid } },
@@ -169,11 +169,11 @@ const chartOption = computed(() => {
             name: '불참률',
             nameLocation: 'middle',
             nameGap: 45,
-            nameTextStyle: { color: c.text, fontWeight: 'bold', fontSize: 13 },
+            nameTextStyle: { color: c.text, fontWeight: 'bold', fontSize: 12 },
             min: 0,
             axisLabel: { 
                 color: c.text,
-                fontSize: 13,
+                fontSize: 12,
                 formatter: (val: number) => `${(val * 100).toFixed(0)}%`
             },
             splitLine: { 
@@ -191,19 +191,14 @@ const chartOption = computed(() => {
                 data: data.rates,
                 itemStyle: { color: c.monthly },
                 lineStyle: { width: 2, color: c.monthly },
-                areaStyle: {
-                    color: {
-                        type: 'linear',
-                        x: 0, y: 0, x2: 0, y2: 1,
-                        colorStops: [
-                            { offset: 0, color: c.monthlyLight },
-                            { offset: 1, color: 'transparent' }
-                        ]
-                    }
-                },
                 symbol: 'circle',
                 symbolSize: 8,
-                emphasis: { scale: 1.5 }
+                emphasis: { disabled: true },
+                blur: {
+                    lineStyle: { opacity: 1 },
+                    areaStyle: { opacity: 1 },
+                    itemStyle: { opacity: 1 }
+                }
             },
             {
                 name: '3개월 이동평균',
@@ -212,16 +207,6 @@ const chartOption = computed(() => {
                 smooth: true,
                 itemStyle: { color: c.ma3 },
                 lineStyle: { width: 3, color: c.ma3 },
-                areaStyle: {
-                    color: {
-                        type: 'linear',
-                        x: 0, y: 0, x2: 0, y2: 1,
-                        colorStops: [
-                            { offset: 0, color: c.ma3Light },
-                            { offset: 1, color: 'transparent' }
-                        ]
-                    }
-                },
                 symbol: 'none',
                 // 평균 임계선
                 markLine: avgRate > 0 ? {
@@ -241,7 +226,13 @@ const chartOption = computed(() => {
                         fontWeight: 'bold'
                     },
                     data: [{ yAxis: avgRate }]
-                } : undefined
+                } : undefined,
+                emphasis: { disabled: true },
+                blur: {
+                    lineStyle: { opacity: 1 },
+                    areaStyle: { opacity: 1 },
+                    itemStyle: { opacity: 1 }
+                }
             }
         ],
         animation: true,
@@ -252,19 +243,19 @@ const chartOption = computed(() => {
 </script>
 
 <template>
-  <div class="overflow-hidden px-1 py-1">
-    <div class="pb-1.5">
-      <div class="flex justify-between items-start">
+  <div class="overflow-hidden px-0.5 py-0.5">
+    <div class="pb-1">
+      <div class="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h4 class="text-2xl font-semibold text-foreground">월별 불참률 추세</h4>
-          <p class="mt-1 text-sm text-muted-foreground">
+          <h4 class="chart-title">월별 불참률 추세</h4>
+          <p class="chart-subtitle mt-0.5">
             월별 불참률과 3개월 이동평균으로 장기 추세를 분석합니다
           </p>
         </div>
       </div>
     </div>
     <div class="pt-0">
-      <div class="h-[380px] w-full">
+      <div class="h-[280px] w-full sm:h-[350px]">
         <BaseChart 
           v-if="monthlyTrend.labels.length > 0" 
           :options="chartOption" 
@@ -280,3 +271,7 @@ const chartOption = computed(() => {
     </div>
   </div>
 </template>
+
+
+
+

@@ -491,14 +491,14 @@ async function deleteWeek() {
               <button
                 type="button"
                 @click="editorScope = 'board'"
-                :class="clsx('rounded px-2.5 py-1 text-xs font-medium', editorScope === 'board' ? 'bg-foreground text-background' : 'text-muted-foreground')"
+                :class="clsx('rounded px-2.5 py-1 text-sm font-medium', editorScope === 'board' ? 'bg-foreground text-background' : 'text-muted-foreground')"
               >
                 멀티 주차
               </button>
               <button
                 type="button"
                 @click="editorScope = 'single'"
-                :class="clsx('rounded px-2.5 py-1 text-xs font-medium', editorScope === 'single' ? 'bg-foreground text-background' : 'text-muted-foreground')"
+                :class="clsx('rounded px-2.5 py-1 text-sm font-medium', editorScope === 'single' ? 'bg-foreground text-background' : 'text-muted-foreground')"
               >
                 단일 주차
               </button>
@@ -509,7 +509,7 @@ async function deleteWeek() {
                 :key="`wk-${count}`"
                 type="button"
                 @click="boardWeekCount = count as 3 | 4 | 6"
-                :class="clsx('rounded px-2 py-1 text-xs font-medium', boardWeekCount === count ? 'bg-foreground text-background' : 'text-muted-foreground')"
+                :class="clsx('rounded px-2 py-1 text-sm font-medium', boardWeekCount === count ? 'bg-foreground text-background' : 'text-muted-foreground')"
               >
                 {{ count }}주
               </button>
@@ -520,7 +520,7 @@ async function deleteWeek() {
         <div v-if="editorScope === 'board'" class="flex h-full flex-col">
           <header class="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-muted/10 px-4 py-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">Board</p>
+              <p class="text-sm font-semibold uppercase tracking-[0.1em] text-muted-foreground">Board</p>
               <h3 class="text-sm font-semibold text-foreground">여러 주차 동시 편집</h3>
             </div>
             <div class="flex items-center gap-2">
@@ -536,11 +536,11 @@ async function deleteWeek() {
             <table class="w-full min-w-[980px] border-separate border-spacing-0">
               <thead>
                 <tr>
-                  <th class="sticky left-0 z-10 border border-border/70 bg-background px-3 py-2 text-left text-xs font-semibold text-muted-foreground">역할</th>
+                  <th class="sticky left-0 z-10 border border-border/70 bg-background px-3 py-2 text-left text-sm font-semibold text-muted-foreground">역할</th>
                   <th
                     v-for="weekKey in boardWeekKeys"
                     :key="`head-${weekKey}`"
-                    class="border border-border/70 bg-background px-3 py-2 text-left text-xs font-semibold text-foreground"
+                    class="border border-border/70 bg-background px-3 py-2 text-left text-sm font-semibold text-foreground"
                   >
                     <div class="flex items-center justify-between gap-2">
                       <span class="font-mono">{{ weekKey }}</span>
@@ -570,14 +570,14 @@ async function deleteWeek() {
           </div>
           <footer class="flex items-center justify-between border-t border-border/70 bg-muted/10 px-4 py-2.5 text-sm">
             <p class="text-muted-foreground">좌우 스크롤로 여러 주차를 한 번에 수정할 수 있습니다.</p>
-            <p class="text-xs text-muted-foreground">현재 {{ boardWeekKeys.length }}주 표시</p>
+            <p class="text-sm text-muted-foreground">현재 {{ boardWeekKeys.length }}주 표시</p>
           </footer>
         </div>
 
         <div v-else-if="selectedWeekKey" class="flex h-full flex-col">
           <header class="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-muted/10 px-4 py-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">Current</p>
+              <p class="text-sm font-semibold uppercase tracking-[0.1em] text-muted-foreground">Current</p>
               <h3 class="font-mono text-sm font-semibold text-foreground">{{ selectedWeekKey }}.json</h3>
             </div>
 
@@ -587,14 +587,14 @@ async function deleteWeek() {
                 <button
                   type="button"
                   @click="setEditMode('form')"
-                  :class="clsx('rounded px-2 py-1 text-xs font-medium', editMode === 'form' ? 'bg-foreground text-background' : 'text-muted-foreground')"
+                  :class="clsx('rounded px-2 py-1 text-sm font-medium', editMode === 'form' ? 'bg-foreground text-background' : 'text-muted-foreground')"
                 >
                   기본 편집
                 </button>
                 <button
                   type="button"
                   @click="setEditMode('json')"
-                  :class="clsx('rounded px-2 py-1 text-xs font-medium', editMode === 'json' ? 'bg-foreground text-background' : 'text-muted-foreground')"
+                  :class="clsx('rounded px-2 py-1 text-sm font-medium', editMode === 'json' ? 'bg-foreground text-background' : 'text-muted-foreground')"
                 >
                   고급 JSON
                 </button>
@@ -616,7 +616,7 @@ async function deleteWeek() {
                   <h4 class="mb-2 text-sm font-semibold text-foreground">{{ part === 'part1' ? '1부' : '2부' }}</h4>
                   <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div v-for="field in roleFields" :key="`${part}-${field.key}`" class="space-y-1">
-                      <label class="text-xs font-medium text-muted-foreground">{{ field.label }}</label>
+                      <label class="text-sm font-medium text-muted-foreground">{{ field.label }}</label>
                       <template v-if="field.isPair">
                         <div class="grid grid-cols-2 gap-2">
                           <Input
@@ -696,7 +696,7 @@ async function deleteWeek() {
 
           <footer class="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 bg-muted/10 px-4 py-2.5 text-sm">
             <p :class="clsx(statusTone !== 'neutral' ? 'font-medium' : '')" :style="{ color: statusColor }">{{ statusText }}</p>
-            <p v-if="weeksDirty" class="text-xs text-muted-foreground">변경 요약: 역할 {{ changeSummary.assignmentChanges }}건 · 불참 {{ changeSummary.absenceChanges }}건</p>
+            <p v-if="weeksDirty" class="text-sm text-muted-foreground">변경 요약: 역할 {{ changeSummary.assignmentChanges }}건 · 불참 {{ changeSummary.absenceChanges }}건</p>
             <p class="font-mono text-sm text-muted-foreground">Lines {{ lineCount }}</p>
           </footer>
         </div>
@@ -724,3 +724,4 @@ async function deleteWeek() {
   border-right: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 </style>
+

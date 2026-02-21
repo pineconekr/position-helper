@@ -228,7 +228,7 @@ async function handleResetDummy() {
               <div class="flex items-start justify-between gap-2">
                 <p class="text-sm font-medium leading-6" :style="{ color: issueColor(issue.type) }">{{ issue.message }}</p>
                 <span
-                  class="rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                  class="rounded px-1.5 py-0.5 text-sm font-semibold uppercase tracking-wide"
                   :style="{
                     color: issueColor(issue.type),
                     backgroundColor: `color-mix(in srgb, ${issueColor(issue.type)} 15%, transparent)`
@@ -238,7 +238,7 @@ async function handleResetDummy() {
                 </span>
               </div>
               <p v-if="issue.details" class="mt-1 text-sm text-muted-foreground">{{ issue.details }}</p>
-              <p class="mt-1 text-xs text-muted-foreground">{{ issue.fixable ? '자동 수정 가능' : '수동 조치 필요' }}</p>
+              <p class="mt-1 text-sm text-muted-foreground">{{ issue.fixable ? '자동 수정 가능' : '수동 조치 필요' }}</p>
             </li>
           </ul>
         </div>
@@ -317,7 +317,7 @@ async function handleResetDummy() {
               <p class="mt-1 text-base font-semibold text-foreground">{{ issueCounts.fixable }}</p>
             </div>
           </div>
-          <p v-if="report" class="mt-3 text-xs text-muted-foreground">{{ new Date(report.timestamp).toLocaleString() }}</p>
+          <p v-if="report" class="mt-3 text-sm text-muted-foreground">{{ new Date(report.timestamp).toLocaleString() }}</p>
         </section>
 
         <section class="rounded-xl border border-border/70 bg-background p-4 shadow-sm">
@@ -332,3 +332,4 @@ async function handleResetDummy() {
     </section>
   </div>
 </template>
+

@@ -43,7 +43,7 @@ const chartOption = computed(() => {
       borderColor: c.border,
       borderWidth: 1,
       padding: [12, 16],
-      textStyle: { color: c.textStrong, fontSize: 14 },
+      textStyle: { color: c.textStrong, fontSize: 13 },
       formatter: (params: AxisTooltipParam[]) => {
         if (!params || params.length === 0) return ''
         const label = params[0].axisValue
@@ -84,7 +84,7 @@ const chartOption = computed(() => {
       axisLine: { lineStyle: { color: c.axisLine } },
       axisLabel: { 
         color: c.text, 
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 500
       }
     },
@@ -147,20 +147,13 @@ const chartOption = computed(() => {
           width: 3,
           color: c.absence
         },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: c.absenceLight },
-              { offset: 1, color: 'transparent' }
-            ]
-          }
-        },
         symbol: 'circle',
         symbolSize: 10,
-        emphasis: {
-          scale: 1.5
+        emphasis: { disabled: true },
+        blur: {
+          lineStyle: { opacity: 1 },
+          areaStyle: { opacity: 1 },
+          itemStyle: { opacity: 1 }
         },
         yAxisIndex: 1
       }
@@ -173,15 +166,15 @@ const chartOption = computed(() => {
 </script>
 
 <template>
-  <div class="h-full px-1 py-1">
-    <div class="pb-1.5">
-      <h4 class="text-2xl font-semibold text-foreground">기수별 활동 분석</h4>
-      <p class="mt-1 text-sm text-muted-foreground">
+  <div class="h-full px-0.5 py-0.5">
+    <div class="pb-1">
+      <h4 class="chart-title">기수별 활동 분석</h4>
+      <p class="chart-subtitle mt-0.5">
         기수별 평균 배정 횟수와 성실도를 비교합니다
       </p>
     </div>
     <div class="pt-0">
-      <div class="h-[360px] w-full">
+      <div class="h-[260px] w-full sm:h-[332px]">
         <BaseChart 
           v-if="stats.generationAnalysis.length > 0"
           :options="chartOption" 
@@ -197,3 +190,7 @@ const chartOption = computed(() => {
     </div>
   </div>
 </template>
+
+
+
+

@@ -90,7 +90,7 @@ const kpiData = computed(() => {
                 <p class="text-sm font-medium text-muted-foreground">{{ item.label }}</p>
                 <div class="flex items-baseline gap-1">
                     <span class="text-2xl font-bold tracking-tight">{{ item.value }}</span>
-                    <span class="text-xs text-muted-foreground font-medium">{{ item.unit }}</span>
+                    <span class="text-sm text-muted-foreground font-medium">{{ item.unit }}</span>
                 </div>
                 <p class="text-[10px] text-muted-foreground opacity-70">{{ item.desc }}</p>
             </div>
@@ -101,3 +101,6 @@ const kpiData = computed(() => {
     </Card>
   </div>
 </template>
+
+
+

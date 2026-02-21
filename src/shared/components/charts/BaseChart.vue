@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { use } from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
+import { SVGRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
 import {
   GridComponent,
@@ -15,7 +15,7 @@ import { getChartUiPalette, withAlpha } from '@/shared/utils/chartTheme'
 
 // Register ECharts components
 use([
-  CanvasRenderer,
+  SVGRenderer,
   BarChart,
   LineChart,
   GridComponent,
@@ -26,7 +26,7 @@ use([
 
 type ChartOptions = Record<string, unknown> & {
   tooltip?: Record<string, unknown>
-  grid?: Record<string, unknown>
+  grid?: Record<string, unknown> | Array<Record<string, unknown>>
 }
 
 const props = defineProps<{
@@ -41,6 +41,7 @@ const isDark = computed(() => themeStore.effectiveTheme === 'dark')
 // 'dark' is a built-in theme in ECharts. For light we use default (undefined/null)
 const chartTheme = computed(() => isDark.value ? 'dark' : undefined)
 const chartThemeKey = computed(() => (isDark.value ? 'echart-dark' : 'echart-light'))
+const initOptions = { renderer: 'svg' as const }
 
 provide(THEME_KEY, chartTheme)
 
@@ -50,7 +51,8 @@ const defaultOptions = computed(() => {
   return {
   backgroundColor: 'transparent',
   textStyle: {
-    fontFamily: 'var(--font-sans, "Pretendard Variable", "Noto Sans KR", sans-serif)'
+    fontFamily: 'var(--font-sans, "Pretendard Variable", "Noto Sans KR", sans-serif)',
+    fontSize: 12
   },
   tooltip: {
     backgroundColor: ui.surface,
@@ -74,6 +76,14 @@ const defaultOptions = computed(() => {
 }})
 
 const mergedOptions = computed(() => {
+  const sourceGrid = props.options.grid
+  const mergedGrid = Array.isArray(sourceGrid)
+    ? sourceGrid
+    : {
+        ...defaultOptions.value.grid,
+        ...(sourceGrid || {})
+      }
+
   // Deep merge would be better but for now shallow merge of top-level keys
   // and specific nested merges manually where important
   return {
@@ -83,10 +93,7 @@ const mergedOptions = computed(() => {
       ...defaultOptions.value.tooltip,
       ...props.options.tooltip
     },
-    grid: {
-      ...defaultOptions.value.grid,
-      ...props.options.grid
-    }
+    grid: mergedGrid
   }
 })
 
@@ -94,7 +101,13 @@ const mergedOptions = computed(() => {
 
 <template>
   <div :style="{ height: height || '350px', width: '100%' }">
-    <VChart :key="chartThemeKey" class="chart" :option="mergedOptions" autoresize />
+    <VChart
+      :key="chartThemeKey"
+      class="chart"
+      :option="mergedOptions"
+      :init-options="initOptions"
+      autoresize
+    />
   </div>
 </template>
 

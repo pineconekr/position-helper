@@ -79,25 +79,23 @@ async function handleFinalize() {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Action Bar -->
-    <div class="flex items-center justify-between gap-4">
-      <!-- Left: Page Info -->
-      <div>
-        <h1 class="text-xl font-bold text-foreground">배정</h1>
-        <p class="text-sm text-muted-foreground">팀원을 드래그하여 역할에 배정하세요</p>
+  <div class="space-y-4">
+    <section class="surface-panel px-4 py-4 sm:px-6 sm:py-5">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="space-y-1.5">
+          <p class="section-eyebrow">Assignment Workspace</p>
+          <h1 class="section-title">배정</h1>
+          <p class="section-description">팀원을 드래그하거나 클릭해서 각 역할 슬롯에 배정합니다.</p>
+        </div>
+        <div class="flex w-full items-center gap-2 sm:w-auto">
+          <Button variant="default" @click="handleFinalize" class="h-10 w-full px-4 font-semibold sm:w-auto">
+            <Icon name="CheckIcon" :size="16" />
+            확정
+          </Button>
+        </div>
       </div>
+    </section>
 
-      <!-- Right: Actions -->
-      <div class="flex items-center gap-2">
-        <Button variant="default" size="sm" @click="handleFinalize">
-          <Icon name="CheckIcon" :size="16" />
-          확정
-        </Button>
-      </div>
-    </div>
-
-    <!-- Assignment Board -->
     <AssignmentBoard />
   </div>
 </template>

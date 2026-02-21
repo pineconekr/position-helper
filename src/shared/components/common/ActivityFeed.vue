@@ -202,7 +202,7 @@ function toggleCollapse() {
           <div class="text-sm font-semibold text-[var(--color-label-primary)]">{{ title }}</div>
           <span
             v-if="collapsed && newCount > 0"
-            class="text-xs px-1.5 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-medium"
+            class="text-sm px-1.5 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-medium"
           >
             +{{ newCount }}
           </span>
@@ -213,7 +213,7 @@ function toggleCollapse() {
             v-if="showUndo && canUndo"
             type="button"
             @click.stop="handleUndo"
-            class="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded-[4px] bg-[var(--color-warning)]/10 text-[var(--color-warning)] hover:bg-[var(--color-warning)]/20 transition-colors"
+            class="flex items-center gap-1 px-1.5 py-0.5 text-sm font-medium rounded-[4px] bg-[var(--color-warning)]/10 text-[var(--color-warning)] hover:bg-[var(--color-warning)]/20 transition-colors"
           >
             <Icon name="ArrowUturnLeftIcon" :size="12" />
             <span>실행취소</span>
@@ -257,7 +257,7 @@ function toggleCollapse() {
               <span class="flex-1 truncate text-[var(--color-label-secondary)]">
                 {{ entry.description || entry.title }}
               </span>
-              <time class="text-xs text-[var(--color-label-tertiary)] whitespace-nowrap ml-auto">
+              <time class="text-sm text-[var(--color-label-tertiary)] whitespace-nowrap ml-auto">
                 {{ formatTime(entry.timestamp) }}
               </time>
             </div>
@@ -267,7 +267,7 @@ function toggleCollapse() {
           <Button
             size="sm"
             variant="ghost"
-            class="text-xs h-6"
+            class="text-sm h-6"
             @click.stop="showModal = true"
           >
             전체 기록 보기
@@ -301,10 +301,10 @@ function toggleCollapse() {
             <div class="flex items-center justify-between mb-0.5">
               <div class="flex items-center gap-2">
                 <span :class="['inline-block w-1.5 h-1.5 rounded-full shrink-0', getToneClass(getEntryStyle(entry).tone)]" />
-                <span class="text-xs font-semibold text-[var(--color-label-secondary)] uppercase">
+                <span class="text-sm font-semibold text-[var(--color-label-secondary)] uppercase">
                   {{ getEntryStyle(entry).label }}
                 </span>
-                <time class="text-xs text-[var(--color-label-tertiary)]">
+                <time class="text-sm text-[var(--color-label-tertiary)]">
                   {{ formatTime(entry.timestamp) }}
                 </time>
               </div>
@@ -329,3 +329,4 @@ function toggleCollapse() {
     </Modal>
   </template>
 </template>
+

@@ -82,31 +82,31 @@ const absenceSummary = computed(() => {
 
 <template>
   <Card class="overflow-hidden">
-    <CardContent class="p-5">
+    <CardContent class="p-4">
       <!-- 메인 콘텐츠 -->
-      <div class="space-y-4">
+      <div class="space-y-3.5">
         <!-- 날짜 헤더 -->
-        <div class="flex items-center gap-2.5">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl shadow-sm" :style="{ background: `linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 72%, var(--color-info)))` }">
-            <Icon name="CalendarDaysIcon" :size="18" class="text-white" />
+        <div class="flex items-center gap-2">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm" :style="{ background: `linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 72%, var(--color-info)))` }">
+            <Icon name="CalendarDaysIcon" :size="16" class="text-white" />
           </div>
           <div>
-            <h3 class="text-base font-bold text-[var(--color-label-primary)]">{{ formattedDate }}</h3>
-            <p class="text-xs text-[var(--color-label-tertiary)]">배정 현황</p>
+            <h3 class="text-[0.95rem] font-semibold text-[var(--color-label-primary)]">{{ formattedDate }}</h3>
+            <p class="text-sm text-[var(--color-label-tertiary)]">배정 현황</p>
           </div>
         </div>
 
         <!-- 진행률 바 (더 크게) -->
-        <div class="space-y-2">
+        <div class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--color-label-secondary)]">진행률</span>
-            <span class="text-sm font-bold">
-              <span class="text-lg stat-number" :style="{ color: progress === 100 ? 'var(--color-success)' : 'var(--color-accent)' }">{{ filledSlots }}</span>
+            <span class="text-[0.83rem] text-[var(--color-label-secondary)]">진행률</span>
+            <span class="text-[0.83rem] font-semibold">
+              <span class="text-base stat-number" :style="{ color: progress === 100 ? 'var(--color-success)' : 'var(--color-accent)' }">{{ filledSlots }}</span>
               <span class="text-[var(--color-label-tertiary)]">/{{ totalSlots }}</span>
-              <span class="text-[var(--color-label-tertiary)] ml-1">({{ progress }}%)</span>
+              <span class="ml-1 text-[var(--color-label-tertiary)]">({{ progress }}%)</span>
             </span>
           </div>
-          <div class="h-3 bg-[var(--color-surface-elevated)] rounded-full overflow-hidden shadow-inner">
+          <div class="h-2.5 overflow-hidden rounded-full bg-[var(--color-surface-elevated)] shadow-inner">
             <div 
               class="h-full rounded-full transition-all duration-500"
               :style="{ width: `${progress}%`, background: `linear-gradient(90deg, color-mix(in srgb, ${progressColor} 82%, white), ${progressColor})` }"
@@ -115,12 +115,12 @@ const absenceSummary = computed(() => {
         </div>
 
         <!-- 가용/불참 인원 요약 -->
-        <div class="flex items-start gap-4 pt-1">
+        <div class="flex items-start gap-3 pt-0.5">
           <!-- 가용 인원 -->
           <div class="flex items-center gap-1.5">
             <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: 'var(--color-success)' }" />
-            <span class="text-sm font-medium text-[var(--color-label-primary)]">
-              가용 <span class="font-bold" :style="{ color: 'var(--color-success)' }">{{ availableCount }}명</span>
+            <span class="text-[0.83rem] font-medium text-[var(--color-label-primary)]">
+              가용 <span class="font-semibold" :style="{ color: 'var(--color-success)' }">{{ availableCount }}명</span>
             </span>
           </div>
 
@@ -128,12 +128,12 @@ const absenceSummary = computed(() => {
           <div v-if="absences.length > 0" class="flex-1 min-w-0">
             <div class="flex items-center gap-1.5">
               <div class="h-2 w-2 rounded-full" :style="{ backgroundColor: 'var(--color-danger)' }" />
-              <span class="text-sm font-medium text-[var(--color-label-primary)]">
-                불참 <span class="font-bold" :style="{ color: 'var(--color-danger)' }">{{ absences.length }}명</span>
+              <span class="text-[0.83rem] font-medium text-[var(--color-label-primary)]">
+                불참 <span class="font-semibold" :style="{ color: 'var(--color-danger)' }">{{ absences.length }}명</span>
               </span>
             </div>
             <!-- 불참자 상세 (이름+사유) -->
-            <p class="text-xs text-[var(--color-label-tertiary)] mt-0.5 ml-3.5 truncate">
+            <p class="text-sm text-[var(--color-label-tertiary)] mt-0.5 ml-3.5 truncate">
               {{ absenceSummary }}
             </p>
           </div>
@@ -142,3 +142,4 @@ const absenceSummary = computed(() => {
     </CardContent>
   </Card>
 </template>
+

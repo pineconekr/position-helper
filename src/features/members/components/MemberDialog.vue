@@ -127,7 +127,7 @@ function handleSave() {
             placeholder="예: 홍길동"
             autofocus
           />
-          <p v-if="fieldErrors.name" class="text-xs text-destructive">{{ fieldErrors.name }}</p>
+          <p v-if="fieldErrors.name" class="text-sm text-destructive">{{ fieldErrors.name }}</p>
         </div>
 
         <div class="space-y-1.5">
@@ -140,7 +140,7 @@ function handleSave() {
             max="99"
             placeholder="예: 20"
           />
-          <p v-if="fieldErrors.generation" class="text-xs text-destructive">{{ fieldErrors.generation }}</p>
+          <p v-if="fieldErrors.generation" class="text-sm text-destructive">{{ fieldErrors.generation }}</p>
         </div>
 
         <div class="space-y-1.5">
@@ -174,3 +174,4 @@ function handleSave() {
     </DialogContent>
   </Dialog>
 </template>
+

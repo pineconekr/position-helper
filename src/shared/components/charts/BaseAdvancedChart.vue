@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { use } from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
+import { SVGRenderer } from 'echarts/renderers'
 import { HeatmapChart, ScatterChart } from 'echarts/charts'
 import {
   GridComponent,
@@ -15,7 +15,7 @@ import { useThemeStore } from '@/stores/theme'
 import { getChartUiPalette, withAlpha } from '@/shared/utils/chartTheme'
 
 use([
-  CanvasRenderer,
+  SVGRenderer,
   HeatmapChart,
   ScatterChart,
   GridComponent,
@@ -39,6 +39,7 @@ const themeStore = useThemeStore()
 const isDark = computed(() => themeStore.effectiveTheme === 'dark')
 const chartTheme = computed(() => isDark.value ? 'dark' : undefined)
 const chartThemeKey = computed(() => (isDark.value ? 'echart-advanced-dark' : 'echart-advanced-light'))
+const initOptions = { renderer: 'svg' as const }
 
 provide(THEME_KEY, chartTheme)
 
@@ -47,7 +48,8 @@ const defaultOptions = computed(() => {
   return {
   backgroundColor: 'transparent',
   textStyle: {
-    fontFamily: 'var(--font-sans, "Pretendard Variable", "Noto Sans KR", sans-serif)'
+    fontFamily: 'var(--font-sans, "Pretendard Variable", "Noto Sans KR", sans-serif)',
+    fontSize: 12
   },
   tooltip: {
     backgroundColor: ui.surface,
@@ -88,7 +90,13 @@ const mergedOptions = computed(() => {
 
 <template>
   <div :style="{ height: height || '350px', width: '100%' }">
-    <VChart :key="chartThemeKey" class="chart" :option="mergedOptions" autoresize />
+    <VChart
+      :key="chartThemeKey"
+      class="chart"
+      :option="mergedOptions"
+      :init-options="initOptions"
+      autoresize
+    />
   </div>
 </template>
 

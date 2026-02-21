@@ -67,30 +67,30 @@ function saveAbsenceReason() {
 
 <template>
   <Card>
-    <CardContent class="p-4 space-y-4">
-    <div class="flex items-center justify-between pb-3 border-b border-[var(--color-border-subtle)]">
-      <div class="text-sm font-bold text-[var(--color-label-primary)] flex items-center gap-2">
+    <CardContent class="space-y-3 p-3.5">
+    <div class="flex items-center justify-between border-b border-[var(--color-border-subtle)] pb-2.5">
+      <div class="flex items-center gap-2 text-[0.84rem] font-semibold text-[var(--color-label-primary)]">
         <Icon name="CalendarDaysIcon" :size="16" class="text-[var(--color-label-tertiary)]" />
         불참자 관리
       </div>
       <span 
         v-if="currentAbsences.length > 0"
-        class="px-1.5 py-0.5 rounded-[4px] bg-[var(--color-danger)]/10 text-[var(--color-danger)] text-xs font-medium"
+        class="px-1.5 py-0.5 rounded-[4px] bg-[var(--color-danger)]/10 text-[var(--color-danger)] text-sm font-medium"
       >
         {{ currentAbsences.length }}명
       </span>
     </div>
 
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-2.5">
       <div class="space-y-1">
-        <label class="text-xs font-medium text-[var(--color-label-secondary)]">팀원 선택</label>
+        <label class="text-[0.82rem] font-medium text-[var(--color-label-secondary)]">팀원 선택</label>
         <div class="relative">
           <select
             v-model="absenceForm.name"
             :class="clsx(
-              'w-full h-8 pl-2 pr-8 rounded-[var(--radius-sm)] appearance-none',
+              'h-8 w-full appearance-none rounded-[var(--radius-sm)] pl-2 pr-8',
               'bg-[var(--color-surface)] border border-[var(--color-border-default)]',
-              'text-sm text-[var(--color-label-primary)]',
+              'text-[0.82rem] text-[var(--color-label-primary)]',
               'focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)]',
               'transition-all duration-100'
             )"
@@ -105,7 +105,7 @@ function saveAbsenceReason() {
       </div>
 
       <div class="space-y-1">
-        <label class="text-xs font-medium text-[var(--color-label-secondary)]">사유 (선택)</label>
+        <label class="text-[0.82rem] font-medium text-[var(--color-label-secondary)]">사유 (선택)</label>
         <Input
           v-model="absenceForm.reason"
           placeholder="예: 시험, 여행"
@@ -117,7 +117,7 @@ function saveAbsenceReason() {
         variant="default"
         @click="addAbsence"
         :disabled="!currentWeekDate || !absenceForm.name"
-        class="w-full justify-center"
+        class="h-9 w-full justify-center text-[0.82rem] sm:h-8"
         size="sm"
       >
         불참 등록
@@ -125,17 +125,17 @@ function saveAbsenceReason() {
     </div>
 
     <!-- Absence list -->
-    <div v-if="currentAbsences.length > 0" class="space-y-2 pt-2">
+    <div v-if="currentAbsences.length > 0" class="space-y-1.5 pt-1.5">
       <div
         v-for="a in currentAbsences"
         :key="a.name"
-        class="flex items-center justify-between p-2 rounded-[var(--radius-sm)] bg-[var(--color-surface-elevated)] border border-[var(--color-border-subtle)] group"
+        class="group flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-[var(--color-surface-elevated)] p-2"
       >
         <div class="flex flex-col">
-          <span class="text-sm font-medium text-[var(--color-label-primary)]">{{ a.name }}</span>
-          <span class="text-xs text-[var(--color-label-tertiary)]">{{ a.reason || '사유 없음' }}</span>
+          <span class="text-[0.82rem] font-medium text-[var(--color-label-primary)]">{{ a.name }}</span>
+          <span class="text-[0.82rem] text-[var(--color-label-tertiary)]">{{ a.reason || '사유 없음' }}</span>
         </div>
-        <div class="flex gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+        <div class="flex gap-1 opacity-60 transition-opacity group-hover:opacity-100">
           <button
             @click="openEditAbsence(a.name)"
             class="p-1 text-[var(--color-label-secondary)] hover:text-[var(--color-accent)] rounded-[4px] hover:bg-[var(--color-surface)]"
@@ -155,7 +155,7 @@ function saveAbsenceReason() {
     <!-- No week selected warning -->
     <div 
       v-if="!currentWeekDate"
-      class="text-xs text-[var(--color-danger)] text-center py-2 bg-[var(--color-danger)]/5 rounded-[var(--radius-sm)]"
+      class="text-sm text-[var(--color-danger)] text-center py-2 bg-[var(--color-danger)]/5 rounded-[var(--radius-sm)]"
     >
       주차를 먼저 선택해주세요
     </div>
@@ -171,7 +171,7 @@ function saveAbsenceReason() {
     size="sm"
   >
     <div class="flex flex-col gap-1.5">
-      <label class="text-xs font-medium text-[var(--color-label-secondary)]">사유 입력</label>
+      <label class="text-sm font-medium text-[var(--color-label-secondary)]">사유 입력</label>
       <Textarea
         v-if="editingAbsence"
         v-model="editingAbsence.reason"
@@ -185,3 +185,5 @@ function saveAbsenceReason() {
     </template>
   </Modal>
 </template>
+
+

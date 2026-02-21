@@ -60,7 +60,7 @@ function renderSortHeader(label: string, ariaLabel: string, hiddenClass = '') {
       Button,
       {
         variant: 'ghost',
-        class: `-ml-1 inline-flex h-8 items-center gap-1 rounded-sm px-1 text-sm font-semibold text-foreground hover:bg-transparent ${hiddenClass}`.trim(),
+        class: `-ml-1 inline-flex h-8 items-center gap-1 rounded-sm px-1 text-[0.82rem] font-semibold text-foreground hover:bg-transparent ${hiddenClass}`.trim(),
         onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
         'aria-label': ariaLabel,
       },
@@ -97,7 +97,7 @@ const columns = [
     header: renderSortHeader('이름', '이름 정렬'),
     cell: ({ row }) =>
       h('div', { class: 'flex min-w-0 items-center gap-2' }, [
-        h('span', { class: 'truncate text-base font-semibold tracking-tight text-foreground' }, row.original.name),
+        h('span', { class: 'truncate text-[0.9rem] font-semibold tracking-tight text-foreground' }, row.original.name),
         !row.original.active
           ? h(Badge, { variant: 'outline', class: 'h-5 border-border/70 text-[10px] font-medium text-muted-foreground' }, () => '비활동')
           : null,
@@ -108,7 +108,7 @@ const columns = [
     cell: ({ row }) =>
       h(
         'div',
-        { class: 'hidden sm:block text-base font-medium text-foreground/85' },
+        { class: 'hidden sm:block text-sm font-medium text-foreground/85' },
         row.original.generation > 0 ? `${row.original.generation}기` : '-',
       ),
   }),
@@ -124,7 +124,7 @@ const columns = [
         h(
           'span',
           {
-            class: 'text-base font-medium',
+            class: 'text-sm font-medium',
             style: { color: isActive ? 'var(--color-success)' : 'var(--color-label-tertiary)' },
           },
           isActive ? '활동' : '비활동',
@@ -135,7 +135,7 @@ const columns = [
   columnHelper.accessor('assignmentCount', {
     header: renderSortHeader('배정', '배정 횟수 정렬'),
     cell: ({ row }) =>
-      h('span', { class: 'text-base font-semibold tabular-nums text-foreground' }, String(row.original.assignmentCount)),
+      h('span', { class: 'text-sm font-semibold tabular-nums text-foreground' }, String(row.original.assignmentCount)),
   }),
   columnHelper.accessor('absenceCount', {
     header: renderSortHeader('불참', '불참 횟수 정렬'),
@@ -144,7 +144,7 @@ const columns = [
       return h(
         'span',
         {
-          class: 'text-base font-semibold tabular-nums',
+          class: 'text-sm font-semibold tabular-nums',
           style: { color: value > 0 ? 'var(--color-warning)' : 'var(--color-label-primary)' },
         },
         String(value),
@@ -237,23 +237,24 @@ function handleBulkAction(active: boolean) {
 </script>
 
 <template>
-  <div class="space-y-3">
+  <div class="space-y-2.5">
     <div
       v-if="selectedCount > 0"
-      class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2"
+      class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5"
     >
-      <p class="text-base font-semibold text-foreground">
+      <p class="text-sm font-semibold text-foreground">
         {{ selectedCount }}명 선택됨
       </p>
       <div class="flex items-center gap-1.5">
-        <Button size="sm" variant="outline" class="h-8 text-xs" @click="handleBulkAction(true)">활동 처리</Button>
-        <Button size="sm" variant="outline" class="h-8 text-xs" @click="handleBulkAction(false)">비활동 처리</Button>
-        <Button size="sm" variant="ghost" class="h-8 text-xs" @click="table.resetRowSelection()">선택 해제</Button>
+        <Button size="sm" variant="outline" class="h-8 text-[0.82rem]" @click="handleBulkAction(true)">활동 처리</Button>
+        <Button size="sm" variant="outline" class="h-8 text-[0.82rem]" @click="handleBulkAction(false)">비활동 처리</Button>
+        <Button size="sm" variant="ghost" class="h-8 text-[0.82rem]" @click="table.resetRowSelection()">선택 해제</Button>
       </div>
     </div>
 
     <div class="overflow-hidden rounded-lg border border-border/70 bg-card">
-      <Table class="table-fixed">
+      <div class="overflow-x-auto">
+      <Table class="table-fixed min-w-[760px]">
         <TableHeader class="bg-muted/20">
           <TableRow
             v-for="headerGroup in table.getHeaderGroups()"
@@ -265,13 +266,13 @@ function handleBulkAction(active: boolean) {
               :key="header.id"
               :class="[
                 header.column.id === 'select' && 'w-10 px-0 text-center',
-                header.column.id === 'name' && 'w-[20%] px-3 py-3',
-                header.column.id === 'generation' && 'w-[10%] px-3 py-3',
-                header.column.id === 'active' && 'w-[12%] px-3 py-3',
-                header.column.id === 'assignmentCount' && 'w-[10%] px-3 py-3',
-                header.column.id === 'absenceCount' && 'w-[10%] px-3 py-3',
-                header.column.id === 'notes' && 'w-[28%] px-3 py-3',
-                header.column.id === 'actions' && 'w-[10%] px-3 py-3',
+                header.column.id === 'name' && 'w-[20%] px-3 py-2.5',
+                header.column.id === 'generation' && 'w-[10%] px-3 py-2.5',
+                header.column.id === 'active' && 'w-[12%] px-3 py-2.5',
+                header.column.id === 'assignmentCount' && 'w-[10%] px-3 py-2.5',
+                header.column.id === 'absenceCount' && 'w-[10%] px-3 py-2.5',
+                header.column.id === 'notes' && 'w-[28%] px-3 py-2.5',
+                header.column.id === 'actions' && 'w-[10%] px-3 py-2.5',
               ]"
             >
               <FlexRender
@@ -294,14 +295,14 @@ function handleBulkAction(active: boolean) {
             v-for="row in table.getRowModel().rows"
             :key="row.id"
             :data-state="row.getIsSelected() ? 'selected' : undefined"
-            class="min-h-[52px] border-b border-border/40 last:border-0 hover:bg-muted/20 data-[state=selected]:bg-primary/5"
+            class="min-h-[48px] border-b border-border/40 last:border-0 hover:bg-muted/20 data-[state=selected]:bg-primary/5"
           >
             <TableCell
               v-for="cell in row.getVisibleCells()"
               :key="cell.id"
               :class="[
                 cell.column.id === 'select' && 'px-0 text-center',
-                cell.column.id !== 'select' && 'px-3 py-3 align-middle',
+                cell.column.id !== 'select' && 'px-3 py-2.5 align-middle',
               ]"
             >
               <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
@@ -309,6 +310,8 @@ function handleBulkAction(active: boolean) {
           </TableRow>
         </TableBody>
       </Table>
+      </div>
     </div>
   </div>
 </template>
+

@@ -1,4 +1,5 @@
-import { computed } from 'vue'
+import { computed, type ComputedRef } from 'vue'
+import { getActivePinia } from 'pinia'
 import { useAssignmentStore } from '@/stores/assignment'
 import { RoleKeys, type PartAssignment } from '@/shared/types'
 
@@ -34,11 +35,8 @@ function createRoleCounter(): Record<string, number> {
     }
 }
 
-export const useStats = () => {
-
-    const store = useAssignmentStore()
-
-    const processedData = computed(() => {
+function createProcessedData(store: ReturnType<typeof useAssignmentStore>) {
+    return computed(() => {
         const totalCounts: Record<string, number> = {}
         const roleCounts: Record<string, Record<string, number>> = {}
         const absenceCounts: Record<string, number> = {}
@@ -46,31 +44,44 @@ export const useStats = () => {
         // Generation analysis
         const genStats: Record<number, { count: number, totalAssignments: number, totalAbsences: number }> = {}
 
-        // 이름으로 기수 조회용 Map (한 번의 순회로 초기화와 동시에 구축)
+        // 이름으로 기수 조회용 Map (활성 멤버만)
         const memberGenMap = new Map<string, number | null>()
+        const activeMemberSet = new Set<string>()
 
-        // Initialize counts for all active members (한 번의 순회로 모든 초기화 수행)
+        // 활성 멤버만 집계 대상에 포함
         store.app.members.forEach(m => {
-            totalCounts[m.name] = 0
-            roleCounts[m.name] = {
+            const name = m.name.trim()
+            if (!name || m.active === false) return
+
+            activeMemberSet.add(name)
+            totalCounts[name] = 0
+            roleCounts[name] = {
                 'SW': 0, '자막': 0, '고정': 0, '사이드': 0, '스케치': 0
             }
-            absenceCounts[m.name] = 0
+            absenceCounts[name] = 0
 
             // generation 필드 직접 사용 (Mothership에서 정규화됨)
             const gen = m.generation
-            memberGenMap.set(m.name, gen)
+            memberGenMap.set(name, gen)
             if (gen) {
                 if (!genStats[gen]) genStats[gen] = { count: 0, totalAssignments: 0, totalAbsences: 0 }
                 genStats[gen].count++
             }
         })
 
+        const isActiveMember = (name: string): boolean => {
+            const normalized = name.trim()
+            return normalized.length > 0 && activeMemberSet.has(normalized)
+        }
+
         const getGeneration = (name: string): number | null => memberGenMap.get(name) ?? null
-        const ensureMemberCounters = (name: string) => {
-            if (totalCounts[name] === undefined) totalCounts[name] = 0
-            if (roleCounts[name] === undefined) roleCounts[name] = createRoleCounter()
-            if (absenceCounts[name] === undefined) absenceCounts[name] = 0
+        const ensureMemberCounters = (name: string): boolean => {
+            const normalized = name.trim()
+            if (!isActiveMember(normalized)) return false
+            if (totalCounts[normalized] === undefined) totalCounts[normalized] = 0
+            if (roleCounts[normalized] === undefined) roleCounts[normalized] = createRoleCounter()
+            if (absenceCounts[normalized] === undefined) absenceCounts[normalized] = 0
+            return true
         }
 
         const weeklyTrend: { date: string, absenceCount: number }[] = []
@@ -82,14 +93,14 @@ export const useStats = () => {
             const memberCountsInWeek: Record<string, number> = {}
             const addWeekCount = (name: string) => {
                 const normalized = name.trim()
-                if (!normalized) return
+                if (!normalized || !isActiveMember(normalized)) return
                 memberCountsInWeek[normalized] = (memberCountsInWeek[normalized] || 0) + 1
             }
             const addAssignment = (name: string, role: typeof RoleKeys[number]) => {
                 const normalized = name.trim()
                 if (!normalized) return
 
-                ensureMemberCounters(normalized)
+                if (!ensureMemberCounters(normalized)) return
                 totalCounts[normalized]++
                 roleCounts[normalized][role]++
                 addWeekCount(normalized)
@@ -101,13 +112,13 @@ export const useStats = () => {
             }
 
             // Absences
-            const weekAbsences = week.absences || []
+            const weekAbsences = (week.absences || []).filter(ab => isActiveMember(ab.name ?? ''))
             weeklyTrend.push({ date, absenceCount: weekAbsences.length })
 
             weekAbsences.forEach(ab => {
                 const normalized = ab.name?.trim()
                 if (normalized) {
-                    ensureMemberCounters(normalized)
+                    if (!ensureMemberCounters(normalized)) return
                     absenceCounts[normalized]++
 
                     const gen = getGeneration(normalized)
@@ -118,12 +129,19 @@ export const useStats = () => {
             })
 
             ; (['part1', 'part2'] as const).forEach(partKey => {
-                const assignment: PartAssignment = week[partKey]
+                const assignment = week[partKey] as PartAssignment | undefined
+                if (!assignment) return
+
                 RoleKeys.forEach(role => {
                     if (role === '사이드') {
-                        assignment.사이드.forEach(name => addAssignment(name, '사이드'))
-                    } else {
-                        addAssignment(assignment[role], role)
+                        const sideAssignments = Array.isArray(assignment.사이드) ? assignment.사이드 : []
+                        sideAssignments.forEach(name => addAssignment(name, '사이드'))
+                        return
+                    }
+
+                    const assignee = assignment[role]
+                    if (typeof assignee === 'string') {
+                        addAssignment(assignee, role)
                     }
                 })
             })
@@ -218,6 +236,20 @@ export const useStats = () => {
             memberGenerations // 툴팁에서 기수 표시용
         }
     })
+}
+
+type StatsSnapshot = ReturnType<typeof createProcessedData> extends ComputedRef<infer T> ? T : never
+const statsCache = new WeakMap<object, ComputedRef<StatsSnapshot>>()
+
+export const useStats = () => {
+    const store = useAssignmentStore()
+    const cacheKey = (getActivePinia() ?? store) as object
+    let processedData = statsCache.get(cacheKey)
+
+    if (!processedData) {
+        processedData = createProcessedData(store)
+        statsCache.set(cacheKey, processedData)
+    }
 
     return {
         stats: processedData,

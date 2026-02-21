@@ -313,24 +313,24 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-4 items-start">
+  <div class="grid grid-cols-1 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
     <!-- 메인 컬럼 (배정판) -->
-    <div class="flex-[1_1_500px] min-w-0 flex flex-col gap-4">
+    <div class="min-w-0 flex flex-col gap-3">
       <AssignmentSummary />
 
       <Card>
-        <CardContent class="p-4 space-y-4">
+        <CardContent class="space-y-3 p-3.5">
         <!-- 주차 선택 & 경고 배지 -->
-        <div class="flex justify-between items-center flex-wrap gap-3 pb-4 border-b border-[var(--color-border-subtle)]">
-          <div class="flex gap-2 items-center flex-wrap">
-            <label class="text-sm font-medium text-[var(--color-label-secondary)]">주차</label>
+        <div class="flex flex-wrap items-center justify-between gap-2.5 border-b border-[var(--color-border-subtle)] pb-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="text-[0.82rem] font-medium text-[var(--color-label-secondary)]">주차</label>
             <Input
               type="date"
               :value="currentWeekDate || formatDateISO(new Date())"
               @input="handleWeekChange"
-              class="w-auto px-2 py-1 h-8 text-sm"
+              class="h-8 w-auto px-2 py-1 text-sm"
             />
-            <Badge v-if="currentAbsences.length > 0" variant="destructive">
+            <Badge v-if="currentAbsences.length > 0" variant="destructive" size="sm">
               불참 {{ currentAbsences.length }}
             </Badge>
           </div>
@@ -339,17 +339,17 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
 
         <!-- 배정 테이블 -->
         <div ref="tableSectionRef">
-          <div class="flex items-center justify-between gap-2 mb-2">
-            <div class="flex items-center gap-2">
-              <span class="text-base font-bold text-[var(--color-label-primary)]">배정</span>
-              <span class="text-xs text-[var(--color-label-tertiary)]">
+          <div class="mb-1.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[0.96rem] font-semibold text-[var(--color-label-primary)]">배정</span>
+              <span class="text-[0.82rem] text-[var(--color-label-tertiary)]">
                 드래그하여 배정하세요
               </span>
               <Badge
                 v-if="recommendNavigation && recommendNavigation.slots.length > 0"
                 variant="outline"
                 size="sm"
-                class="text-[11px]"
+                class="text-[10px]"
               >
                 추천 슬롯 {{ recommendNavigation.index + 1 }}/{{ recommendNavigation.slots.length }}
               </Badge>
@@ -362,7 +362,7 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
                       size="sm"
                       variant="ghost"
                       @click="handleUndo"
-                      class="!px-2 !py-1 !h-auto text-xs active:scale-95 transition-transform origin-left"
+                      class="origin-left !h-auto !px-2 !py-1 text-[0.82rem] transition-transform active:scale-95"
                     >
                       <Icon name="ArrowUturnLeftIcon" :size="14" />
                       <span class="ml-1">되돌리기</span>
@@ -374,11 +374,11 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <div v-if="recommendNavigation && recommendNavigation.slots.length > 1" class="flex items-center gap-1">
-              <Button size="sm" variant="outline" class="h-7 px-2 text-xs" @click="cycleRecommendedSlot(-1)">
+            <div v-if="recommendNavigation && recommendNavigation.slots.length > 1" class="flex items-center gap-1 self-start sm:self-auto">
+              <Button size="sm" variant="outline" class="h-7 px-2 text-[0.82rem]" @click="cycleRecommendedSlot(-1)">
                 이전 슬롯
               </Button>
-              <Button size="sm" variant="outline" class="h-7 px-2 text-xs" @click="cycleRecommendedSlot(1)">
+              <Button size="sm" variant="outline" class="h-7 px-2 text-[0.82rem]" @click="cycleRecommendedSlot(1)">
                 다음 슬롯
               </Button>
             </div>
@@ -397,10 +397,10 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
 
       <!-- 팀원 목록 -->
       <Card>
-        <CardContent class="p-4">
-        <div class="flex items-center justify-between gap-2 mb-3">
+        <CardContent class="p-3.5">
+        <div class="mb-2 flex items-center justify-between gap-2">
           <div class="flex items-center gap-2">
-            <span class="text-base font-bold text-[var(--color-label-primary)]">팀원 목록</span>
+            <span class="text-[0.96rem] font-semibold text-[var(--color-label-primary)]">팀원 목록</span>
             <Badge v-if="selectedMember" variant="accent" size="sm">
               선택됨: {{ selectedMember }}
             </Badge>
@@ -409,7 +409,7 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
             type="button"
             @click="showInactive = !showInactive"
             :class="[
-              'btn-interactive flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+              'btn-interactive flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.8rem] font-medium',
               showInactive
                 ? 'bg-[var(--color-accent)] text-white shadow-sm'
                 : 'bg-[var(--color-surface-elevated)] text-[var(--color-label-tertiary)] hover:text-[var(--color-label-secondary)] border border-[var(--color-border-subtle)]'
@@ -433,7 +433,7 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
     </div>
 
     <!-- 사이드 컬럼 (위젯) -->
-    <div class="flex-[1_1_300px] max-w-full flex flex-col gap-4">
+    <div class="flex max-w-full flex-col gap-3">
       <WarningWidget
         @select-member="handleFeedbackSelectMember"
         @inspect-target="handleFeedbackInspectTarget"
@@ -441,10 +441,10 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
       />
       <AbsenceWidget />
 
-      <div class="text-[var(--color-label-tertiary)] text-xs leading-relaxed px-1">
-        <div class="flex gap-1.5 mb-1.5 items-center">
+      <div class="px-1 text-[0.8rem] leading-relaxed text-[var(--color-label-tertiary)] sm:text-[0.82rem]">
+        <div class="mb-1 flex items-center gap-1.5">
           <Icon name="InformationCircleIcon" :size="14" />
-          <span class="font-semibold text-[var(--color-label-secondary)]">도움말</span>
+          <span class="font-medium text-[var(--color-label-secondary)]">도움말</span>
         </div>
         <ul class="m-0 pl-4 list-disc space-y-1">
           <li>역할 슬롯을 드래그하여 배정을 맞바꿀 수 있습니다.</li>
@@ -454,3 +454,4 @@ function handleRecommendAssignment(payload: { name: string; role: RoleKey }) {
     </div>
   </div>
 </template>
+

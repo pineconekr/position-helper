@@ -86,7 +86,7 @@ function getCellClasses(value: string, isSelected: boolean, isDragging: boolean 
   // 기본 스타일
   const baseStyles = clsx(
     'group relative w-full h-full flex items-center justify-center',
-    'text-base font-semibold transition-all duration-200 ease-out',
+    'text-sm font-semibold transition-all duration-200 ease-out',
     'rounded-[var(--radius-md)]',
   )
   
@@ -237,11 +237,11 @@ function isFocusedSideIndex(part: PartKey, index: 0 | 1): boolean {
   return props.slotFocus.index === index
 }
 
-const gridCols = 'grid-cols-[4rem_1fr_1fr_1fr_2fr_1fr]'
+const gridCols = 'grid-cols-[3.5rem_1fr_1fr_1fr_1.7fr_1fr] sm:grid-cols-[4rem_1fr_1fr_1fr_2fr_1fr]'
 const tableThemeKey = computed(() => (themeStore.effectiveTheme === 'dark' ? 'assignment-table-dark' : 'assignment-table-light'))
 
 // 모바일 접근성을 위한 터치 친화적 셀 높이 (WCAG 권장: 최소 48px)
-const cellHeight = 'h-14' // 56px - 터치 친화적
+const cellHeight = 'h-12' // 48px - 터치 친화적 최소 기준
 
 function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1) {
   const pLabel = part === 'part1' ? '1부' : '2부'
@@ -255,7 +255,7 @@ function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1
 <template>
   <!-- 모바일 가로 스크롤 지원: overflow-x-auto로 테이블 스크롤 허용 -->
   <div class="w-full overflow-x-auto">
-    <div :key="tableThemeKey" class="min-w-[500px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
+    <div :key="tableThemeKey" class="min-w-[460px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] sm:min-w-[500px]">
     <!-- Header -->
     <div :class="clsx('grid gap-px bg-[var(--color-border-subtle)] border-b border-[var(--color-border-subtle)]', gridCols)">
       <div class="bg-[var(--color-surface)]" />
@@ -263,16 +263,16 @@ function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1
         v-for="role in RoleKeys"
         :key="role"
         :class="clsx(
-          'py-3 px-2 flex flex-col items-center justify-center gap-0.5 bg-[var(--color-surface)]'
+          'bg-[var(--color-surface)] px-2 py-2.5 flex flex-col items-center justify-center gap-0.5'
         )"
       >
-        <span class="text-base font-bold tracking-tight" :style="{ color: ROLE_COLORS[role] }">
+        <span class="text-[0.92rem] font-semibold tracking-tight" :style="{ color: ROLE_COLORS[role] }">
           {{ role }}
         </span>
         <Badge 
           variant="outline" 
           :class="clsx(
-            'text-[10px] px-1.5 py-0 rounded-full h-auto min-w-[1.25rem] justify-center',
+            'text-[9px] px-1.5 py-0 rounded-full h-auto min-w-[1.2rem] justify-center',
             'border-[var(--color-border-subtle)] text-[var(--color-label-tertiary)]'
           )"
           :style="{ backgroundColor: `color-mix(in srgb, ${ROLE_COLORS[role]} 10%, var(--color-surface-elevated))` }"
@@ -288,7 +288,7 @@ function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1
         <!-- Row Header -->
         <div :class="clsx(
           'bg-[var(--color-surface-elevated)] flex items-center justify-center',
-          'text-sm font-bold text-[var(--color-label-secondary)]',
+          'text-[0.82rem] font-semibold text-[var(--color-label-secondary)]',
           'px-2'
         )">
           {{ part === 'part1' ? '1부' : '2부' }}
@@ -297,7 +297,7 @@ function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1
         <!-- Cells -->
         <template v-for="role in RoleKeys" :key="`${part}-${role}`">
           <!-- 사이드 (2 slots) -->
-          <div v-if="role === '사이드'" class="bg-[var(--color-canvas)] p-1 flex items-center justify-center">
+          <div v-if="role === '사이드'" class="bg-[var(--color-canvas)] p-0.5 flex items-center justify-center">
             <div class="flex w-full gap-1">
               <div
                 v-for="idx in [0, 1]"
@@ -327,7 +327,7 @@ function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1
                 <!-- Empty slot: plus icon or preview score -->
                 <template v-if="getValue(part, role, idx as 0 | 1) === ''">
                   <template v-if="previewScores?.get(getSlotKey(part, role, idx as 0 | 1))">
-                    <span :class="clsx('text-xs font-bold', getScoreColor(previewScores.get(getSlotKey(part, role, idx as 0 | 1)) || 0))">
+                    <span :class="clsx('text-sm font-bold', getScoreColor(previewScores.get(getSlotKey(part, role, idx as 0 | 1)) || 0))">
                       +{{ previewScores.get(getSlotKey(part, role, idx as 0 | 1)) }}
                     </span>
                   </template>
@@ -365,7 +365,7 @@ function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1
           </div>
 
           <!-- Single slot roles -->
-          <div v-else class="bg-[var(--color-canvas)] p-1 flex items-center justify-center">
+          <div v-else class="bg-[var(--color-canvas)] p-0.5 flex items-center justify-center">
             <div 
               :class="[
               `relative w-full ${cellHeight} transition-all duration-200 rounded-[var(--radius-md)]`,
@@ -392,7 +392,7 @@ function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1
               <!-- Empty slot: plus icon or preview score -->
               <template v-if="getValue(part, role) === ''">
                 <template v-if="previewScores?.get(getSlotKey(part, role))">
-                  <span :class="clsx('text-xs font-bold', getScoreColor(previewScores.get(getSlotKey(part, role)) || 0))">
+                  <span :class="clsx('text-sm font-bold', getScoreColor(previewScores.get(getSlotKey(part, role)) || 0))">
                     +{{ previewScores.get(getSlotKey(part, role)) }}
                   </span>
                 </template>
@@ -433,3 +433,4 @@ function getAriaLabel(part: PartKey, role: RoleKey, value: string, index?: 0 | 1
   </div>
   </div>
 </template>
+
